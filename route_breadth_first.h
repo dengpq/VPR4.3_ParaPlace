@@ -3,8 +3,8 @@
 
 #include "vpr_types.h"
 
-boolean try_breadth_first_route(struct s_router_opts router_opts,
-                                t_ivec** clb_opins_used_locally);
+boolean try_breadth_first_route(router_opts_t router_opts,
+                                vector_t** clb_opins_used_locally);
 
 #endif
 

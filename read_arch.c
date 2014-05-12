@@ -67,7 +67,7 @@
  *   Fc_input double (Sets the value of Fc for input pins.)                   *
  *   Fc_pad double (Sets the value of Fc for pads.)                           *
  *   switch_block_type [subset|wilton|universal] (Chooses the type of        *
- *      switch block used.  See vpr_types.h for details.)                    *
+ *      switch blocks used.  See vpr_types.h for details.)                    *
  *   segment frequency: <double> length: <int | longline> wire_switch: <int>  *
  *      opin_switch: <int> Frac_cb: <double> Frac_sb: <double> Rmetal: <double> *
  *      Cmetal: <double>                                                      *
@@ -75,9 +75,9 @@
  *      switch used when going *to* a segment of this type from any CHANX or *
  *      CHANY routing segment.  opin_switch is the type of switch used       *
  *      by a clb or pad output driver (OPIN) to connect to segments of this  *
- *      type.  Cmetal is the capacitance per logic block spanned (i.e. per   *
+ *      type.  Cmetal is the capacitance per logic blocks spanned (i.e. per   *
  *      channel segment) of a routing track of this segment type.            *
- *      Similarly, Rmetal is the resistance per logic block spanned.         *
+ *      Similarly, Rmetal is the resistance per logic blocks spanned.         *
  *   switch  <int> buffered: {yes|no} R: <double> Cin: <double>                *
  *      Cout: <double> Tdel: <double>.  Describes a type of switch.            *
  *   R_minW_nmos <double>   Resistance, in Ohms, of a minimum width nmos      *
@@ -89,32 +89,32 @@
  *   C_ipin_cblock <double>: Input capacitance of the buffer isolating a      *
  *      routing track from the input pin Cboxes connected to it at each      *
  *      (i,j) location.                                                      *
- *   T_ipin_cblock <double>: Delay to go through a connection block to a      *
- *      logic block (clb) input pin.                                         *
+ *   T_ipin_cblock <double>: Delay to go through a connection blocks to a      *
+ *      logic blocks (clb) input pin.                                         *
  *   T_sblk_opin_to_sblk_ipin <double>: Delay through the local interconnect  *
  *      (muxes, wires or whatever) in a clb containing multiple subblocks.   *
- *      That is, the delay from a subblock output to the input of another    *
+ *      That is, the Tdel from a subblock output to the input of another    *
  *      subblock in the same clb.                                            *
  *   T_clb_ipin_to_sblk_ipin <double>: Delay from a clb input pin to any      *
- *      subblock input pin (e.g. the mux delay in an Altera 8K clb).         *
+ *      subblock input pin (e.g. the mux Tdel in an Altera 8K clb).         *
  *   T_sblk_opin_to_clb_opin <double>: Delay from a subblock output to a clb  *
  *      output.  Will be 0 in many architectures.                            *
  *   T_ipad:  Delay through an input pad.                                    *
  *   T_opad:  Delay through an output pad (setup time if you assume the      *
  *               outputs are registered before being sent out).              *
  *   T_subblock T_comb: <double>  T_seq_in: <double> T_seq_out: <double>        *
- *      The combinational delay through a subblock combinational mode), the  *
- *      delay from subblock input to data being latched (including setup     *
- *      time), and the delay from clock to data coming out of the subblock   *
- *      output (i.e. clk_to_Q plus any delays due to muxes, etc.).  If a     *
+ *      The combinational Tdel through a subblock combinational mode), the  *
+ *      Tdel from subblock input to data being latched (including setup     *
+ *      time), and the Tdel from clock to data coming out of the subblock   *
+ *      output (i.e. clk_to_Q plus any Tdels due to muxes, etc.).  If a     *
  *      subblock is being used in combinational mode (clock input is open)   *
- *      then Tcomb is used to find the delay through it.  If the subblock    *
+ *      then Tcomb is used to find the Tdel through it.  If the subblock    *
  *      is being used in sequential mode (clock input not open) then         *
- *      T_seq_in gives the delay to the storage element and T_seq_out gives  *
- *      the delay from storage element to subblock output.  You need one     *
+ *      T_seq_in gives the Tdel to the storage element and T_seq_out gives  *
+ *      the Tdel from storage element to subblock output.  You need one     *
  *      of these T_subblock lines for each of the subblocks_per_clb          *
- *      subblocks in your architecture.  The first line gives the delays for *
- *      subblock 0 (first one listed for each logic block in the netlist     *
+ *      subblocks in your architecture.  The first line gives the Tdels for *
+ *      subblock 0 (first one listed for each logic blocks in the netlist     *
  *      file) and so on.                                                     */
 
 
@@ -134,8 +134,10 @@
 /******************** Variables local to this module. **********************/
 
 static int isread[NUMINP];
-static const char* names[NUMINP] = {"io_rat", "chan_width_x", "chan_width_y",
-                                    "chan_width_io", "outpin", "inpin", "subblocks_per_clb",
+static const char* names[NUMINP] = {"io_rat",
+                                    "chan_width_x", "chan_width_y",
+                                    "chan_width_io",
+                                    "outpin", "inpin", "subblocks_per_clb",
                                     "subblock_lut_size", "Fc_output", "Fc_input", "Fc_pad", "Fc_type",
                                     "switch_block_type", "segment", "switch", "R_minW_nmos", "R_minW_pmos",
                                     "C_ipin_cblock", "T_ipin_cblock", "T_sblk_opin_to_sblk_ipin",
@@ -159,60 +161,60 @@ static char* get_middle_token(FILE* fp, char* buf);
 static char* get_last_token(FILE* fp, char* buf);
 static void check_keyword(FILE* fp, char* buf, const char* keyword);
 
-static void check_arch(char* arch_file, enum e_route_type route_type,
-                       struct s_det_routing_arch det_routing_arch, t_segment_inf
-                       *segment_inf, t_timing_inf timing_inf, int
-                       max_subblocks_per_block, t_chan_width_dist chan_width_dist);
+static void check_arch(char* arch_file, router_types_t route_type,
+                       detail_routing_arch_t det_routing_arch, segment_info_t
+                       *segment_inf, timing_info_t timing_inf, int
+                       max_subblocks_per_block, chan_width_distr_t chan_width_dist);
 
 static void fill_arch(void);
 
-static void get_chan(char* ptr, t_chan* chan, int inp_num, FILE* fp_arch,
+static void gechannel_t(char* ptr, channel_t* chan, int inp_num, FILE* fp_arch,
                      char* buf);
 
-static void get_pin(char* ptr, int pinnum, enum e_pin_type type,
+static void get_pin(char* ptr, int pinnum, pin_types_t type,
                     FILE* fp_arch, char* buf);
 static enum e_Fc_type get_Fc_type(char* ptr, FILE* fp_arch, char* buf);
 
-static enum e_switch_block_type get_switch_block_type(FILE* fp_arch,
+static switch_block_t get_switch_block_type(FILE* fp_arch,
                                                       char* buf);
 
-static void get_segment_inf(FILE* fp_arch, char* buf,
-                            t_segment_inf* seg_ptr, int num_switch, enum e_route_type
+static void gesegment_info_t(FILE* fp_arch, char* buf,
+                            segment_info_t* seg_ptr, int num_switch, router_types_t
                             route_type);
 
 static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,
-                           enum e_route_type route_type);
+                           router_types_t route_type);
 
-static void get_T_subblock(FILE* fp_arch, char* buf, t_T_subblock
+static void get_T_subblock(FILE* fp_arch, char* buf, T_subblock_t
                            *T_subblock);
 
 static int get_class(FILE* fp_arch, char* buf);
 
-static void load_global_segment_and_switch(struct s_det_routing_arch *
-                                           det_routing_arch, t_segment_inf* segment_inf, t_timing_inf
+static void load_global_segment_and_switch(detail_routing_arch_t *
+                                           det_routing_arch, segment_info_t* segment_inf, timing_info_t
                                            *timing_inf);
 
-static void load_extra_switch_types(struct s_det_routing_arch *
-                                    det_routing_arch, t_timing_inf* timing_inf);
+static void load_extra_switch_types(detail_routing_arch_t *
+                                    det_routing_arch, timing_info_t* timing_inf);
 
-static void countpass(FILE* fp_arch, enum e_route_type route_type,
-                      t_segment_inf** segment_inf_ptr, struct
-                      s_det_routing_arch* det_routing_arch_ptr, t_timing_inf
+static void countpass(FILE* fp_arch, router_types_t route_type,
+                      segment_info_t** segment_inf_ptr, struct
+                      s_det_routing_arch* det_routing_arch_ptr, timing_info_t
                       *timing_inf);
 
 
 
 /****************** Subroutine definitions **********************************/
 /* Reads in the architecture description file for the FPGA. */
-void read_arch(char* arch_file, enum e_route_type route_type,
-               struct s_det_routing_arch* det_routing_arch, t_segment_inf
-               ** segment_inf_ptr, t_timing_inf* timing_inf_ptr, t_subblock_data
-               *subblock_data_ptr, t_chan_width_dist* chan_width_dist_ptr)
+void read_arch(char* arch_file, router_types_t route_type,
+               detail_routing_arch_t* det_routing_arch, segment_info_t
+               ** segment_inf_ptr, timing_info_t* timing_inf_ptr, subblock_data_t
+               *subblock_data_ptr, chan_width_distr_t* chan_width_dist_ptr)
 {
     int i, j, pinnum, next_segment;
     char* ptr, buf[BUFSIZE];
     FILE* fp_arch;
-    t_T_subblock* next_T_subblock_ptr;
+    T_subblock_t* next_T_subblock_ptr;
     fp_arch = my_fopen(arch_file, "r", 0);
     countpass(fp_arch, route_type, segment_inf_ptr, det_routing_arch,
               timing_inf_ptr);
@@ -255,12 +257,12 @@ void read_arch(char* arch_file, enum e_route_type route_type,
         }
 
         if (strcmp(ptr, names[1]) == 0) { /*chan_width_x */
-            get_chan(ptr, &chan_width_dist_ptr->chan_x_dist, 1, fp_arch, buf);
+            gechannel_t(ptr, &chan_width_dist_ptr->chan_x_dist, 1, fp_arch, buf);
             continue;
         }
 
         if (strcmp(ptr, names[2]) == 0) { /* chan_width_y */
-            get_chan(ptr, &chan_width_dist_ptr->chan_y_dist, 2, fp_arch, buf);
+            gechannel_t(ptr, &chan_width_dist_ptr->chan_y_dist, 2, fp_arch, buf);
             continue;
         }
 
@@ -328,7 +330,7 @@ void read_arch(char* arch_file, enum e_route_type route_type,
         }
 
         if (strcmp(ptr, names[DETAILED_START + 5]) == 0) { /* segment */
-            get_segment_inf(fp_arch, buf, *segment_inf_ptr + next_segment,
+            gesegment_info_t(fp_arch, buf, *segment_inf_ptr + next_segment,
                             det_routing_arch->num_switch, route_type);
             next_segment++;
             isread[DETAILED_START + 5]++;
@@ -424,9 +426,9 @@ void read_arch(char* arch_file, enum e_route_type route_type,
 }
 
 
-static void countpass(FILE* fp_arch, enum e_route_type route_type,
-                      t_segment_inf** segment_inf_ptr, struct s_det_routing_arch
-                      *det_routing_arch_ptr, t_timing_inf* timing_inf_ptr)
+static void countpass(FILE* fp_arch, router_types_t route_type,
+                      segment_info_t** segment_inf_ptr, detail_routing_arch_t
+                      *det_routing_arch_ptr, timing_info_t* timing_inf_ptr)
 {
     /* This routine parses the input architecture file in order to count the    *
      * number of pinclasses, pins, segments, etc. so storage can be allocated   *
@@ -434,11 +436,11 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
     char buf[BUFSIZE], *ptr;
     int* pins_per_class, iclass, i, num_segment, num_switch, num_T_subblock;
     linenum = 0;
-    num_class = 1;   /* Must be at least 1 class  */
+    num_pin_class = 1;   /* Must be at least 1 class  */
     num_segment = 0;
     num_switch = 0;
     num_T_subblock = 0;
-    pins_per_class = (int*) my_calloc(num_class, sizeof(int));
+    pins_per_class = (int*)my_calloc(num_pin_class, sizeof(int));
 
     while ((ptr = my_fgets(buf, BUFSIZE, fp_arch)) != NULL) {
         ptr = my_strtok(ptr, TOKENS, fp_arch, buf);
@@ -451,15 +453,15 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
                 || strcmp(ptr, "global_inpin") == 0) {
             iclass = get_class(fp_arch, buf);
 
-            if (iclass >= num_class) {
+            if (iclass >= num_pin_class) {
                 pins_per_class = (int*) my_realloc(pins_per_class,
                                                    (iclass + 1) * sizeof(int));
 
-                for (i = num_class; i <= iclass; i++) {
+                for (i = num_pin_class; i <= iclass; i++) {
                     pins_per_class[i] = 0;
                 }
 
-                num_class = iclass + 1;
+                num_pin_class = iclass + 1;
             }
 
             pins_per_class[iclass]++;
@@ -480,7 +482,7 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
 
     /* Check for missing classes. */
 
-    for (i = 0; i < num_class; i++) {
+    for (i = 0; i < num_pin_class; i++) {
         if (pins_per_class[i] == 0) {
             printf("\nError:  class index %d not used in architecture "
                    "file.\n", i);
@@ -491,10 +493,10 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
 
     /* I've now got a count of how many classes there are and how many    *
      * pins belong to each class.  Allocate the proper memory.            */
-    class_inf = (struct s_class*) my_malloc(num_class * sizeof(struct s_class));
+    class_inf = (pin_class_t*) my_malloc(num_pin_class * sizeof(pin_class_t));
     pins_per_clb = 0;
 
-    for (i = 0; i < num_class; i++) {
+    for (i = 0; i < num_pin_class; i++) {
         class_inf[i].type = OPEN;                   /* Flag for not set yet. */
         class_inf[i].num_pins = 0;
         class_inf[i].pinlist = (int*) my_malloc(pins_per_class[i] *
@@ -514,7 +516,7 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
         num_segment = 1;
         num_switch = 1;
     } else { /* route_type == DETAILED */
-        num_switch += 2;   /* Two extra switch types:  1 for zero delay, */
+        num_switch += 2;   /* Two extra switch types:  1 for zero Tdel, */
         /* 1 for connections from wires to IPINs.     */
     }
 
@@ -523,8 +525,8 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
         exit(1);
     }
 
-    *segment_inf_ptr = (t_segment_inf*) my_malloc(num_segment *
-                                                  sizeof(t_segment_inf));
+    *segment_inf_ptr = (segment_info_t*) my_malloc(num_segment *
+                                                  sizeof(segment_info_t));
     det_routing_arch_ptr->num_segment = num_segment;
 
     if (num_switch < 1) {
@@ -532,8 +534,8 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
         exit(1);
     }
 
-    switch_inf = (struct s_switch_inf*) my_malloc(num_switch *
-                                                  sizeof(struct s_switch_inf));
+    switch_inf = (switch_info_t*) my_malloc(num_switch *
+                                                  sizeof(switch_info_t));
 
     for (i = 0; i < num_switch; i++) {
         switch_inf[i].R = -1.;    /* Flag to show it's not set yet. */
@@ -542,8 +544,8 @@ static void countpass(FILE* fp_arch, enum e_route_type route_type,
     det_routing_arch_ptr->num_switch = num_switch;
 
     if (num_T_subblock != 0)
-        timing_inf_ptr->T_subblock = (t_T_subblock*) my_malloc(num_T_subblock *
-                                                               sizeof(t_T_subblock));
+        timing_inf_ptr->T_subblock = (T_subblock_t*) my_malloc(num_T_subblock *
+                                                               sizeof(T_subblock_t));
     else {
         timing_inf_ptr->T_subblock = NULL;
     }
@@ -592,7 +594,7 @@ static int get_class(FILE* fp_arch, char* buf)
 }
 
 
-static void get_pin(char* ptr, int pinnum, enum e_pin_type type,
+static void get_pin(char* ptr, int pinnum, pin_types_t type,
                     FILE* fp_arch, char* buf)
 {
     /* This routine parses an ipin or outpin line.  It should be called right   *
@@ -689,13 +691,13 @@ static enum e_Fc_type get_Fc_type(char* ptr, FILE* fp_arch, char* buf)
 }
 
 
-static enum e_switch_block_type get_switch_block_type(FILE* fp_arch,
+static switch_block_t get_switch_block_type(FILE* fp_arch,
                                                       char* buf)
 {
     /* Returns the proper value for the switch_block_type member of        *
      *  det_routing_arch.                                                  */
     char* ptr;
-    enum e_switch_block_type sblock_type;
+    switch_block_t sblock_type;
     ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
 
     if (ptr == NULL) {
@@ -727,10 +729,10 @@ static enum e_switch_block_type get_switch_block_type(FILE* fp_arch,
 }
 
 
-static void get_T_subblock(FILE* fp_arch, char* buf, t_T_subblock
+static void get_T_subblock(FILE* fp_arch, char* buf, T_subblock_t
                            *T_subblock)
 {
-    /* Parses one T_subblock line, and loads it into the t_T_subblock structure *
+    /* Parses one T_subblock line, and loads it into the T_subblock_t structure *
      * pointed to by T_subblock.                                                */
     char* ptr;
     check_keyword(fp_arch, buf, "T_comb:");
@@ -765,8 +767,8 @@ static void get_T_subblock(FILE* fp_arch, char* buf, t_T_subblock
 }
 
 
-static void get_segment_inf(FILE* fp_arch, char* buf, t_segment_inf* seg_ptr,
-                            int num_switch, enum e_route_type route_type)
+static void gesegment_info_t(FILE* fp_arch, char* buf, segment_info_t* seg_ptr,
+                            int num_switch, router_types_t route_type)
 {
     /* Loads the segment data structure pointed to by seg_ptr with the proper   *
      * values from fp_arch, if route_type == DETAILED.                          */
@@ -893,7 +895,7 @@ static void get_segment_inf(FILE* fp_arch, char* buf, t_segment_inf* seg_ptr,
 
 
 static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,
-                           enum e_route_type route_type)
+                           router_types_t route_type)
 {
     /* Loads up all the switch information.                                     */
     char* ptr;
@@ -985,26 +987,26 @@ static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,
     switch_inf[index].Tdel = atof(ptr);
 
     if (switch_inf[index].Tdel < 0) {
-        printf("Error on line %d:  delay value (%g) is negative.\n",
+        printf("Error on line %d:  Tdel value (%g) is negative.\n",
                linenum, switch_inf[index].Tdel);
         exit(1);
     }
 }
 
 
-static void load_global_segment_and_switch(struct s_det_routing_arch *
-                                           det_routing_arch, t_segment_inf* segment_inf, t_timing_inf
+static void load_global_segment_and_switch(detail_routing_arch_t *
+                                           det_routing_arch, segment_info_t* segment_inf, timing_info_t
                                            *timing_inf)
 {
     /* Loads up the one segment type (unit length segment) and one switch type   *
      * (pass transistor) needed to make the graph builder allow global routing.  *
-     * Also sets the switch block type to SUBSET (works for global routing).     */
+     * Also sets the switch blocks type to SUBSET (works for global routing).     */
     det_routing_arch->switch_block_type = SUBSET;
     det_routing_arch->Fc_output = 1.;
     det_routing_arch->Fc_input = 1.;
     det_routing_arch->Fc_pad = 1.;
     det_routing_arch->Fc_type = ABSOLUTE;
-    det_routing_arch->delayless_switch = 0;
+    det_routing_arch->Tdelless_switch = 0;
     det_routing_arch->wire_to_ipin_switch = 0;
     segment_inf[0].frequency = 1.;
     segment_inf[0].length = 1;
@@ -1019,36 +1021,36 @@ static void load_global_segment_and_switch(struct s_det_routing_arch *
     switch_inf[0].R = 0.;
     switch_inf[0].Cin = 0.;
     switch_inf[0].Cout = 0.;
-    switch_inf[0].Tdel = 1.;  /* Need increasing delay with distance from      */
+    switch_inf[0].Tdel = 1.;  /* Need increasing Tdel with distance from      */
     /* source or the timing-driven router won't work for global routing. */
 }
 
 
-static void load_extra_switch_types(struct s_det_routing_arch *
-                                    det_routing_arch, t_timing_inf* timing_inf)
+static void load_extra_switch_types(detail_routing_arch_t *
+                                    det_routing_arch, timing_info_t* timing_inf)
 {
-    /* Adds two extra switches to the routing architecture. One is a zero delay, *
-     * zero C switch that I use to make connections that should have no delay.   *
-     * The other is a switch that models the buffer + connection block delay     *
+    /* Adds two extra switches to the routing architecture. One is a zero Tdel, *
+     * zero C switch that I use to make connections that should have no Tdel.   *
+     * The other is a switch that models the buffer + connection blocks Tdel     *
      * that occurs when one goes from wire segments to IPINs.                    */
-    int delayless_switch, wire_to_ipin_switch;
-    delayless_switch = det_routing_arch->num_switch - 1;
-    det_routing_arch->delayless_switch = delayless_switch;
+    int Tdelless_switch, wire_to_ipin_switch;
+    Tdelless_switch = det_routing_arch->num_switch - 1;
+    det_routing_arch->Tdelless_switch = Tdelless_switch;
     wire_to_ipin_switch = det_routing_arch->num_switch - 2;
     det_routing_arch->wire_to_ipin_switch = wire_to_ipin_switch;
 
-    if (switch_inf[delayless_switch].R >= 0. ||
+    if (switch_inf[Tdelless_switch].R >= 0. ||
             switch_inf[wire_to_ipin_switch].R >= 0.) {
         printf("Error:  switch indices are not consecutive or do not start at 0."
                "\n");
         exit(1);
     }
 
-    switch_inf[delayless_switch].buffered = TRUE;
-    switch_inf[delayless_switch].R = 0.;
-    switch_inf[delayless_switch].Cin = 0.;
-    switch_inf[delayless_switch].Cout = 0.;
-    switch_inf[delayless_switch].Tdel = 0.;
+    switch_inf[Tdelless_switch].buffered = TRUE;
+    switch_inf[Tdelless_switch].R = 0.;
+    switch_inf[Tdelless_switch].Cin = 0.;
+    switch_inf[Tdelless_switch].Cout = 0.;
+    switch_inf[Tdelless_switch].Tdel = 0.;
     switch_inf[wire_to_ipin_switch].buffered = TRUE;
     switch_inf[wire_to_ipin_switch].R = 0.;
     switch_inf[wire_to_ipin_switch].Cin = timing_inf->C_ipin_cblock;
@@ -1192,7 +1194,7 @@ static double get_double(char* ptr, int inp_num, double low_lim,
  * Other possibility:  chan_width_x delta peak xpeak dc        */
 
 
-static void get_chan(char* ptr, t_chan* chan, int inp_num, FILE* fp_arch,
+static void gechannel_t(char* ptr, channel_t* chan, int inp_num, FILE* fp_arch,
                      char* buf)
 {
     /* This routine parses a channel functional description line.  chan  *
@@ -1252,10 +1254,10 @@ static void get_chan(char* ptr, t_chan* chan, int inp_num, FILE* fp_arch,
 }
 
 
-static void check_arch(char* arch_file, enum e_route_type route_type,
-                       struct s_det_routing_arch det_routing_arch, t_segment_inf* segment_inf,
-                       t_timing_inf timing_inf, int max_subblocks_per_block,
-                       t_chan_width_dist chan_width_dist)
+static void check_arch(char* arch_file, router_types_t route_type,
+                       detail_routing_arch_t det_routing_arch, segment_info_t* segment_inf,
+                       timing_info_t timing_inf, int max_subblocks_per_block,
+                       chan_width_distr_t chan_width_dist)
 {
     /* This routine checks that the input architecture file makes sense and *
      * specifies all the needed parameters.  The parameters must also be    *
@@ -1263,7 +1265,7 @@ static void check_arch(char* arch_file, enum e_route_type route_type,
     int i, fatal, opin_switch;
     double total_segment_freq, chan_width_io;
     boolean must_be_set[NUMINP];
-    t_chan chan_x_dist, chan_y_dist;
+    channel_t chan_x_dist, chan_y_dist;
     fatal = 0;
 
     /* NUMINP parameters can be set in the architecture file.  The first      *
@@ -1409,18 +1411,18 @@ static void check_arch(char* arch_file, enum e_route_type route_type,
 }
 
 
-void print_arch(char* arch_file, enum e_route_type route_type,
-                struct s_det_routing_arch det_routing_arch, t_segment_inf* segment_inf,
-                t_timing_inf timing_inf, t_subblock_data subblock_data,
-                t_chan_width_dist chan_width_dist)
+void print_arch(char* arch_file, router_types_t route_type,
+                detail_routing_arch_t det_routing_arch, segment_info_t* segment_inf,
+                timing_info_t timing_inf, subblock_data_t subblock_data,
+                chan_width_distr_t chan_width_dist)
 {
     /* Prints out the architectural parameters for verification in the  *
      * file "arch.echo."  The name of the architecture file is passed   *
      * in and is printed out as well.                                   */
     int i, j;
     FILE* fp;
-    t_T_subblock T_subblock;
-    t_chan chan_x_dist, chan_y_dist;
+    T_subblock_t T_subblock;
+    channel_t chan_x_dist, chan_y_dist;
     double chan_width_io;
     fp = my_fopen("arch.echo", "w", 0);
     chan_width_io = chan_width_dist.chan_width_io;
@@ -1456,7 +1458,7 @@ void print_arch(char* arch_file, enum e_route_type route_type,
             RECEIVER);
     fprintf(fp, "Class\tType\tNumpins\tPins");
 
-    for (i = 0; i < num_class; i++) {
+    for (i = 0; i < num_pin_class; i++) {
         fprintf(fp, "\n%d\t%d\t%d\t", i, class_inf[i].type, class_inf[i].num_pins);
 
         for (j = 0; j < class_inf[i].num_pins; j++) {
@@ -1499,8 +1501,8 @@ void print_arch(char* arch_file, enum e_route_type route_type,
         fprintf(fp, "(Two switch types were generated automatically.)\n");
     }
 
-    fprintf(fp, "#%d:  delayless switch.  #%d:  wire_to_ipin_switch.\n",
-            det_routing_arch.delayless_switch,
+    fprintf(fp, "#%d:  Tdelless switch.  #%d:  wire_to_ipin_switch.\n",
+            det_routing_arch.Tdelless_switch,
             det_routing_arch.wire_to_ipin_switch);
     fprintf(fp, "\nSeg. #\tfreq.\tlength\tlongln\topin_sw\twire_sw\tFrac_cb\t"
             "Frac_sb\tCmetal\tRmetal\n");
@@ -1553,7 +1555,7 @@ void init_arch(double aspect_ratio, boolean user_sized)
     /* Allocates various data structures that depend on the FPGA         *
      * architecture.  Aspect_ratio specifies how many columns there are  *
      * relative to the number of rows -- i.e. width/height.  Used-sized  *
-     * is TRUE if the user specified nx and ny already; in that case     *
+     * is TRUE if the user specified num_of_columns and num_of_rows already; in that case     *
      * use the user's values and don't recompute them.                   */
     int io_lim;
 
@@ -1561,51 +1563,51 @@ void init_arch(double aspect_ratio, boolean user_sized)
      * will fit the circuit.                                             */
 
     if (user_sized == TRUE) {
-        if (num_clbs > nx * ny || num_p_inputs + num_p_outputs >
-                2 * io_rat * (nx + ny)) {
+        if (num_clbs > num_of_columns * num_of_rows || num_primary_inputs + num_primary_outputs >
+                2 * io_rat * (num_of_columns + num_of_rows)) {
             printf("Error:  User-specified size is too small for circuit.\n");
             exit(1);
         }
     }
     /* Size the FPGA automatically to be smallest that will fit circuit */
     else {
-        /* Area = nx * ny = ny * ny * aspect_ratio                  *
-         * Perimeter = 2 * (nx + ny) = 2 * ny * (1. + aspect_ratio)  */
-        ny = (int) ceil(sqrt((double)(num_clbs / aspect_ratio)));
-        io_lim = (int) ceil((num_p_inputs + num_p_outputs) / (2 * io_rat *
+        /* Area = num_of_columns * num_of_rows = num_of_rows * num_of_rows * aspect_ratio                  *
+         * Perimeter = 2 * (num_of_columns + num_of_rows) = 2 * num_of_rows * (1. + aspect_ratio)  */
+        num_of_rows = (int) ceil(sqrt((double)(num_clbs / aspect_ratio)));
+        io_lim = (int) ceil((num_primary_inputs + num_primary_outputs) / (2 * io_rat *
                                                               (1. + aspect_ratio)));
-        ny = max(ny, io_lim);
-        nx = (int) ceil(ny * aspect_ratio);
+        num_of_rows = max(num_of_rows, io_lim);
+        num_of_columns = (int) ceil(num_of_rows * aspect_ratio);
     }
 
-    /* If both nx and ny are 1, we only have one valid location for a clb. *
+    /* If both num_of_columns and num_of_rows are 1, we only have one valid location for a clb. *
      * That's a major problem, as won't be able to move the clb and the    *
      * find_to routine that tries moves in the placer will go into an      *
      * infinite loop trying to move it.  Exit with an error message        *
      * instead.                                                            */
 
-    if (nx == 1  && ny == 1 && num_clbs != 0) {
+    if (num_of_columns == 1  && num_of_rows == 1 && num_clbs != 0) {
         printf("Error:\n");
         printf("Sorry, can't place a circuit with only one valid location\n");
-        printf("for a logic block (clb).\n");
+        printf("for a logic blocks (clb).\n");
         printf("Try me with a more realistic circuit!\n");
         exit(1);
     }
 
-    /* To remove this limitation, change ylow etc. in t_rr_node to        *
+    /* To remove this limitation, change ylow etc. in rr_node_t to        *
      * be ints instead.  Used shorts to save memory.                      */
 
-    if (nx > 32766 || ny > 32766) {
-        printf("Error:  nx and ny must be less than 32767, since the \n");
+    if (num_of_columns > 32766 || num_of_rows > 32766) {
+        printf("Error:  num_of_columns and num_of_rows must be less than 32767, since the \n");
         printf("router uses shorts (16-bit) to store coordinates.\n");
-        printf("nx: %d.  ny: %d.\n", nx, ny);
+        printf("num_of_columns: %d.  num_of_rows: %d.\n", num_of_columns, num_of_rows);
         exit(1);
     }
 
-    clb = (struct s_clb**) alloc_matrix(0, nx + 1, 0, ny + 1,
-                                        sizeof(struct s_clb));
-    chan_width_x = (int*) my_malloc((ny + 1) * sizeof(int));
-    chan_width_y = (int*) my_malloc((nx + 1) * sizeof(int));
+    clb = (clb_t**) alloc_matrix(0, num_of_columns + 1, 0, num_of_rows + 1,
+                                        sizeof(clb_t));
+    chan_width_x = (int*) my_malloc((num_of_rows + 1) * sizeof(int));
+    chan_width_y = (int*) my_malloc((num_of_columns + 1) * sizeof(int));
     fill_arch();
 }
 
@@ -1615,42 +1617,42 @@ static void fill_arch(void)
     /* Fill some of the FPGA architecture data structures.         */
     int i, j, *index;
     /* allocate io_blocks arrays. Done this way to save storage */
-    i = 2 * io_rat * (nx + ny);
+    i = 2 * io_rat * (num_of_columns + num_of_rows);
     index = (int*) my_malloc(i * sizeof(int));
 
-    for (i = 1; i <= nx; i++) {
+    for (i = 1; i <= num_of_columns; i++) {
         clb[i][0].u.io_blocks = index;
         index += io_rat;
-        clb[i][ny + 1].u.io_blocks = index;
+        clb[i][num_of_rows + 1].u.io_blocks = index;
         index += io_rat;
     }
 
-    for (i = 1; i <= ny; i++) {
+    for (i = 1; i <= num_of_rows; i++) {
         clb[0][i].u.io_blocks = index;
         index += io_rat;
-        clb[nx + 1][i].u.io_blocks = index;
+        clb[num_of_columns + 1][i].u.io_blocks = index;
         index += io_rat;
     }
 
     /* Initialize type, and occupancy. */
 
-    for (i = 1; i <= nx; i++) {
+    for (i = 1; i <= num_of_columns; i++) {
         clb[i][0].type = IO;
-        clb[i][ny + 1].type = IO; /* perimeter (IO) cells */
+        clb[i][num_of_rows + 1].type = IO; /* perimeter (IO) cells */
     }
 
-    for (i = 1; i <= ny; i++) {
+    for (i = 1; i <= num_of_rows; i++) {
         clb[0][i].type = IO;
-        clb[nx + 1][i].type = IO;
+        clb[num_of_columns + 1][i].type = IO;
     }
 
-    for (i = 1; i <= nx; i++) { /* interior (LUT) cells */
-        for (j = 1; j <= ny; j++) {
+    for (i = 1; i <= num_of_columns; i++) { /* interior (LUT) cells */
+        for (j = 1; j <= num_of_rows; j++) {
             clb[i][j].type = CLB;
         }
     }
 
     /* Nothing goes in the corners.      */
-    clb[0][0].type = clb[nx + 1][0].type = ILLEGAL;
-    clb[0][ny + 1].type = clb[nx + 1][ny + 1].type = ILLEGAL;
+    clb[0][0].type = clb[num_of_columns + 1][0].type = ILLEGAL;
+    clb[0][num_of_rows + 1].type = clb[num_of_columns + 1][num_of_rows + 1].type = ILLEGAL;
 }

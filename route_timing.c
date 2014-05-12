@@ -23,10 +23,10 @@ static void timing_driven_expand_neighbours(struct s_heap* current, int inet,
                                             double bend_cost, double criticality_fac, int target_node, double
                                             astar_fac);
 
-static double get_timing_driven_expected_cost(int inode, int target_node,
+static double get_timing_driven_expected_cost(int ivex, int target_node,
                                              double criticality_fac, double R_upstream);
 
-static int get_expected_segs_to_target(int inode, int target_node, int *
+static int get_expected_segs_to_target(int ivex, int target_node, int *
                                        num_segs_ortho_dir_ptr);
 
 static void update_rr_base_costs(int inet, double largest_criticality);
@@ -36,9 +36,9 @@ static void timing_driven_check_net_delays(double** net_delay);
 
 /************************ Subroutine definitions *****************************/
 /* FIXME: Timing-Driven Router */
-boolean try_timing_driven_route(struct s_router_opts router_opts,
+boolean try_timing_driven_route(router_opts_t router_opts,
                                 double** net_slack, double** net_delay,
-                                t_ivec** clb_opins_used_locally)
+                                vector_t** clb_opins_used_locally)
 {
     /* Timing-driven routing algorithm.  The timing graph (includes net_slack)   *
      * must have already been allocated, and net_delay must have been allocated. *
@@ -51,14 +51,14 @@ boolean try_timing_driven_route(struct s_router_opts router_opts,
                                       &rt_node_of_sink);
 
     /* First do one routing iteration ignoring congestion and marking all sinks *
-     * on each net as critical to get reasonable net delay estimates.           */
+     * on each net as critical to get reasonable net Tdel estimates.           */
     int inet, ipin;
     for (inet = 0; inet < num_nets; ++inet) {
         if (is_global[inet] == FALSE) {
             for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
                 net_slack[inet][ipin] = 0.0;
             }
-        } else {  /* Set delay of global signals to zero. */
+        } else {  /* Set Tdel of global signals to zero. */
             for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
                 net_delay[inet][ipin] = 0.0;
             }
@@ -125,9 +125,11 @@ boolean try_timing_driven_route(struct s_router_opts router_opts,
         }
 
         /* Update slack values by doing another timing analysis.                 *
-         * Timing_driven_route_net updated the net delay values.                 */
+         * Timing_driven_route_net updated the net Tdel values.                 */
         load_timing_graph_net_delays(net_delay);
-        T_crit = load_net_slack(net_slack, 0);
+        T_crit = calc_all_vertexs_arr_req_time(0);
+        compute_net_slacks(net_slack);
+
         printf("T_crit: %g.\n", T_crit);
     }  /* end of for () */
 
@@ -242,16 +244,16 @@ boolean timing_driven_route_net(int inet, double pres_fac,
             return (FALSE);
         }
 
-        int inode = current->index;
-        while (inode != target_node) {
-            double old_tcost = rr_node_route_inf[inode].path_cost;
+        int ivex = current->index;
+        while (ivex != target_node) {
+            double old_tcost = rr_node_route_inf[ivex].path_cost;
             double new_tcost = current->cost;
 
             double old_back_cost = 0.0;
             if (old_tcost > 0.99 * HUGE_FLOAT) { /* First time touched. */
                 old_back_cost = HUGE_FLOAT;
             } else {
-                old_back_cost = rr_node_route_inf[inode].backward_path_cost;
+                old_back_cost = rr_node_route_inf[ivex].backward_path_cost;
             }
 
             double new_back_cost = current->backward_path_cost;
@@ -266,13 +268,13 @@ boolean timing_driven_route_net(int inet, double pres_fac,
 
             if (old_tcost > new_tcost && old_back_cost > new_back_cost) {
                 /*       if (old_tcost > new_tcost)   */
-                rr_node_route_inf[inode].prev_node = current->u.prev_node;
-                rr_node_route_inf[inode].prev_edge = current->prev_edge;
-                rr_node_route_inf[inode].path_cost = new_tcost;
-                rr_node_route_inf[inode].backward_path_cost = new_back_cost;
+                rr_node_route_inf[ivex].prev_node = current->u.prev_node;
+                rr_node_route_inf[ivex].prev_edge = current->prev_edge;
+                rr_node_route_inf[ivex].path_cost = new_tcost;
+                rr_node_route_inf[ivex].backward_path_cost = new_back_cost;
 
                 if (old_tcost > 0.99 * HUGE_FLOAT) { /* First time touched. */
-                    add_to_mod_list(&rr_node_route_inf[inode].path_cost);
+                    add_to_mod_list(&rr_node_route_inf[ivex].path_cost);
                 }
 
                 timing_driven_expand_neighbours(current, inet, bend_cost,
@@ -288,17 +290,17 @@ boolean timing_driven_route_net(int inet, double pres_fac,
                 return (FALSE);
             }
 
-            inode = current->index;
-        } /* end of while(inode != target_node) */
+            ivex = current->index;
+        } /* end of while(ivex != target_node) */
 
         /* NB:  In the code below I keep two records of the partial routing:  the   *
          * traceback and the route_tree.  The route_tree enables fast recomputation *
-         * of the Elmore delay to each node in the partial routing.  The traceback  *
+         * of the Elmore Tdel to each node in the partial routing.  The traceback  *
          * lets me reuse all the routines written for breadth-first routing, which  *
          * all take a traceback structure as input.  Before this routine exits the  *
          * route_tree structure is destroyed; only the traceback is needed at that  *
          * point.                                                                   */
-        rr_node_route_inf[inode].target_flag--;    /* Connected to this SINK. */
+        rr_node_route_inf[ivex].target_flag--;    /* Connected to this SINK. */
         struct s_trace* new_route_start_tptr = update_traceback(current, inet);
         rt_node_of_sink[target_pin] = update_route_tree(current);
         free_heap_data(current);
@@ -320,7 +322,7 @@ static void add_route_tree_to_heap(t_rt_node* rt_node, int target_node,
     /* Puts the entire partial routing below and including rt_node onto the heap *
      * (except for those parts marked as not to be expanded) by calling itself   *
      * recursively.                                                              */
-    int inode;
+    int ivex;
     t_rt_node* child_node;
     t_linked_rt_edge* linked_rt_edge;
     double tot_cost, backward_path_cost, R_upstream;
@@ -328,12 +330,12 @@ static void add_route_tree_to_heap(t_rt_node* rt_node, int target_node,
     /* Pre-order depth-first traversal */
 
     if (rt_node->re_expand) {
-        inode = rt_node->inode;
+        ivex = rt_node->ivex;
         backward_path_cost = target_criticality * rt_node->Tdel;
         R_upstream = rt_node->R_upstream;
         tot_cost = backward_path_cost + astar_fac * get_timing_driven_expected_cost
-                   (inode, target_node, target_criticality, R_upstream);
-        node_to_heap(inode, tot_cost, NO_PREVIOUS, NO_PREVIOUS,
+                   (ivex, target_node, target_criticality, R_upstream);
+        node_to_heap(ivex, tot_cost, NO_PREVIOUS, NO_PREVIOUS,
                      backward_path_cost, R_upstream);
     }
 
@@ -355,19 +357,19 @@ static void timing_driven_expand_neighbours(struct s_heap* current, int inet,
     /* Puts all the rr_nodes adjacent to current on the heap.  rr_nodes outside *
      * the expanded bounding box specified in route_bb are not added to the     *
      * heap.                                                                    */
-    int iconn, to_node, num_edges, inode, iswitch, target_x, target_y;
-    t_rr_type from_type, to_type;
+    int iconn, to_node, num_edges, ivex, iswitch, target_x, target_y;
+    rr_types_t from_type, to_type;
     double new_tot_cost, old_back_pcost, new_back_pcost, R_upstream;
     double new_R_upstream, Tdel;
-    inode = current->index;
+    ivex = current->index;
     old_back_pcost = current->backward_path_cost;
     R_upstream = current->R_upstream;
-    num_edges = rr_node[inode].num_edges;
+    num_edges = rr_node[ivex].num_edges;
     target_x = rr_node[target_node].xhigh;
     target_y = rr_node[target_node].yhigh;
 
     for (iconn = 0; iconn < num_edges; iconn++) {
-        to_node = rr_node[inode].edges[iconn];
+        to_node = rr_node[ivex].edges[iconn];
 
         if (rr_node[to_node].xhigh < route_bb[inet].xmin ||
                 rr_node[to_node].xlow > route_bb[inet].xmax  ||
@@ -389,11 +391,11 @@ static void timing_driven_expand_neighbours(struct s_heap* current, int inet,
 
         /* new_back_pcost stores the "known" part of the cost to this node -- the   *
          * congestion cost of all the routing resources back to the existing route  *
-         * plus the known delay of the total path back to the source.  new_tot_cost *
+         * plus the known Tdel of the total path back to the source.  new_tot_cost *
          * is this "known" backward cost + an expected cost to get to the target.   */
         new_back_pcost = old_back_pcost + (1. - criticality_fac) *
                          get_rr_cong_cost(to_node);
-        iswitch = rr_node[inode].switches[iconn];
+        iswitch = rr_node[ivex].switches[iconn];
 
         if (switch_inf[iswitch].buffered) {
             new_R_upstream = switch_inf[iswitch].R;
@@ -407,7 +409,7 @@ static void timing_driven_expand_neighbours(struct s_heap* current, int inet,
         new_back_pcost += criticality_fac * Tdel;
 
         if (bend_cost != 0.) {
-            from_type = rr_node[inode].type;
+            from_type = rr_node[ivex].type;
             to_type = rr_node[to_node].type;
 
             if ((from_type == CHANX && to_type == CHANY) ||
@@ -419,27 +421,27 @@ static void timing_driven_expand_neighbours(struct s_heap* current, int inet,
         new_tot_cost = new_back_pcost + astar_fac *
                        get_timing_driven_expected_cost(to_node, target_node,
                                                        criticality_fac, new_R_upstream);
-        node_to_heap(to_node, new_tot_cost, inode, iconn, new_back_pcost,
+        node_to_heap(to_node, new_tot_cost, ivex, iconn, new_back_pcost,
                      new_R_upstream);
     }  /* End for all neighbours */
 }
 
 
-static double get_timing_driven_expected_cost(int inode, int target_node,
+static double get_timing_driven_expected_cost(int ivex, int target_node,
                                              double criticality_fac, double R_upstream)
 {
-    /* Determines the expected cost (due to both delay and resouce cost) to reach *
-     * the target node from inode.  It doesn't include the cost of inode --       *
+    /* Determines the expected cost (due to both Tdel and resouce cost) to reach *
+     * the target node from ivex.  It doesn't include the cost of ivex --       *
      * that's already in the "known" path_cost.                                   */
-    t_rr_type rr_type;
+    rr_types_t rr_type;
     int cost_index, ortho_cost_index, num_segs_same_dir, num_segs_ortho_dir;
     double expected_cost, cong_cost, Tdel;
-    rr_type = rr_node[inode].type;
+    rr_type = rr_node[ivex].type;
 
     if (rr_type == CHANX || rr_type == CHANY) {
-        num_segs_same_dir = get_expected_segs_to_target(inode, target_node,
+        num_segs_same_dir = get_expected_segs_to_target(ivex, target_node,
                                                         &num_segs_ortho_dir);
-        cost_index = rr_node[inode].cost_index;
+        cost_index = rr_node[ivex].cost_index;
         ortho_cost_index = rr_indexed_data[cost_index].ortho_cost_index;
         cong_cost = num_segs_same_dir * rr_indexed_data[cost_index].base_cost +
                     num_segs_ortho_dir * rr_indexed_data[ortho_cost_index].base_cost;
@@ -470,30 +472,30 @@ static double get_timing_driven_expected_cost(int inode, int target_node,
 #define ROUND_UP(x) (ceil (x - 0.001))
 
 
-static int get_expected_segs_to_target(int inode, int target_node, int *
+static int get_expected_segs_to_target(int ivex, int target_node, int *
                                        num_segs_ortho_dir_ptr)
 {
-    /* Returns the number of segments the same type as inode that will be needed *
-     * to reach target_node (not including inode) in each direction (the same    *
-     * direction (horizontal or vertical) as inode and the orthogonal direction).*/
-    t_rr_type rr_type;
+    /* Returns the number of segments the same type as ivex that will be needed *
+     * to reach target_node (not including ivex) in each direction (the same    *
+     * direction (horizontal or vertical) as ivex and the orthogonal direction).*/
+    rr_types_t rr_type;
     int target_x, target_y, num_segs_same_dir, cost_index, ortho_cost_index;
     int no_need_to_pass_by_clb;
     double inv_length, ortho_inv_length, ylow, yhigh, xlow, xhigh;
     target_x = rr_node[target_node].xlow;
     target_y = rr_node[target_node].ylow;
-    cost_index = rr_node[inode].cost_index;
+    cost_index = rr_node[ivex].cost_index;
     inv_length = rr_indexed_data[cost_index].inv_length;
     ortho_cost_index = rr_indexed_data[cost_index].ortho_cost_index;
     ortho_inv_length = rr_indexed_data[ortho_cost_index].inv_length;
-    rr_type = rr_node[inode].type;
+    rr_type = rr_node[ivex].type;
 
     if (rr_type == CHANX) {
-        ylow = rr_node[inode].ylow;
-        xhigh = rr_node[inode].xhigh;
-        xlow = rr_node[inode].xlow;
+        ylow = rr_node[ivex].ylow;
+        xhigh = rr_node[ivex].xhigh;
+        xlow = rr_node[ivex].xlow;
 
-        /* Count vertical (orthogonal to inode) segs first. */
+        /* Count vertical (orthogonal to ivex) segs first. */
 
         if (ylow > target_y) {         /* Coming from a row above target? */
             *num_segs_ortho_dir_ptr = ROUND_UP((ylow - target_y + 1.) *
@@ -508,7 +510,7 @@ static int get_expected_segs_to_target(int inode, int target_node, int *
             no_need_to_pass_by_clb = 0;
         }
 
-        /* Now count horizontal (same dir. as inode) segs. */
+        /* Now count horizontal (same dir. as ivex) segs. */
 
         if (xlow > target_x + no_need_to_pass_by_clb) {
             num_segs_same_dir = ROUND_UP((xlow - no_need_to_pass_by_clb -
@@ -519,12 +521,12 @@ static int get_expected_segs_to_target(int inode, int target_node, int *
         } else {
             num_segs_same_dir = 0;
         }
-    } else { /* inode is a CHANY */
-        ylow = rr_node[inode].ylow;
-        yhigh = rr_node[inode].yhigh;
-        xlow = rr_node[inode].xlow;
+    } else { /* ivex is a CHANY */
+        ylow = rr_node[ivex].ylow;
+        yhigh = rr_node[ivex].yhigh;
+        xlow = rr_node[ivex].xlow;
 
-        /* Count horizontal (orthogonal to inode) segs first. */
+        /* Count horizontal (orthogonal to ivex) segs first. */
 
         if (xlow > target_x) {         /* Coming from a column right of target? */
             *num_segs_ortho_dir_ptr = ROUND_UP((xlow - target_x + 1.) *
@@ -539,7 +541,7 @@ static int get_expected_segs_to_target(int inode, int target_node, int *
             no_need_to_pass_by_clb = 0;
         }
 
-        /* Now count vertical (same dir. as inode) segs. */
+        /* Now count vertical (same dir. as ivex) segs. */
 
         if (ylow > target_y + no_need_to_pass_by_clb) {
             num_segs_same_dir = ROUND_UP((ylow - no_need_to_pass_by_clb -
@@ -580,11 +582,11 @@ static void update_rr_base_costs(int inet, double largest_criticality)
 
 static void timing_driven_check_net_delays(double** net_delay)
 {
-    /* Checks that the net delays computed incrementally during timing driven    *
+    /* Checks that the net Tdels computed incrementally during timing driven    *
      * routing match those computed from scratch by the net_delay.c module.      */
     int inet, ipin;
     double** net_delay_check;
-    struct s_linked_vptr* ch_list_head_net_delay_check;
+    linked_vptr_t* ch_list_head_net_delay_check;
     net_delay_check = alloc_net_delay(&ch_list_head_net_delay_check);
     load_net_delay_from_routing(net_delay_check);
 
@@ -594,7 +596,7 @@ static void timing_driven_check_net_delays(double** net_delay)
                 if (net_delay_check[inet][ipin] != 0.) {
                     printf("Error in timing_driven_check_net_delays: net %d pin %d."
                            "\tIncremental calc. net_delay is %g, but from scratch "
-                           "net delay is %g.\n", inet, ipin, net_delay[inet][ipin],
+                           "net Tdel is %g.\n", inet, ipin, net_delay[inet][ipin],
                            net_delay_check[inet][ipin]);
                     exit(1);
                 }
@@ -603,7 +605,7 @@ static void timing_driven_check_net_delays(double** net_delay)
                         > ERROR_TOL) {
                     printf("Error in timing_driven_check_net_delays: net %d pin %d."
                            "\tIncremental calc. net_delay is %g, but from scratch "
-                           "net delay is %g.\n", inet, ipin, net_delay[inet][ipin],
+                           "net Tdel is %g.\n", inet, ipin, net_delay[inet][ipin],
                            net_delay_check[inet][ipin]);
                     exit(1);
                 }
@@ -612,5 +614,5 @@ static void timing_driven_check_net_delays(double** net_delay)
     }
 
     free_net_delay(net_delay_check, &ch_list_head_net_delay_check);
-    printf("Completed net delay value cross check successfully.\n");
+    printf("Completed net Tdel value cross check successfully.\n");
 }

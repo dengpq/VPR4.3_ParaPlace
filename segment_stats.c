@@ -14,14 +14,14 @@
 /******************* Subroutine definitions ********************************/
 
 
-void get_segment_usage_stats(int num_segment, t_segment_inf* segment_inf)
+void get_segment_usage_stats(int num_segment, segment_info_t* segment_inf)
 {
     /* Computes statistics on the fractional utilization of segments by type    *
      * (index) and by length.  This routine needs a valid rr_graph, and a       *
      * completed routing.  Note that segments cut off by the end of the array   *
      * are counted as full-length segments (e.g. length 4 even if the last 2    *
      * units of wire were chopped off by the chip edge).                        */
-    int inode, length, seg_type, max_segment_length, cost_index;
+    int ivex, length, seg_type, max_segment_length, cost_index;
     int* seg_occ_by_length, *seg_cap_by_length;   /* [0..max_segment_length] */
     int* seg_occ_by_type, *seg_cap_by_type;       /* [0..num_segment-1]      */
     double utilization;
@@ -40,9 +40,9 @@ void get_segment_usage_stats(int num_segment, t_segment_inf* segment_inf)
     seg_occ_by_type = (int*) my_calloc(num_segment, sizeof(int));
     seg_cap_by_type = (int*) my_calloc(num_segment, sizeof(int));
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        if (rr_node[inode].type == CHANX || rr_node[inode].type == CHANY) {
-            cost_index = rr_node[inode].cost_index;
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        if (rr_node[ivex].type == CHANX || rr_node[ivex].type == CHANY) {
+            cost_index = rr_node[ivex].cost_index;
             seg_type = rr_indexed_data[cost_index].seg_index;
 
             if (!segment_inf[seg_type].longline) {
@@ -51,10 +51,10 @@ void get_segment_usage_stats(int num_segment, t_segment_inf* segment_inf)
                 length = LONGLINE;
             }
 
-            seg_occ_by_length[length] += rr_node[inode].occ;
-            seg_cap_by_length[length] += rr_node[inode].capacity;
-            seg_occ_by_type[seg_type] += rr_node[inode].occ;
-            seg_cap_by_type[seg_type] += rr_node[inode].capacity;
+            seg_occ_by_length[length] += rr_node[ivex].occ;
+            seg_cap_by_length[length] += rr_node[ivex].capacity;
+            seg_occ_by_type[seg_type] += rr_node[ivex].occ;
+            seg_cap_by_type[seg_type] += rr_node[ivex].capacity;
         }
     }
 

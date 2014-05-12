@@ -15,7 +15,7 @@
 
 /******************* Variables local to this module. ***********************/
 /* Used to free "chunked" memory.  If NULL, no rr_graph exists right now.  */
-static struct s_linked_vptr* rr_mem_chunk_list_head = NULL;
+static linked_vptr_t* rr_mem_chunk_list_head = NULL;
 
 static int chunk_bytes_avail = 0;
 static char* chunk_next_avail_mem = NULL;
@@ -25,7 +25,7 @@ static char* chunk_next_avail_mem = NULL;
 
 /********************* Subroutines local to this module. *******************/
 
-static int*** alloc_and_load_clb_pin_to_tracks(enum e_pin_type pin_type,
+static int*** alloc_and_load_clb_pin_to_tracks(pin_types_t pin_type,
                                                int nodes_per_chan, int Fc, boolean perturb_switch_pattern);
 
 static void load_uniform_switch_pattern(int** *tracks_connected_to_pin,
@@ -37,50 +37,50 @@ static void load_perturbed_switch_pattern(int** *tracks_connected_to_pin,
                                           int nodes_per_chan, int Fc, double step_size);
 
 static void check_all_tracks_reach_pins(int** *tracks_connected_to_pin,
-                                        int nodes_per_chan, int Fc, enum e_pin_type ipin_or_opin);
+                                        int nodes_per_chan, int Fc, pin_types_t ipin_or_opin);
 
-static struct s_ivec** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
+static vector_t** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
                                                          int Fc, int** *clb_ipin_to_tracks);
 
 static int** alloc_and_load_pads_to_tracks(int nodes_per_chan, int Fc_pad);
 
-static struct s_ivec* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
+static vector_t* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
                                                     int nodes_per_chan, int Fc_pad);
 
 static int track_side(int clb_side);
 
 static void alloc_and_load_rr_graph(int** rr_node_indices,
-                                    int** *clb_opin_to_tracks, struct s_ivec** tracks_to_clb_ipin,
-                                    int** pads_to_tracks, struct s_ivec* tracks_to_pads, int Fc_output,
-                                    int Fc_input, int Fc_pad, int nodes_per_chan, enum e_route_type
-                                    route_type, struct s_det_routing_arch det_routing_arch,
-                                    t_seg_details* seg_details_x, t_seg_details* seg_details_y);
+                                    int** *clb_opin_to_tracks, vector_t** tracks_to_clb_ipin,
+                                    int** pads_to_tracks, vector_t* tracks_to_pads, int Fc_output,
+                                    int Fc_input, int Fc_pad, int nodes_per_chan, router_types_t
+                                    route_type, detail_routing_arch_t det_routing_arch,
+                                    segment_details_t* seg_details_x, segment_details_t* seg_details_y);
 
 static void build_rr_clb(int** rr_node_indices, int Fc_output, int** *
                          clb_opin_to_tracks, int nodes_per_chan, int i, int j,
-                         int delayless_switch, t_seg_details* seg_details_x,
-                         t_seg_details* seg_details_y);
+                         int Tdelless_switch, segment_details_t* seg_details_x,
+                         segment_details_t* seg_details_y);
 
 static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
                           ** pads_to_tracks, int nodes_per_chan, int i, int j, int
-                          delayless_switch, t_seg_details* seg_details_x, t_seg_details
+                          Tdelless_switch, segment_details_t* seg_details_x, segment_details_t
                           *seg_details_y);
 
-static void build_rr_xchan(int** rr_node_indices, enum e_route_type
-                           route_type, struct s_ivec** tracks_to_clb_ipin, struct s_ivec *
-                           tracks_to_pads, int i, int j, int nodes_per_chan, enum
-                           e_switch_block_type switch_block_type, int wire_to_ipin_switch,
-                           t_seg_details* seg_details_x, t_seg_details* seg_details_y,
+static void build_rr_xchan(int** rr_node_indices, router_types_t
+                           route_type, vector_t** tracks_to_clb_ipin, vector_t *
+                           tracks_to_pads, int i, int j, int nodes_per_chan,
+                           switch_block_t switch_block_type, int wire_to_ipin_switch,
+                           segment_details_t* seg_details_x, segment_details_t* seg_details_y,
                            int cost_index_offset);
 
-static void build_rr_ychan(int** rr_node_indices, enum e_route_type
-                           route_type, struct s_ivec** tracks_to_clb_ipin, struct s_ivec *
-                           tracks_to_pads, int i, int j, int nodes_per_chan, enum
-                           e_switch_block_type switch_block_type, int wire_to_ipin_switch,
-                           t_seg_details* seg_details_x, t_seg_details* seg_details_y,
+static void build_rr_ychan(int** rr_node_indices, router_types_t
+                           route_type, vector_t** tracks_to_clb_ipin, vector_t *
+                           tracks_to_pads, int i, int j, int nodes_per_chan,
+                           switch_block_t switch_block_type, int wire_to_ipin_switch,
+                           segment_details_t* seg_details_x, segment_details_t* seg_details_y,
                            int cost_index_offset);
 
-void alloc_and_load_edges_and_switches(int inode, int num_edges,
+void alloc_and_load_edges_and_switches(int ivex, int num_edges,
                                        t_linked_edge* edge_list_head);
 
 static void alloc_net_rr_terminals(void);
@@ -104,18 +104,18 @@ struct s_rr_graph_internal_vars {
     int nodes_per_chan;
     int** rr_node_indices;
     int** pads_to_tracks;
-    struct s_ivec** tracks_to_clb_ipin;
-    struct s_ivec* tracks_to_pads;
+    vector_t** tracks_to_clb_ipin;
+    vector_t* tracks_to_pads;
     int*** clb_opin_to_tracks;
     int*** clb_ipin_to_tracks;
-    t_seg_details* seg_details_x;
-    t_seg_details* seg_details_y;
+    segment_details_t* seg_details_x;
+    segment_details_t* seg_details_y;
 };
 
 static struct s_rr_graph_internal_vars rr_graph_internal_vars;
 
 /******************* Subroutine definitions *******************************/
-int** get_rr_node_indices()
+int** gerr_node_t_indices()
 {
     return (rr_graph_internal_vars.rr_node_indices);
 }
@@ -126,17 +126,17 @@ int get_nodes_per_chan()
 }
 
 /* FIXME: before routing, VPR Router allocate routing-resource_graph */
-void build_rr_graph(enum e_route_type route_type,
-                    struct s_det_routing_arch det_routing_arch,
-                    t_segment_inf* segment_inf,
-                    t_timing_inf   timing_inf,
-                    enum e_base_cost_type base_cost_type)
+void build_rr_graph(router_types_t route_type,
+                    detail_routing_arch_t det_routing_arch,
+                    segment_info_t* segment_inf,
+                    timing_info_t   timing_inf,
+                    router_base_cost_t router_base_cost_type)
 {
     /* Builds the routing resource graph needed for routing.  Does all the   *
      * necessary allocation and initialization.  If route_type is DETAILED   *
      * then the routing graph built is for detailed routing, otherwise it is *
      * for GLOBAL routing.                                                   */
-    int nodes_per_clb = num_class + pins_per_clb;
+    int nodes_per_clb = num_pin_class + pins_per_clb;
     int nodes_per_pad = 4 * io_rat; /* SOURCE, SINK, OPIN, and IPIN */
     int nodes_per_chan = 0;
     if (route_type == GLOBAL) {
@@ -144,15 +144,15 @@ void build_rr_graph(enum e_route_type route_type,
     } else {
         nodes_per_chan = chan_width_x[0];
     }
-    /* t_seg_details  seg_details_x[0...nodes_per_chan-1] */
-    t_seg_details* seg_details_x = alloc_and_load_seg_details(nodes_per_chan,
+    /* segment_details_t  seg_details_x[0...nodes_per_chan-1] */
+    segment_details_t* seg_details_x = alloc_and_load_seg_details(nodes_per_chan,
                                                               segment_inf,
                                                               det_routing_arch.num_segment,
-                                                              nx);
-    t_seg_details* seg_details_y = alloc_and_load_seg_details(nodes_per_chan,
+                                                              num_of_columns);
+    segment_details_t* seg_details_y = alloc_and_load_seg_details(nodes_per_chan,
                                                               segment_inf,
                                                               det_routing_arch.num_segment,
-                                                              ny);
+                                                              num_of_rows);
 #ifdef DEBUG
     dump_seg_details(seg_details_x, nodes_per_chan, "x.echo");
     dump_seg_details(seg_details_y, nodes_per_chan, "y.echo");
@@ -162,20 +162,20 @@ void build_rr_graph(enum e_route_type route_type,
      * chanx/chany. The dummy source and sink are ordered by class number or pad *
      * number; the pins are ordered by pin number or pad number, and the channel *
      * segments are ordered by track number.  Track 1 is closest to the "owning" *
-     * block; i.e. it is towards the left of y-chans and the bottom of x-chans.  *
+     * blocks; i.e. it is towards the left of y-chans and the bottom of x-chans.  *
      *                                                                           *
      * The maximize cache effectiveness, I put all the rr_nodes associated with  *
-     * a block together (this includes the "owned" channel segments).  I start   *
+     * a blocks together (this includes the "owned" channel segments).  I start   *
      * at (0,0) (empty), go to (1,0), (2,0) ... (0,1) and so on.                 */
     /* NB:  Allocates data structures for fast index computations -- more than *
      * just rr_node_indices are allocated by this routine.                     */
-    /* int  rr_node_indices[nx+2][ny+2] */
+    /* int  rr_node_indices[num_of_columns+2][num_of_rows+2] */
     int** rr_node_indices = alloc_and_load_rr_node_indices(nodes_per_clb,
                                                            nodes_per_pad,
                                                            nodes_per_chan,
                                                            seg_details_x,
                                                            seg_details_y);
-    num_rr_nodes = rr_node_indices[nx + 1][ny + 1];
+    num_rr_nodes = rr_node_indices[num_of_columns + 1][num_of_rows + 1];
 
     int  Fc_output, Fc_input, Fc_pad;
     if (det_routing_arch.Fc_type == ABSOLUTE) {
@@ -229,13 +229,13 @@ void build_rr_graph(enum e_route_type route_type,
                                                                  Fc_input,
                                                                  perturb_ipin_switch_pattern);
 
-    struct s_ivec** tracks_to_clb_ipin = alloc_and_load_tracks_to_clb_ipin(nodes_per_chan,
+    vector_t** tracks_to_clb_ipin = alloc_and_load_tracks_to_clb_ipin(nodes_per_chan,
                                                                            Fc_input,
                                                                            clb_ipin_to_tracks);
 
     int** pads_to_tracks = alloc_and_load_pads_to_tracks(nodes_per_chan, Fc_pad);
 
-    struct s_ivec* tracks_to_pads = alloc_and_load_tracks_to_pads(pads_to_tracks,
+    vector_t* tracks_to_pads = alloc_and_load_tracks_to_pads(pads_to_tracks,
                                                                   nodes_per_chan,
                                                                   Fc_pad);
 
@@ -249,7 +249,7 @@ void build_rr_graph(enum e_route_type route_type,
     add_rr_graph_C_from_switches(timing_inf.C_ipin_cblock);
     alloc_and_load_rr_indexed_data(segment_inf, det_routing_arch.num_segment,
                                    rr_node_indices, nodes_per_chan, det_routing_arch.wire_to_ipin_switch,
-                                   base_cost_type);
+                                   router_base_cost_type);
     /* dump_rr_graph ("rr_graph.echo");  */
     check_rr_graph(route_type, det_routing_arch.num_switch);
     rr_graph_internal_vars.clb_opin_to_tracks = clb_opin_to_tracks;
@@ -264,9 +264,9 @@ void build_rr_graph(enum e_route_type route_type,
 }
 
 
-void free_rr_graph_internals(enum e_route_type route_type, struct s_det_routing_arch
-                             det_routing_arch, t_segment_inf* segment_inf, t_timing_inf
-                             timing_inf, enum e_base_cost_type base_cost_type)
+void free_rr_graph_internals(router_types_t route_type, detail_routing_arch_t
+                             det_routing_arch, segment_info_t* segment_inf, timing_info_t
+                             timing_inf, router_base_cost_t router_base_cost_type)
 {
     /* frees the variables that are internal to build_rr_graph.        */
     /* this procedure should typically be called immediatley after     */
@@ -275,9 +275,9 @@ void free_rr_graph_internals(enum e_route_type route_type, struct s_det_routing_
     int nodes_per_chan;
     int** rr_node_indices;
     int** pads_to_tracks;
-    struct s_ivec** tracks_to_clb_ipin, *tracks_to_pads;
+    vector_t** tracks_to_clb_ipin, *tracks_to_pads;
     int** *clb_opin_to_tracks, *** clb_ipin_to_tracks;
-    t_seg_details* seg_details_x, *seg_details_y;  /* [0 .. nodes_per_chan-1] */
+    segment_details_t* seg_details_x, *seg_details_y;  /* [0 .. nodes_per_chan-1] */
     clb_opin_to_tracks = rr_graph_internal_vars.clb_opin_to_tracks;
     clb_ipin_to_tracks = rr_graph_internal_vars.clb_ipin_to_tracks;
     tracks_to_clb_ipin = rr_graph_internal_vars.tracks_to_clb_ipin;
@@ -303,21 +303,21 @@ void free_rr_graph_internals(enum e_route_type route_type, struct s_det_routing_
 
 static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                     int*** clb_opin_to_tracks,
-                                    struct s_ivec** tracks_to_clb_ipin,
+                                    vector_t** tracks_to_clb_ipin,
                                     int** pads_to_tracks,
-                                    struct s_ivec* tracks_to_pads,
+                                    vector_t* tracks_to_pads,
                                     int Fc_output, int Fc_input, int Fc_pad,
                                     int nodes_per_chan,
-                                    enum e_route_type route_type,
-                                    struct s_det_routing_arch det_routing_arch,
-                                    t_seg_details* seg_details_x,
-                                    t_seg_details* seg_details_y)
+                                    router_types_t route_type,
+                                    detail_routing_arch_t det_routing_arch,
+                                    segment_details_t* seg_details_x,
+                                    segment_details_t* seg_details_y)
 {
     /* Does the actual work of allocating the rr_graph and filling all the *
      * appropriate values.  Everything up to this was just a prelude!      */
     int i, j;
-    enum e_switch_block_type switch_block_type;
-    int delayless_switch, wire_to_ipin_switch, num_segment;
+    switch_block_t switch_block_type;
+    int Tdelless_switch, wire_to_ipin_switch, num_segment;
 
     /* Allocate storage for the graph nodes.  Storage for the edges will be *
      * allocated as I fill in the graph.                                    */
@@ -332,17 +332,17 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
     alloc_net_rr_terminals();
     load_net_rr_terminals(rr_node_indices, nodes_per_chan);
     alloc_and_load_rr_clb_source(rr_node_indices, nodes_per_chan);
-    rr_node = (t_rr_node*) my_malloc(num_rr_nodes * sizeof(t_rr_node));
+    rr_node = (rr_node_t*) my_malloc(num_rr_nodes * sizeof(rr_node_t));
     switch_block_type = det_routing_arch.switch_block_type;
-    delayless_switch = det_routing_arch.delayless_switch;
+    Tdelless_switch = det_routing_arch.Tdelless_switch;
     wire_to_ipin_switch = det_routing_arch.wire_to_ipin_switch;
     num_segment = det_routing_arch.num_segment;
 
-    for (i = 0; i <= nx + 1; i++) {
-        for (j = 0; j <= ny + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             if (clb[i][j].type == CLB) {
                 build_rr_clb(rr_node_indices, Fc_output, clb_opin_to_tracks,
-                             nodes_per_chan, i, j, delayless_switch, seg_details_x,
+                             nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
                              seg_details_y);
                 build_rr_xchan(rr_node_indices, route_type, tracks_to_clb_ipin,
                                tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
@@ -354,7 +354,7 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                CHANX_COST_INDEX_START + num_segment);
             } else if (clb[i][j].type == IO) {
                 build_rr_pads(rr_node_indices, Fc_pad, pads_to_tracks,
-                              nodes_per_chan, i, j, delayless_switch, seg_details_x,
+                              nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
                               seg_details_y);
 
                 if (j == 0)  /* Bottom-most channel. */
@@ -428,16 +428,16 @@ void load_net_rr_terminals(int** rr_node_indices,
      * it stores the rr_node index of the SOURCE of the net and all the SINKs   *
      * of the net.  [0..num_nets-1][0..num_pins-1].  Entry [inet][pnum] stores  *
      * the rr index corresponding to the SOURCE (opin) or SINK (ipin) of pnum.  */
-    int inet, ipin, inode, iblk, i, j, blk_pin, iclass;
-    t_rr_type rr_type;
+    int inet, ipin, ivex, iblk, i, j, blk_pin, iclass;
+    rr_types_t rr_type;
 
     for (inet = 0; inet < num_nets; inet++) {
         rr_type = SOURCE;     /* First pin only */
 
         for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
             iblk = net[inet].blocks[ipin];
-            i = block[iblk].x;
-            j = block[iblk].y;
+            i = blocks[iblk].x;
+            j = blocks[iblk].y;
 
             if (clb[i][j].type == CLB) {
                 blk_pin = net[inet].blk_pin[ipin];
@@ -446,9 +446,9 @@ void load_net_rr_terminals(int** rr_node_indices,
                 iclass = which_io_block(iblk);
             }
 
-            inode = get_rr_node_index(i, j, rr_type, iclass, nodes_per_chan,
+            ivex = gerr_node_t_index(i, j, rr_type, iclass, nodes_per_chan,
                                       rr_node_indices);
-            net_rr_terminals[inet][ipin] = inode;
+            net_rr_terminals[inet][ipin] = ivex;
             rr_type = SINK;    /* All pins after first are SINKs. */
         }
     }
@@ -460,18 +460,18 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
     /* Saves the rr_node corresponding to each SOURCE and SINK in each CLB      *
      * in the FPGA.  Currently only the SOURCE rr_node values are used, and     *
      * they are used only to reserve pins for locally used OPINs in the router. *
-     * [0..num_blocks-1][0..num_class-1].  The values for blocks that are pads  *
+     * [0..num_blocks-1][0..num_pin_class-1].  The values for blocks that are pads  *
      * are NOT valid.                                                           */
-    int iblk, i, j, iclass, inode;
-    t_rr_type rr_type;
-    rr_clb_source = (int**) alloc_matrix(0, num_blocks - 1, 0, num_class - 1,
+    int iblk, i, j, iclass, ivex;
+    rr_types_t rr_type;
+    rr_clb_source = (int**) alloc_matrix(0, num_blocks - 1, 0, num_pin_class - 1,
                                          sizeof(int));
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        for (iclass = 0; iclass < num_class; iclass++) {
-            if (block[iblk].type == CLB) {
-                i = block[iblk].x;
-                j = block[iblk].y;
+        for (iclass = 0; iclass < num_pin_class; iclass++) {
+            if (blocks[iblk].type == CLB) {
+                i = blocks[iblk].x;
+                j = blocks[iblk].y;
 
                 if (class_inf[iclass].type == DRIVER) {
                     rr_type = SOURCE;
@@ -479,9 +479,9 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
                     rr_type = SINK;
                 }
 
-                inode = get_rr_node_index(i, j, rr_type, iclass, nodes_per_chan,
+                ivex = gerr_node_t_index(i, j, rr_type, iclass, nodes_per_chan,
                                           rr_node_indices);
-                rr_clb_source[iblk][iclass] = inode;
+                rr_clb_source[iblk][iclass] = ivex;
             } else { /* IO Pad; don't need any data so set to OPEN (invalid) */
                 rr_clb_source[iblk][iclass] = OPEN;
             }
@@ -493,15 +493,15 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
 
 static int which_io_block(int iblk)
 {
-    /* Returns the subblock (pad) number at which this block was placed.  iblk *
-     * must be an IO block.                                                    */
+    /* Returns the subblock (pad) number at which this blocks was placed.  iblk *
+     * must be an IO blocks.                                                    */
     int i, j, ipad, ifound, test_blk;
     ifound = -1;
-    i = block[iblk].x;
-    j = block[iblk].y;
+    i = blocks[iblk].x;
+    j = blocks[iblk].y;
 
-    if (block[iblk].type != INPAD && block[iblk].type != OUTPAD) {
-        printf("Error in which_io_block:  block %d is not an IO block.\n", iblk);
+    if (blocks[iblk].type != INPAD && blocks[iblk].type != OUTPAD) {
+        printf("Error in which_io_block:  blocks %d is not an IO blocks.\n", iblk);
         exit(1);
     }
 
@@ -515,7 +515,7 @@ static int which_io_block(int iblk)
     }
 
     if (ifound < 0) {
-        printf("Error in which_io_block:  block %d not found in clb array.\n",
+        printf("Error in which_io_block:  blocks %d not found in clb array.\n",
                iblk);
         exit(1);
     }
@@ -526,66 +526,66 @@ static int which_io_block(int iblk)
 
 static void build_rr_clb(int** rr_node_indices, int Fc_output, int** *
                          clb_opin_to_tracks, int nodes_per_chan, int i, int j, int
-                         delayless_switch, t_seg_details* seg_details_x, t_seg_details
+                         Tdelless_switch, segment_details_t* seg_details_x, segment_details_t
                          *seg_details_y)
 {
     /* Load up the rr_node structures for the clb at location (i,j).  I both  *
      * fill in fields that shouldn't change during the entire routing and     *
      * initialize fields that will change to the proper starting value.       */
-    int ipin, iclass, inode, pin_num, to_node, num_edges;
+    int ipin, iclass, ivex, pin_num, to_node, num_edges;
     t_linked_edge* edge_list_head;
 
     /* SOURCES and SINKS first.   */
 
-    for (iclass = 0; iclass < num_class; iclass++) {
+    for (iclass = 0; iclass < num_pin_class; iclass++) {
         if (class_inf[iclass].type == DRIVER) {    /* SOURCE */
-            inode = get_rr_node_index(i, j, SOURCE, iclass, nodes_per_chan,
+            ivex = gerr_node_t_index(i, j, SOURCE, iclass, nodes_per_chan,
                                       rr_node_indices);
             num_edges = class_inf[iclass].num_pins;
-            rr_node[inode].num_edges = num_edges;
-            rr_node[inode].edges = (int*) my_chunk_malloc(num_edges *
+            rr_node[ivex].num_edges = num_edges;
+            rr_node[ivex].edges = (int*) my_chunk_malloc(num_edges *
                                                           sizeof(int), &rr_mem_chunk_list_head, &chunk_bytes_avail,
                                                           &chunk_next_avail_mem);
-            rr_node[inode].switches = (short*) my_chunk_malloc(num_edges *
+            rr_node[ivex].switches = (short*) my_chunk_malloc(num_edges *
                                                                sizeof(short), &rr_mem_chunk_list_head, &chunk_bytes_avail,
                                                                &chunk_next_avail_mem);
 
             for (ipin = 0; ipin < class_inf[iclass].num_pins; ipin++) {
                 pin_num = class_inf[iclass].pinlist[ipin];
-                to_node = get_rr_node_index(i, j, OPIN, pin_num, nodes_per_chan,
+                to_node = gerr_node_t_index(i, j, OPIN, pin_num, nodes_per_chan,
                                             rr_node_indices);
-                rr_node[inode].edges[ipin] = to_node;
-                rr_node[inode].switches[ipin] = delayless_switch;
+                rr_node[ivex].edges[ipin] = to_node;
+                rr_node[ivex].switches[ipin] = Tdelless_switch;
             }
 
-            rr_node[inode].capacity = class_inf[iclass].num_pins;
-            rr_node[inode].cost_index = SOURCE_COST_INDEX;
-            rr_node[inode].type = SOURCE;
+            rr_node[ivex].capacity = class_inf[iclass].num_pins;
+            rr_node[ivex].cost_index = SOURCE_COST_INDEX;
+            rr_node[ivex].type = SOURCE;
         } else {  /* SINK */
-            inode = get_rr_node_index(i, j, SINK, iclass, nodes_per_chan,
+            ivex = gerr_node_t_index(i, j, SINK, iclass, nodes_per_chan,
                                       rr_node_indices);
             /* Note:  To allow route throughs through clbs, change the lines below to  *
              * make an edge from the input SINK to the output SOURCE.  Do for just the *
              * special case of INPUTS = class 0 and OUTPUTS = class 1 and see what it  *
              * leads to.  If route throughs are allowed, you may want to increase the  *
              * base cost of OPINs and/or SOURCES so they aren't used excessively.      */
-            rr_node[inode].num_edges = 0;
-            rr_node[inode].edges = NULL;
-            rr_node[inode].switches = NULL;
-            rr_node[inode].capacity = class_inf[iclass].num_pins;
-            rr_node[inode].cost_index = SINK_COST_INDEX;
-            rr_node[inode].type = SINK;
+            rr_node[ivex].num_edges = 0;
+            rr_node[ivex].edges = NULL;
+            rr_node[ivex].switches = NULL;
+            rr_node[ivex].capacity = class_inf[iclass].num_pins;
+            rr_node[ivex].cost_index = SINK_COST_INDEX;
+            rr_node[ivex].type = SINK;
         }
 
         /* Things common to both SOURCEs and SINKs.   */
-        rr_node[inode].occ = 0;
-        rr_node[inode].xlow = i;
-        rr_node[inode].xhigh = i;
-        rr_node[inode].ylow = j;
-        rr_node[inode].yhigh = j;
-        rr_node[inode].R = 0;
-        rr_node[inode].C = 0;
-        rr_node[inode].ptc_num = iclass;
+        rr_node[ivex].occ = 0;
+        rr_node[ivex].xlow = i;
+        rr_node[ivex].xhigh = i;
+        rr_node[ivex].ylow = j;
+        rr_node[ivex].yhigh = j;
+        rr_node[ivex].R = 0;
+        rr_node[ivex].C = 0;
+        rr_node[ivex].ptc_num = iclass;
     }
 
     /* Now do the pins.  */
@@ -594,48 +594,48 @@ static void build_rr_clb(int** rr_node_indices, int Fc_output, int** *
         iclass = clb_pin_class[ipin];
 
         if (class_inf[iclass].type == DRIVER) {  /* OPIN */
-            inode = get_rr_node_index(i, j, OPIN, ipin, nodes_per_chan,
+            ivex = gerr_node_t_index(i, j, OPIN, ipin, nodes_per_chan,
                                       rr_node_indices);
             edge_list_head = NULL;
             num_edges = get_clb_opin_connections(clb_opin_to_tracks, ipin, i, j,
                                                  Fc_output, seg_details_x, seg_details_y, &edge_list_head,
                                                  nodes_per_chan, rr_node_indices);
-            alloc_and_load_edges_and_switches(inode, num_edges, edge_list_head);
-            rr_node[inode].cost_index = OPIN_COST_INDEX;
-            rr_node[inode].type = OPIN;
+            alloc_and_load_edges_and_switches(ivex, num_edges, edge_list_head);
+            rr_node[ivex].cost_index = OPIN_COST_INDEX;
+            rr_node[ivex].type = OPIN;
         } else {                                 /* IPIN */
-            inode = get_rr_node_index(i, j, IPIN, ipin, nodes_per_chan,
+            ivex = gerr_node_t_index(i, j, IPIN, ipin, nodes_per_chan,
                                       rr_node_indices);
-            rr_node[inode].num_edges = 1;
-            rr_node[inode].edges = (int*) my_chunk_malloc(sizeof(int),
+            rr_node[ivex].num_edges = 1;
+            rr_node[ivex].edges = (int*) my_chunk_malloc(sizeof(int),
                                                           &rr_mem_chunk_list_head, &chunk_bytes_avail, &chunk_next_avail_mem);
-            rr_node[inode].switches = (short*) my_chunk_malloc(sizeof(short),
+            rr_node[ivex].switches = (short*) my_chunk_malloc(sizeof(short),
                                                                &rr_mem_chunk_list_head, &chunk_bytes_avail, &chunk_next_avail_mem);
-            to_node = get_rr_node_index(i, j, SINK, iclass, nodes_per_chan,
+            to_node = gerr_node_t_index(i, j, SINK, iclass, nodes_per_chan,
                                         rr_node_indices);
-            rr_node[inode].edges[0] = to_node;
-            rr_node[inode].switches[0] = delayless_switch;
-            rr_node[inode].cost_index = IPIN_COST_INDEX;
-            rr_node[inode].type = IPIN;
+            rr_node[ivex].edges[0] = to_node;
+            rr_node[ivex].switches[0] = Tdelless_switch;
+            rr_node[ivex].cost_index = IPIN_COST_INDEX;
+            rr_node[ivex].type = IPIN;
         }
 
         /* Things that are common to both OPINs and IPINs.  */
-        rr_node[inode].capacity = 1;
-        rr_node[inode].occ = 0;
-        rr_node[inode].xlow = i;
-        rr_node[inode].xhigh = i;
-        rr_node[inode].ylow = j;
-        rr_node[inode].yhigh = j;
-        rr_node[inode].C = 0;
-        rr_node[inode].R = 0;
-        rr_node[inode].ptc_num = ipin;
+        rr_node[ivex].capacity = 1;
+        rr_node[ivex].occ = 0;
+        rr_node[ivex].xlow = i;
+        rr_node[ivex].xhigh = i;
+        rr_node[ivex].ylow = j;
+        rr_node[ivex].yhigh = j;
+        rr_node[ivex].C = 0;
+        rr_node[ivex].R = 0;
+        rr_node[ivex].ptc_num = ipin;
     }
 }
 
 
 static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
                           ** pads_to_tracks, int nodes_per_chan, int i, int j, int
-                          delayless_switch, t_seg_details* seg_details_x, t_seg_details
+                          Tdelless_switch, segment_details_t* seg_details_x, segment_details_t
                           *seg_details_y)
 {
     /* Load up the rr_node structures for the pads at location (i,j).  I both *
@@ -643,7 +643,7 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
      * initialize fields that will change to the proper starting value.       *
      * Empty pad locations have their type set to EMPTY.                      */
     int s_node, p_node, ipad, iloop;
-    int inode, num_edges;
+    int ivex, num_edges;
     t_linked_edge* edge_list_head;
 
     /* Each pad contains both a SOURCE + OPIN, and a SINK + IPIN, since each  *
@@ -652,17 +652,17 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
 
     for (ipad = 0; ipad < io_rat; ipad++) { /* For each pad at this (i,j) */
         /* Do SOURCE first.   */
-        s_node = get_rr_node_index(i, j, SOURCE, ipad, nodes_per_chan,
+        s_node = gerr_node_t_index(i, j, SOURCE, ipad, nodes_per_chan,
                                    rr_node_indices);
         rr_node[s_node].num_edges = 1;
-        p_node = get_rr_node_index(i, j, OPIN, ipad, nodes_per_chan,
+        p_node = gerr_node_t_index(i, j, OPIN, ipad, nodes_per_chan,
                                    rr_node_indices);
         rr_node[s_node].edges = (int*) my_chunk_malloc(sizeof(int),
                                                        &rr_mem_chunk_list_head, &chunk_bytes_avail, &chunk_next_avail_mem);
         rr_node[s_node].edges[0] = p_node;
         rr_node[s_node].switches = (short*) my_chunk_malloc(sizeof(short),
                                                             &rr_mem_chunk_list_head, &chunk_bytes_avail, &chunk_next_avail_mem);
-        rr_node[s_node].switches[0] = delayless_switch;
+        rr_node[s_node].switches[0] = Tdelless_switch;
         rr_node[s_node].cost_index = SOURCE_COST_INDEX;
         rr_node[s_node].type = SOURCE;
         /* Now do OPIN */
@@ -674,23 +674,23 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
         rr_node[p_node].cost_index = OPIN_COST_INDEX;
         rr_node[p_node].type = OPIN;
         /* Code common to both SOURCE and OPIN. */
-        inode = s_node;
+        ivex = s_node;
 
         for (iloop = 1; iloop <= 2; iloop++) { /* for both SOURCE or SINK and pin */
-            rr_node[inode].occ = 0;
-            rr_node[inode].capacity = 1;
-            rr_node[inode].xlow = i;
-            rr_node[inode].xhigh = i;
-            rr_node[inode].ylow = j;
-            rr_node[inode].yhigh = j;
-            rr_node[inode].R = 0.;
-            rr_node[inode].C = 0.;
-            rr_node[inode].ptc_num = ipad;
-            inode = p_node;
+            rr_node[ivex].occ = 0;
+            rr_node[ivex].capacity = 1;
+            rr_node[ivex].xlow = i;
+            rr_node[ivex].xhigh = i;
+            rr_node[ivex].ylow = j;
+            rr_node[ivex].yhigh = j;
+            rr_node[ivex].R = 0.;
+            rr_node[ivex].C = 0.;
+            rr_node[ivex].ptc_num = ipad;
+            ivex = p_node;
         }
 
         /* Now do SINK */
-        s_node = get_rr_node_index(i, j, SINK, ipad, nodes_per_chan,
+        s_node = gerr_node_t_index(i, j, SINK, ipad, nodes_per_chan,
                                    rr_node_indices);
         rr_node[s_node].num_edges = 0;
         rr_node[s_node].edges = NULL;
@@ -698,7 +698,7 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
         rr_node[s_node].cost_index = SINK_COST_INDEX;
         rr_node[s_node].type = SINK;
         /* Now do IPIN */
-        p_node = get_rr_node_index(i, j, IPIN, ipad, nodes_per_chan,
+        p_node = gerr_node_t_index(i, j, IPIN, ipad, nodes_per_chan,
                                    rr_node_indices);
         rr_node[p_node].num_edges = 1;
         rr_node[p_node].edges = (int*) my_chunk_malloc(sizeof(int),
@@ -706,38 +706,38 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
         rr_node[p_node].edges[0] = s_node;
         rr_node[p_node].switches = (short*) my_chunk_malloc(sizeof(short),
                                                             &rr_mem_chunk_list_head, &chunk_bytes_avail, &chunk_next_avail_mem);
-        rr_node[p_node].switches[0] = delayless_switch;
+        rr_node[p_node].switches[0] = Tdelless_switch;
         rr_node[p_node].cost_index = IPIN_COST_INDEX;
         rr_node[p_node].type = IPIN;
         /* Code common to both SINK and IPIN. */
-        inode = s_node;
+        ivex = s_node;
 
         for (iloop = 1; iloop <= 2; iloop++) { /* for both SOURCE or SINK and pin */
-            rr_node[inode].occ = 0;
-            rr_node[inode].capacity = 1;
-            rr_node[inode].xlow = i;
-            rr_node[inode].xhigh = i;
-            rr_node[inode].ylow = j;
-            rr_node[inode].yhigh = j;
-            rr_node[inode].R = 0.;
-            rr_node[inode].C = 0.;
-            rr_node[inode].ptc_num = ipad;
-            inode = p_node;
+            rr_node[ivex].occ = 0;
+            rr_node[ivex].capacity = 1;
+            rr_node[ivex].xlow = i;
+            rr_node[ivex].xhigh = i;
+            rr_node[ivex].ylow = j;
+            rr_node[ivex].yhigh = j;
+            rr_node[ivex].R = 0.;
+            rr_node[ivex].C = 0.;
+            rr_node[ivex].ptc_num = ipad;
+            ivex = p_node;
         }
     }   /* End for each pad. */
 }
 
 
-static void build_rr_xchan(int** rr_node_indices, enum e_route_type
-                           route_type, struct s_ivec** tracks_to_clb_ipin, struct s_ivec *
-                           tracks_to_pads, int i, int j, int nodes_per_chan, enum
-                           e_switch_block_type switch_block_type, int wire_to_ipin_switch,
-                           t_seg_details* seg_details_x, t_seg_details* seg_details_y,
+static void build_rr_xchan(int** rr_node_indices, router_types_t
+                           route_type, vector_t** tracks_to_clb_ipin, vector_t *
+                           tracks_to_pads, int i, int j, int nodes_per_chan,
+                           switch_block_t switch_block_type, int wire_to_ipin_switch,
+                           segment_details_t* seg_details_x, segment_details_t* seg_details_y,
                            int cost_index_offset)
 {
     /* Loads up all the routing resource nodes in the x-directed channel      *
      * segments starting at (i,j).                                            */
-    int itrack, num_edges, inode, istart, iend, length, seg_index;
+    int itrack, num_edges, ivex, istart, iend, length, seg_index;
     t_linked_edge* edge_list_head;
 
     for (itrack = 0; itrack < nodes_per_chan; itrack++) {
@@ -747,7 +747,7 @@ static void build_rr_xchan(int** rr_node_indices, enum e_route_type
             continue;    /* Not the start of this segment. */
         }
 
-        iend = get_seg_end(seg_details_x, itrack, istart, j, nx);
+        iend = get_seg_end(seg_details_x, itrack, istart, j, num_of_columns);
         edge_list_head = NULL;
 
         /* First count number of edges and put the edges in a linked list. */
@@ -763,7 +763,7 @@ static void build_rr_xchan(int** rr_node_indices, enum e_route_type
             num_edges += get_xtrack_to_ytracks(istart, iend, j, itrack, j + 1,
                                                &edge_list_head, nodes_per_chan, rr_node_indices,
                                                seg_details_x,  seg_details_y, switch_block_type);
-        } else if (j == ny) {         /* Between top clbs and pads. */
+        } else if (j == num_of_rows) {         /* Between top clbs and pads. */
             num_edges = get_xtrack_to_clb_ipin_edges(istart, iend, j, itrack,
                                                      BOTTOM, &edge_list_head, tracks_to_clb_ipin, nodes_per_chan,
                                                      rr_node_indices, seg_details_x, wire_to_ipin_switch);
@@ -796,49 +796,49 @@ static void build_rr_xchan(int** rr_node_indices, enum e_route_type
                                               seg_details_x, switch_block_type);
         }
 
-        if (iend != nx) {      /* x-chan to right exists. */
+        if (iend != num_of_columns) {      /* x-chan to right exists. */
             num_edges += get_xtrack_to_xtrack(iend, j, itrack, iend + 1,
                                               &edge_list_head, nodes_per_chan, rr_node_indices,
                                               seg_details_x, switch_block_type);
         }
 
-        inode = get_rr_node_index(i, j, CHANX, itrack, nodes_per_chan,
+        ivex = gerr_node_t_index(i, j, CHANX, itrack, nodes_per_chan,
                                   rr_node_indices);
-        alloc_and_load_edges_and_switches(inode, num_edges, edge_list_head);
+        alloc_and_load_edges_and_switches(ivex, num_edges, edge_list_head);
         /* Edge arrays have now been built up.  Do everything else.  */
         seg_index = seg_details_x[itrack].index;
-        rr_node[inode].cost_index = cost_index_offset + seg_index;
-        rr_node[inode].occ = 0;
+        rr_node[ivex].cost_index = cost_index_offset + seg_index;
+        rr_node[ivex].occ = 0;
 
         if (route_type == DETAILED) {
-            rr_node[inode].capacity = 1;
+            rr_node[ivex].capacity = 1;
         } else {                                /* GLOBAL routing */
-            rr_node[inode].capacity = chan_width_x[j];
+            rr_node[ivex].capacity = chan_width_x[j];
         }
 
-        rr_node[inode].xlow = istart;
-        rr_node[inode].xhigh = iend;
-        rr_node[inode].ylow = j;
-        rr_node[inode].yhigh = j;
+        rr_node[ivex].xlow = istart;
+        rr_node[ivex].xhigh = iend;
+        rr_node[ivex].ylow = j;
+        rr_node[ivex].yhigh = j;
         length = iend - istart + 1;
-        rr_node[inode].R = length * seg_details_x[itrack].Rmetal;
-        rr_node[inode].C = length * seg_details_y[itrack].Cmetal;
-        rr_node[inode].ptc_num = itrack;
-        rr_node[inode].type = CHANX;
+        rr_node[ivex].R = length * seg_details_x[itrack].Rmetal;
+        rr_node[ivex].C = length * seg_details_y[itrack].Cmetal;
+        rr_node[ivex].ptc_num = itrack;
+        rr_node[ivex].type = CHANX;
     }
 }
 
 
-static void build_rr_ychan(int** rr_node_indices, enum e_route_type
-                           route_type, struct s_ivec** tracks_to_clb_ipin, struct s_ivec *
-                           tracks_to_pads, int i, int j, int nodes_per_chan, enum
-                           e_switch_block_type switch_block_type, int wire_to_ipin_switch,
-                           t_seg_details* seg_details_x, t_seg_details* seg_details_y,
+static void build_rr_ychan(int** rr_node_indices, router_types_t
+                           route_type, vector_t** tracks_to_clb_ipin, vector_t *
+                           tracks_to_pads, int i, int j, int nodes_per_chan,
+                           switch_block_t switch_block_type, int wire_to_ipin_switch,
+                           segment_details_t* seg_details_x, segment_details_t* seg_details_y,
                            int cost_index_offset)
 {
     /* Loads up all the routing resource nodes in the y-directed channel      *
      * segments starting at (i,j).                                            */
-    int itrack, num_edges, inode, jstart, jend, length, seg_index;
+    int itrack, num_edges, ivex, jstart, jend, length, seg_index;
     t_linked_edge* edge_list_head;
 
     for (itrack = 0; itrack < nodes_per_chan; itrack++) {
@@ -848,7 +848,7 @@ static void build_rr_ychan(int** rr_node_indices, enum e_route_type
             continue;    /* Not the start of this segment. */
         }
 
-        jend = get_seg_end(seg_details_y, itrack, jstart, i, ny);
+        jend = get_seg_end(seg_details_y, itrack, jstart, i, num_of_rows);
         edge_list_head = NULL;
 
         /* First count number of edges and put the edges in a linked list. */
@@ -864,7 +864,7 @@ static void build_rr_ychan(int** rr_node_indices, enum e_route_type
             num_edges += get_ytrack_to_xtracks(jstart, jend, i, itrack, i + 1,
                                                &edge_list_head, nodes_per_chan, rr_node_indices,
                                                seg_details_x, seg_details_y, switch_block_type);
-        } else if (i == nx) {         /* Between rightmost clbs and pads. */
+        } else if (i == num_of_columns) {         /* Between rightmost clbs and pads. */
             num_edges = get_ytrack_to_clb_ipin_edges(jstart, jend, i, itrack,
                                                      LEFT, &edge_list_head, tracks_to_clb_ipin, nodes_per_chan,
                                                      rr_node_indices, seg_details_y, wire_to_ipin_switch);
@@ -897,43 +897,43 @@ static void build_rr_ychan(int** rr_node_indices, enum e_route_type
                                               seg_details_y, switch_block_type);
         }
 
-        if (jend != ny) {      /* y-chan above exists. */
+        if (jend != num_of_rows) {      /* y-chan above exists. */
             num_edges += get_ytrack_to_ytrack(i, jend, itrack, jend + 1,
                                               &edge_list_head, nodes_per_chan, rr_node_indices,
                                               seg_details_y, switch_block_type);
         }
 
-        inode = get_rr_node_index(i, j, CHANY, itrack, nodes_per_chan,
+        ivex = gerr_node_t_index(i, j, CHANY, itrack, nodes_per_chan,
                                   rr_node_indices);
-        alloc_and_load_edges_and_switches(inode, num_edges, edge_list_head);
+        alloc_and_load_edges_and_switches(ivex, num_edges, edge_list_head);
         /* Edge arrays have now been built up.  Do everything else.  */
         seg_index = seg_details_y[itrack].index;
-        rr_node[inode].cost_index = cost_index_offset + seg_index;
-        rr_node[inode].occ = 0;
+        rr_node[ivex].cost_index = cost_index_offset + seg_index;
+        rr_node[ivex].occ = 0;
 
         if (route_type == DETAILED) {
-            rr_node[inode].capacity = 1;
+            rr_node[ivex].capacity = 1;
         } else {                                /* GLOBAL routing */
-            rr_node[inode].capacity = chan_width_y[i];
+            rr_node[ivex].capacity = chan_width_y[i];
         }
 
-        rr_node[inode].xlow = i;
-        rr_node[inode].xhigh = i;
-        rr_node[inode].ylow = jstart;
-        rr_node[inode].yhigh = jend;
+        rr_node[ivex].xlow = i;
+        rr_node[ivex].xhigh = i;
+        rr_node[ivex].ylow = jstart;
+        rr_node[ivex].yhigh = jend;
         length = jend - jstart + 1;
-        rr_node[inode].R = length * seg_details_y[itrack].Rmetal;
-        rr_node[inode].C = length * seg_details_y[itrack].Cmetal;
-        rr_node[inode].ptc_num = itrack;
-        rr_node[inode].type = CHANY;
+        rr_node[ivex].R = length * seg_details_y[itrack].Rmetal;
+        rr_node[ivex].C = length * seg_details_y[itrack].Cmetal;
+        rr_node[ivex].ptc_num = itrack;
+        rr_node[ivex].type = CHANY;
     }
 }
 
 
-void alloc_and_load_edges_and_switches(int inode, int num_edges,
+void alloc_and_load_edges_and_switches(int ivex, int num_edges,
                                        t_linked_edge* edge_list_head)
 {
-    /* Sets up all the edge related information for rr_node inode (num_edges,  *
+    /* Sets up all the edge related information for rr_node ivex (num_edges,  *
      * the edges array and the switches array).  The edge_list_head points to  *
      * a list of the num_edges edges and switches to put in the arrays.  This  *
      * linked list is freed by this routine. This routine also resets the      *
@@ -941,10 +941,10 @@ void alloc_and_load_edges_and_switches(int inode, int num_edges,
      * are marked as having been seen before).                                 */
     t_linked_edge* list_ptr, *next_ptr;
     int i, to_node;
-    rr_node[inode].num_edges = num_edges;
-    rr_node[inode].edges = (int*) my_chunk_malloc(num_edges * sizeof(int),
+    rr_node[ivex].num_edges = num_edges;
+    rr_node[ivex].edges = (int*) my_chunk_malloc(num_edges * sizeof(int),
                                                   &rr_mem_chunk_list_head, &chunk_bytes_avail, &chunk_next_avail_mem);
-    rr_node[inode].switches = (short*) my_chunk_malloc(num_edges *
+    rr_node[ivex].switches = (short*) my_chunk_malloc(num_edges *
                                                        sizeof(short), &rr_mem_chunk_list_head, &chunk_bytes_avail,
                                                        &chunk_next_avail_mem);
     /* Load the edge and switch arrays, deallocate the linked list and reset   *
@@ -954,9 +954,9 @@ void alloc_and_load_edges_and_switches(int inode, int num_edges,
 
     while (list_ptr != NULL) {
         to_node = list_ptr->edge;
-        rr_node[inode].edges[i] = to_node;
+        rr_node[ivex].edges[i] = to_node;
         rr_edge_done[to_node] = FALSE;
-        rr_node[inode].switches[i] = list_ptr->iswitch;
+        rr_node[ivex].switches[i] = list_ptr->iswitch;
         next_ptr = list_ptr->next;
         /* Add to free list */
         free_linked_edge_soft(list_ptr, &free_edge_list_head);
@@ -966,7 +966,7 @@ void alloc_and_load_edges_and_switches(int inode, int num_edges,
 }
 
 
-static int*** alloc_and_load_clb_pin_to_tracks(enum e_pin_type pin_type,
+static int*** alloc_and_load_clb_pin_to_tracks(pin_types_t pin_type,
                                                int nodes_per_chan, int Fc, boolean perturb_switch_pattern)
 {
     /* Allocates and loads an array that contains a list of which tracks each  *
@@ -1035,12 +1035,12 @@ static int*** alloc_and_load_clb_pin_to_tracks(enum e_pin_type pin_type,
     num_done_per_dir = (int*) my_calloc(4, sizeof(int));
     pin_num_ordering = (int*) my_malloc(num_phys_pins * sizeof(int));
     side_ordering = (int*) my_malloc(num_phys_pins * sizeof(int));
-    /* Connection block I use distributes pins evenly across the tracks      *
+    /* Connection blocks I use distributes pins evenly across the tracks      *
      * of ALL sides of the clb at once.  Ensures that each pin connects      *
-     * to spaced out tracks in its connection block, and that the other      *
+     * to spaced out tracks in its connection blocks, and that the other      *
      * pins (potentially in other C blocks) connect to the remaining tracks  *
      * first.  Doesn't matter for large Fc, but should make a fairly         *
-     * good low Fc block that leverages the fact that usually lots of pins   *
+     * good low Fc blocks that leverages the fact that usually lots of pins   *
      * are logically equivalent.                                             */
     iside = -1;
     ipin = 0;
@@ -1139,8 +1139,8 @@ static void load_perturbed_switch_pattern(int** *tracks_connected_to_pin,
     double f_track, spacing_dense, spacing_sparse, spacing[2];
     Fc_dense = Fc / 2 + 1;
     Fc_sparse = Fc - Fc_dense;  /* Works for even or odd Fc */
-    spacing_dense = (double) nodes_per_chan / (double)(2 * Fc_dense);
-    spacing_sparse = (double) nodes_per_chan / (double)(2 * Fc_sparse);
+    spacing_dense = (double)nodes_per_chan / (double)(2 * Fc_dense);
+    spacing_sparse = (double)nodes_per_chan / (double)(2 * Fc_sparse);
 
     for (i = 0; i < num_phys_pins; i++) {
         ipin = pin_num_ordering[i];
@@ -1168,7 +1168,7 @@ static void load_perturbed_switch_pattern(int** *tracks_connected_to_pin,
 
 
 static void check_all_tracks_reach_pins(int** *tracks_connected_to_pin,
-                                        int nodes_per_chan, int Fc, enum e_pin_type ipin_or_opin)
+                                        int nodes_per_chan, int Fc, pin_types_t ipin_or_opin)
 {
     /* Checks that all tracks can be reached by some pin.   */
     int iconn, iside, itrack, ipin;
@@ -1203,7 +1203,7 @@ static void check_all_tracks_reach_pins(int** *tracks_connected_to_pin,
 }
 
 
-static struct s_ivec** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
+static vector_t** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
                                                          int Fc,
                                                          int*** clb_ipin_to_tracks)
 {
@@ -1227,10 +1227,10 @@ static struct s_ivec** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
      * sides so that the new structure lists the sides of pins from the        *
      * perspective of the track.                                               */
 
-    struct s_ivec** tracks_to_clb_ipin;
+    vector_t** tracks_to_clb_ipin;
 
-    tracks_to_clb_ipin = (struct s_ivec**) alloc_matrix(0, nodes_per_chan - 1, 0,
-                                                        3, sizeof(struct s_ivec));
+    tracks_to_clb_ipin = (vector_t**) alloc_matrix(0, nodes_per_chan - 1, 0,
+                                                        3, sizeof(vector_t));
 
     for (itrack = 0; itrack < nodes_per_chan; itrack++)
         for (iside = 0; iside <= 3; iside++) {
@@ -1341,7 +1341,7 @@ static int** alloc_and_load_pads_to_tracks(int nodes_per_chan, int Fc_pad)
 }
 
 
-static struct s_ivec* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
+static vector_t* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
                                                     int nodes_per_chan, int Fc_pad) {
 
     /* Converts the list of tracks each IO pad connects to into a list of  *
@@ -1350,10 +1350,10 @@ static struct s_ivec* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
      * of pads to which that track connects and gives a list of the pads.  */
 
     int itrack, ipad, i, iconn, ioff;
-    struct s_ivec* tracks_to_pads;
+    vector_t* tracks_to_pads;
 
-    tracks_to_pads = (struct s_ivec*) my_malloc(nodes_per_chan* sizeof(
-                                                    struct s_ivec));
+    tracks_to_pads = (vector_t*) my_malloc(nodes_per_chan* sizeof(
+                                                    vector_t));
 
     /* Counting pass. */
 
@@ -1398,19 +1398,19 @@ void dump_rr_graph(char* file_name)
     /* A utility routine to dump the contents of the routing resource graph   *
      * (everything -- connectivity, occupancy, cost, etc.) into a file.  Used *
      * only for debugging.                                                    */
-    int inode, index;
+    int ivex, index;
     FILE* fp;
     fp = my_fopen(file_name, "w", 0);
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        print_rr_node(fp, inode);
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        prinrr_node_t(fp, ivex);
         fprintf(fp, "\n");
     }
 
     fprintf(fp, "\n\n%d rr_indexed_data entries.\n\n", num_rr_indexed_data);
 
     for (index = 0; index < num_rr_indexed_data; index++) {
-        print_rr_indexed_data(fp, index);
+        prinrr_indexed_data_t(fp, index);
         fprintf(fp, "\n");
     }
 
@@ -1418,49 +1418,49 @@ void dump_rr_graph(char* file_name)
 }
 
 
-void print_rr_node(FILE* fp, int inode)
+void prinrr_node_t(FILE* fp, int ivex)
 {
-    /* Prints all the data about node inode to file fp.                    */
+    /* Prints all the data about node ivex to file fp.                    */
     static char* name_type[] = {"SOURCE", "SINK", "IPIN", "OPIN", "CHANX",
                                 "CHANY"
                                };
-    t_rr_type rr_type;
+    rr_types_t rr_type;
     int iconn;
-    rr_type = rr_node[inode].type;
+    rr_type = rr_node[ivex].type;
 
-    if (rr_node[inode].xlow == rr_node[inode].xhigh && rr_node[inode].ylow ==
-            rr_node[inode].yhigh) {
-        fprintf(fp, "Node: %d.  %s (%d, %d)  Ptc_num: %d\n", inode,
-                name_type[rr_type], rr_node[inode].xlow, rr_node[inode].ylow,
-                rr_node[inode].ptc_num);
+    if (rr_node[ivex].xlow == rr_node[ivex].xhigh && rr_node[ivex].ylow ==
+            rr_node[ivex].yhigh) {
+        fprintf(fp, "Node: %d.  %s (%d, %d)  Ptc_num: %d\n", ivex,
+                name_type[rr_type], rr_node[ivex].xlow, rr_node[ivex].ylow,
+                rr_node[ivex].ptc_num);
     } else {
-        fprintf(fp, "Node: %d.  %s (%d, %d) to (%d, %d)  Ptc_num: %d\n", inode,
-                name_type[rr_type], rr_node[inode].xlow, rr_node[inode].ylow,
-                rr_node[inode].xhigh, rr_node[inode].yhigh,
-                rr_node[inode].ptc_num);
+        fprintf(fp, "Node: %d.  %s (%d, %d) to (%d, %d)  Ptc_num: %d\n", ivex,
+                name_type[rr_type], rr_node[ivex].xlow, rr_node[ivex].ylow,
+                rr_node[ivex].xhigh, rr_node[ivex].yhigh,
+                rr_node[ivex].ptc_num);
     }
 
-    fprintf(fp, "%4d edge(s):", rr_node[inode].num_edges);
+    fprintf(fp, "%4d edge(s):", rr_node[ivex].num_edges);
 
-    for (iconn = 0; iconn < rr_node[inode].num_edges; iconn++) {
-        fprintf(fp, " %d", rr_node[inode].edges[iconn]);
+    for (iconn = 0; iconn < rr_node[ivex].num_edges; iconn++) {
+        fprintf(fp, " %d", rr_node[ivex].edges[iconn]);
     }
 
     fprintf(fp, "\nSwitch types:");
 
-    for (iconn = 0; iconn < rr_node[inode].num_edges; iconn++) {
-        fprintf(fp, " %d", rr_node[inode].switches[iconn]);
+    for (iconn = 0; iconn < rr_node[ivex].num_edges; iconn++) {
+        fprintf(fp, " %d", rr_node[ivex].switches[iconn]);
     }
 
     fprintf(fp, "\n");
-    fprintf(fp, "Occ: %d  Capacity: %d.\n", rr_node[inode].occ,
-            rr_node[inode].capacity);
-    fprintf(fp, "R: %g  C: %g\n", rr_node[inode].R, rr_node[inode].C);
-    fprintf(fp, "Cost_index: %d\n", rr_node[inode].cost_index);
+    fprintf(fp, "Occ: %d  Capacity: %d.\n", rr_node[ivex].occ,
+            rr_node[ivex].capacity);
+    fprintf(fp, "R: %g  C: %g\n", rr_node[ivex].R, rr_node[ivex].C);
+    fprintf(fp, "Cost_index: %d\n", rr_node[ivex].cost_index);
 }
 
 
-void print_rr_indexed_data(FILE* fp, int index)
+void prinrr_indexed_data_t(FILE* fp, int index)
 {
     /* Prints all the rr_indexed_data of index to file fp.   */
     fprintf(fp, "Index: %d\n", index);

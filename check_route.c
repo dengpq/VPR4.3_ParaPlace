@@ -9,31 +9,31 @@
 
 /******************** Subroutines local to this module **********************/
 
-static void check_node_and_range(int inode, enum e_route_type route_type);
-static void check_source(int inode, int inet);
-static void check_sink(int inode, int inet, boolean* pin_done);
+static void check_node_and_range(int ivex, router_types_t route_type);
+static void check_source(int ivex, int inet);
+static void check_sink(int ivex, int inet, boolean* pin_done);
 static void check_switch(struct s_trace* tptr, int num_switch);
 static boolean check_adjacent(int from_node, int to_node);
 static int pin_and_chan_adjacent(int pin_node, int chan_node);
 static int chanx_chany_adjacent(int chanx_node, int chany_node);
 static void reset_flags(int inet, boolean* connected_to_route);
-static void recompute_occupancy_from_scratch(t_ivec** clb_opins_used_locally);
-static void check_locally_used_clb_opins(t_ivec** clb_opins_used_locally,
-                                         enum e_route_type route_type);
+static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally);
+static void check_locally_used_clb_opins(vector_t** clb_opins_used_locally,
+                                         router_types_t route_type);
 
 
 /************************ Subroutine definitions ****************************/
 
 
-void check_route(enum e_route_type route_type, int num_switch,
-                 t_ivec** clb_opins_used_locally)
+void check_route(router_types_t route_type, int num_switch,
+                 vector_t** clb_opins_used_locally)
 {
     /* This routine checks that a routing:  (1) Describes a properly         *
      * connected path for each net, (2) this path connects all the           *
      * pins spanned by that net, and (3) that no routing resources are       *
      * oversubscribed (the occupancy of everything is recomputed from        *
      * scratch).                                                             */
-    int inet, ipin, max_pins, inode, prev_node;
+    int inet, ipin, max_pins, ivex, prev_node;
     boolean valid, connects;
     boolean* connected_to_route;    /* [0 .. num_rr_nodes-1] */
     struct s_trace* tptr;
@@ -79,30 +79,30 @@ void check_route(enum e_route_type route_type, int num_switch,
             exit(1);
         }
 
-        inode = tptr->index;
-        check_node_and_range(inode, route_type);
+        ivex = tptr->index;
+        check_node_and_range(ivex, route_type);
         check_switch(tptr, num_switch);
-        connected_to_route[inode] = TRUE;   /* Mark as in path. */
-        check_source(inode, inet);
+        connected_to_route[ivex] = TRUE;   /* Mark as in path. */
+        check_source(ivex, inet);
         pin_done[0] = TRUE;
-        prev_node = inode;
+        prev_node = ivex;
         tptr = tptr->next;
 
         /* Check the rest of the net */
 
         while (tptr != NULL) {
-            inode = tptr->index;
-            check_node_and_range(inode, route_type);
+            ivex = tptr->index;
+            check_node_and_range(ivex, route_type);
             check_switch(tptr, num_switch);
 
             if (rr_node[prev_node].type == SINK) {
-                if (connected_to_route[inode] == FALSE) {
+                if (connected_to_route[ivex] == FALSE) {
                     printf("Error in check_route.  Node %d does not link "
-                           "into the existing routing for net %d.\n", inode, inet);
+                           "into the existing routing for net %d.\n", ivex, inet);
                     exit(1);
                 }
             } else {
-                connects = check_adjacent(prev_node, inode);
+                connects = check_adjacent(prev_node, ivex);
 
                 if (!connects) {
                     printf("Error in check_route while checking net %d.\n",
@@ -111,7 +111,7 @@ void check_route(enum e_route_type route_type, int num_switch,
                     exit(1);
                 }
 
-                if (connected_to_route[inode] && rr_node[inode].type != SINK) {
+                if (connected_to_route[ivex] && rr_node[ivex].type != SINK) {
                     /* Note:  Can get multiple connections to the same logically-equivalent     *
                      * SINK in some logic blocks.                                               */
                     printf("Error in check_route:  net %d routing is not a tree.\n",
@@ -119,14 +119,14 @@ void check_route(enum e_route_type route_type, int num_switch,
                     exit(1);
                 }
 
-                connected_to_route[inode] = TRUE;  /* Mark as in path. */
+                connected_to_route[ivex] = TRUE;  /* Mark as in path. */
 
-                if (rr_node[inode].type == SINK) {
-                    check_sink(inode, inet, pin_done);
+                if (rr_node[ivex].type == SINK) {
+                    check_sink(ivex, inet, pin_done);
                 }
             }    /* End of prev_node type != SINK */
 
-            prev_node = inode;
+            prev_node = ivex;
             tptr = tptr->next;
         }  /* End while */
 
@@ -153,18 +153,18 @@ void check_route(enum e_route_type route_type, int num_switch,
 }
 
 
-static void check_sink(int inode, int inet, boolean* pin_done)
+static void check_sink(int ivex, int inet, boolean* pin_done)
 {
     /* Checks that this SINK node is one of the terminals of inet, and marks   *
      * the appropriate pin as being reached.                                   */
     int i, j, ipin, ifound, ptc_num, bnum, iclass, blk_pin;
-    i = rr_node[inode].xlow;
-    j = rr_node[inode].ylow;
-    ptc_num = rr_node[inode].ptc_num;
+    i = rr_node[ivex].xlow;
+    j = rr_node[ivex].ylow;
+    ptc_num = rr_node[ivex].ptc_num;
     ifound = 0;
 
     if (clb[i][j].type == CLB) {
-        bnum = clb[i][j].u.block;
+        bnum = clb[i][j].u.blocks;
 
         for (ipin = 1; ipin < net[inet].num_pins; ipin++) { /* All net SINKs */
             if (net[inet].blocks[ipin] == bnum) {
@@ -201,18 +201,18 @@ static void check_sink(int inode, int inet, boolean* pin_done)
 
     if (ifound < 1) {
         printf("Error in check_sink:  node %d does not connect to any terminal "
-               "\n of net %d.\n", inode, inet);
+               "\n of net %d.\n", ivex, inet);
         exit(1);
     }
 }
 
 
-static void check_source(int inode, int inet)
+static void check_source(int ivex, int inet)
 {
     /* Checks that the node passed in is a valid source for this net.        */
-    t_rr_type rr_type;
+    rr_types_t rr_type;
     int i, j, ptc_num, bnum, blk_pin, iclass;
-    rr_type = rr_node[inode].type;
+    rr_type = rr_node[ivex].type;
 
     if (rr_type != SOURCE) {
         printf("Error in check_source:  net %d begins with a node of type %d.\n",
@@ -220,18 +220,18 @@ static void check_source(int inode, int inet)
         exit(1);
     }
 
-    i = rr_node[inode].xlow;
-    j = rr_node[inode].ylow;
-    ptc_num = rr_node[inode].ptc_num;
+    i = rr_node[ivex].xlow;
+    j = rr_node[ivex].ylow;
+    ptc_num = rr_node[ivex].ptc_num;
     bnum = net[inet].blocks[0];
 
-    if (block[bnum].x != i || block[bnum].y != j) {
+    if (blocks[bnum].x != i || blocks[bnum].y != j) {
         printf("Error in check_source:  net SOURCE is in wrong location (%d,%d)."
                "\n", i, j);
         exit(1);
     }
 
-    if (block[bnum].type == CLB) {
+    if (blocks[bnum].type == CLB) {
         blk_pin = net[inet].blk_pin[0];
         iclass = clb_pin_class[blk_pin];
 
@@ -254,15 +254,15 @@ static void check_switch(struct s_trace* tptr, int num_switch)
 {
     /* Checks that the switch leading from this traceback element to the next *
      * one is a legal switch type.                                            */
-    int inode;
+    int ivex;
     short switch_type;
-    inode = tptr->index;
+    ivex = tptr->index;
     switch_type = tptr->iswitch;
 
-    if (rr_node[inode].type != SINK) {
+    if (rr_node[ivex].type != SINK) {
         if (switch_type < 0 || switch_type >= num_switch) {
             printf("Error in check_switch: rr_node %d left via switch type %d.\n",
-                   inode, switch_type);
+                   ivex, switch_type);
             printf("Switch type is out of range.\n");
             exit(1);
         }
@@ -272,7 +272,7 @@ static void check_switch(struct s_trace* tptr, int num_switch)
          * allowed, change to treat a SINK like any other node (as above).          */
         if (switch_type != OPEN) {
             printf("Error in check_switch:  rr_node %d is a SINK, but attempts \n"
-                   "to use a switch of type %d.\n", inode, switch_type);
+                   "to use a switch of type %d.\n", ivex, switch_type);
             exit(1);
         }
     }
@@ -286,12 +286,12 @@ static void reset_flags(int inet, boolean* connected_to_route)
      * next net for connectivity (and the default state of the flags       *
      * should always be zero after they have been used).                   */
     struct s_trace* tptr;
-    int inode;
+    int ivex;
     tptr = trace_head[inet];
 
     while (tptr != NULL) {
-        inode = tptr->index;
-        connected_to_route[inode] = FALSE;   /* Not in routed path now. */
+        ivex = tptr->index;
+        connected_to_route[ivex] = FALSE;   /* Not in routed path now. */
         tptr = tptr->next;
     }
 }
@@ -306,7 +306,7 @@ static boolean check_adjacent(int from_node, int to_node)
     int from_xlow, from_ylow, to_xlow, to_ylow, from_ptc, to_ptc, iclass;
     int num_adj, to_xhigh, to_yhigh, from_xhigh, from_yhigh, iconn;
     boolean reached;
-    t_rr_type from_type, to_type;
+    rr_types_t from_type, to_type;
     reached = FALSE;
 
     for (iconn = 0; iconn < rr_node[from_node].num_edges; iconn++) {
@@ -342,7 +342,7 @@ static boolean check_adjacent(int from_node, int to_node)
                         if (iclass == from_ptc) {
                             num_adj++;
                         }
-                    } else { /* IO block */
+                    } else { /* IO blocks */
                         if (to_ptc == from_ptc) {
                             num_adj++;
                         }
@@ -469,7 +469,7 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
      * a bug in this routine).                                                 */
     int num_adj, pin_x, pin_y, chan_xlow, chan_ylow, chan_xhigh, chan_yhigh;
     int pin_ptc;
-    t_rr_type chan_type;
+    rr_types_t chan_type;
     num_adj = 0;
     pin_x = rr_node[pin_node].xlow;
     pin_y = rr_node[pin_node].ylow;
@@ -512,8 +512,8 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
                     pin_x >= chan_xlow) {
                 num_adj++;
             }
-        } else if (pin_y == ny + 1) { /* Top row of pads. */
-            if (chan_type == CHANX && chan_ylow == ny && pin_x <= chan_xhigh &&
+        } else if (pin_y == num_of_rows + 1) { /* Top row of pads. */
+            if (chan_type == CHANX && chan_ylow == num_of_rows && pin_x <= chan_xhigh &&
                     pin_x >= chan_xlow) {
                 num_adj++;
             }
@@ -522,8 +522,8 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
                     pin_y >= chan_ylow) {
                 num_adj++;
             }
-        } else if (pin_x == nx + 1) { /* Right row of pads */
-            if (chan_type == CHANY && chan_xlow == nx && pin_y <= chan_yhigh &&
+        } else if (pin_x == num_of_columns + 1) { /* Right row of pads */
+            if (chan_type == CHANY && chan_xlow == num_of_columns && pin_y <= chan_yhigh &&
                     pin_y >= chan_ylow) {
                 num_adj++;
             }
@@ -534,18 +534,18 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
 }
 
 
-static void recompute_occupancy_from_scratch(t_ivec** clb_opins_used_locally)
+static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally)
 {
     /* This routine updates the occ field in the rr_node structure according to *
      * the resource usage of the current routing.  It does a brute force        *
      * recompute from scratch that is useful for sanity checking.               */
-    int inode, inet, iblk, iclass, ipin, num_local_opins;
+    int ivex, inet, iblk, iclass, ipin, num_local_opins;
     struct s_trace* tptr;
 
     /* First set the occupancy of everything to zero. */
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        rr_node[inode].occ = 0;
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        rr_node[ivex].occ = 0;
     }
 
     /* Now go through each net and count the tracks and pins used everywhere */
@@ -562,10 +562,10 @@ static void recompute_occupancy_from_scratch(t_ivec** clb_opins_used_locally)
         }
 
         while (1) {
-            inode = tptr->index;
-            rr_node[inode].occ++;
+            ivex = tptr->index;
+            rr_node[ivex].occ++;
 
-            if (rr_node[inode].type == SINK) {
+            if (rr_node[ivex].type == SINK) {
                 tptr = tptr->next;                /* Skip next segment. */
 
                 if (tptr == NULL) {
@@ -582,53 +582,53 @@ static void recompute_occupancy_from_scratch(t_ivec** clb_opins_used_locally)
      * locally).                                                                */
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        for (iclass = 0; iclass < num_class; iclass++) {
+        for (iclass = 0; iclass < num_pin_class; iclass++) {
             num_local_opins = clb_opins_used_locally[iblk][iclass].nelem;
 
             /* Will always be 0 for pads or SINK classes. */
             for (ipin = 0; ipin < num_local_opins; ipin++) {
-                inode = clb_opins_used_locally[iblk][iclass].list[ipin];
-                rr_node[inode].occ++;
+                ivex = clb_opins_used_locally[iblk][iclass].list[ipin];
+                rr_node[ivex].occ++;
             }
         }
     }
 }
 
 
-static void check_locally_used_clb_opins(t_ivec** clb_opins_used_locally,
-                                         enum e_route_type route_type)
+static void check_locally_used_clb_opins(vector_t** clb_opins_used_locally,
+                                         router_types_t route_type)
 {
     /* Checks that enough OPINs on CLBs have been set aside (used up) to make a *
      * legal routing if subblocks connect to OPINs directly.                    */
-    int iclass, iblk, num_local_opins, inode, ipin;
-    t_rr_type rr_type;
+    int iclass, iblk, num_local_opins, ivex, ipin;
+    rr_types_t rr_type;
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        for (iclass = 0; iclass < num_class; iclass++) {
+        for (iclass = 0; iclass < num_pin_class; iclass++) {
             num_local_opins = clb_opins_used_locally[iblk][iclass].nelem;
             /* Always 0 for pads and for SINK classes */
 
             for (ipin = 0; ipin < num_local_opins; ipin++) {
-                inode = clb_opins_used_locally[iblk][iclass].list[ipin];
-                check_node_and_range(inode, route_type);   /* Node makes sense? */
+                ivex = clb_opins_used_locally[iblk][iclass].list[ipin];
+                check_node_and_range(ivex, route_type);   /* Node makes sense? */
                 /* Now check that node is an OPIN of the right type. */
-                rr_type = rr_node[inode].type;
+                rr_type = rr_node[ivex].type;
 
                 if (rr_type != OPIN) {
                     printf("Error in check_locally_used_opins:  Block #%d (%s)\n"
                            "\tclass %d locally used OPIN is of the wrong rr_type --\n"
                            "\tit is rr_node #%d of type %d.\n", iblk,
-                           block[iblk].name, iclass, inode, rr_type);
+                           blocks[iblk].name, iclass, ivex, rr_type);
                     exit(1);
                 }
 
-                ipin = rr_node[inode].ptc_num;
+                ipin = rr_node[ivex].ptc_num;
 
                 if (clb_pin_class[ipin] != iclass) {
                     printf("Error in check_locally_used_opins:  Block #%d (%s):\n"
                            "\tExpected class %d locally used OPIN, got class %d."
-                           "\trr_node #: %d.\n", iblk, block[iblk].name, iclass,
-                           clb_pin_class[ipin], inode);
+                           "\trr_node #: %d.\n", iblk, blocks[iblk].name, iclass,
+                           clb_pin_class[ipin], ivex);
                     exit(1);
                 }
             }
@@ -637,15 +637,15 @@ static void check_locally_used_clb_opins(t_ivec** clb_opins_used_locally,
 }
 
 
-static void check_node_and_range(int inode, enum e_route_type route_type)
+static void check_node_and_range(int ivex, router_types_t route_type)
 {
-    /* Checks that inode is within the legal range, then calls check_node to    *
+    /* Checks that ivex is within the legal range, then calls check_node to    *
      * check that everything else about the node is OK.                         */
-    if (inode < 0 || inode >= num_rr_nodes) {
+    if (ivex < 0 || ivex >= num_rr_nodes) {
         printf("Error in check_node_and_range:  rr_node #%d is out of legal "
-               "\trange (0 to %d).\n", inode, num_rr_nodes - 1);
+               "\trange (0 to %d).\n", ivex, num_rr_nodes - 1);
         exit(1);
     }
 
-    check_node(inode, route_type);
+    check_node(ivex, route_type);
 }

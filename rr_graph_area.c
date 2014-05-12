@@ -35,7 +35,7 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
     /* Counts how many transistors are needed to implement the FPGA routing      *
      * resources.  Call this only when an rr_graph exists.  It does not count    *
      * the transistors used in logic blocks, but it counts the transistors in    *
-     * the input connection block multiplexers and in the output pin drivers and *
+     * the input connection blocks multiplexers and in the output pin drivers and *
      * pass transistors.  NB:  this routine assumes pass transistors always      *
      * generate two edges (one forward, one backward) between two nodes.         *
      * Physically, this is what happens -- make sure your rr_graph does it.      *
@@ -65,10 +65,10 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
      * optimistic (but I still think it's pretty reasonable).                    */
     int* num_inputs_to_cblock;  /* [0..num_rr_nodes-1], but all entries not    */
     /* corresponding to IPINs will be 0.           */
-    boolean* cblock_counted;          /* [0..max(nx,ny)] -- 0th element unused. */
-    double* shared_buffer_trans;       /* [0..max_nx,ny)] */
+    boolean* cblock_counted;          /* [0..max(num_of_columns,num_of_rows)] -- 0th element unused. */
+    double* shared_buffer_trans;       /* [0..max_nx,num_of_rows)] */
     double* unsharable_switch_trans, *sharable_switch_trans; /* [0..num_switch-1] */
-    t_rr_type from_rr_type, to_rr_type;
+    rr_types_t from_rr_type, to_rr_type;
     int from_node, to_node, iedge, num_edges, maxlen;
     int iswitch, i, j, iseg, max_inputs_to_cblock;
     double input_cblock_trans, shared_opin_buffer_trans;
@@ -78,11 +78,11 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
      * incrementing once adding a switch makes a change of less than 1 part in  *
      * 10^7 to the total.  If this still isn't good enough (adding 1 part in    *
      * 10^15 will still be thrown away), compute the transistor count in        *
-     * "chunks", by adding up inodes 1 to 1000, 1001 to 2000 and then summing   *
+     * "chunks", by adding up ivexs 1 to 1000, 1001 to 2000 and then summing   *
      * the partial sums together.                                               */
     double ntrans_sharing, ntrans_no_sharing;
     /* Buffers from the routing to the ipin cblock inputs, and from the ipin    *
-     * cblock outputs to the logic block, respectively.  Assume minimum size n  *
+     * cblock outputs to the logic blocks, respectively.  Assume minimum size n  *
      * transistors, and ptransistors sized to make the pull-up R = pull-down R. */
     double trans_track_to_cblock_buf;
     double trans_cblock_to_lblock_buf;
@@ -99,7 +99,7 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
     /* trans_track_to_cblock_buf = 1. + trans_per_R (R_minW_nmos, R_minW_pmos);
      trans_cblock_to_lblock_buf = 1. + trans_per_R (R_minW_nmos, R_minW_pmos); */
     num_inputs_to_cblock = (int*) my_calloc(num_rr_nodes, sizeof(int));
-    maxlen = max(nx, ny) + 1;
+    maxlen = max(num_of_columns, num_of_rows) + 1;
     cblock_counted = (boolean*) my_calloc(maxlen, sizeof(boolean));
     shared_buffer_trans = (double*) my_calloc(maxlen, sizeof(double));
     unsharable_switch_trans = alloc_and_load_unsharable_switch_trans(num_switch,
@@ -212,7 +212,7 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
     free(shared_buffer_trans);
     free(unsharable_switch_trans);
     free(sharable_switch_trans);
-    /* Now add in the input connection block transistors. */
+    /* Now add in the input connection blocks transistors. */
     input_cblock_trans = get_cblock_trans(num_inputs_to_cblock,
                                           max_inputs_to_cblock, trans_cblock_to_lblock_buf, trans_sram_bit);
     free(num_inputs_to_cblock);
@@ -220,9 +220,9 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
     ntrans_no_sharing += input_cblock_trans;
     printf("\nRouting area (in minimum width transistor areas):\n");
     printf("Assuming no buffer sharing (pessimistic). Total: %#g  Per clb: "
-           "%#g\n", ntrans_no_sharing, ntrans_no_sharing / (double)(nx * ny));
+           "%#g\n", ntrans_no_sharing, ntrans_no_sharing / (double)(num_of_columns * num_of_rows));
     printf("Assuming buffer sharing (slightly optimistic). Total: %#g  Per clb: "
-           "%#g\n\n", ntrans_sharing, ntrans_sharing / (double)(nx * ny));
+           "%#g\n\n", ntrans_sharing, ntrans_sharing / (double)(num_of_columns * num_of_rows));
 }
 
 
@@ -230,8 +230,8 @@ static double get_cblock_trans(int* num_inputs_to_cblock, int
                               max_inputs_to_cblock, double trans_cblock_to_lblock_buf,
                               double trans_sram_bit)
 {
-    /* Computes the transistors in the input connection block multiplexers and   *
-     * the buffers from connection block outputs to the logic block input pins.  *
+    /* Computes the transistors in the input connection blocks multiplexers and   *
+     * the buffers from connection blocks outputs to the logic blocks input pins.  *
      * For speed, I precompute the number of transistors in the multiplexers of  *
      * interest.                                                                 */
     double* trans_per_cblock;            /* [0..max_inputs_to_cblock] */

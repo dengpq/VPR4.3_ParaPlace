@@ -23,11 +23,10 @@ typedef int boolean;
 #define nint(a) ((int)floor(a + 0.5))
 
 /* Linked lists of void pointers and integers, respectively. */
-
-struct s_linked_vptr {
-    void* data_vptr;
+typedef struct s_linked_vptr {
+    void*  data_vptr;
     struct s_linked_vptr* next;
-};
+} linked_vptr_t;
 
 struct s_linked_int {
     int data;
@@ -36,36 +35,35 @@ struct s_linked_int {
 typedef struct s_linked_int t_linked_int;
 
 
-/* Integer vector.  nelem stores length, list[0..nelem-1] stores list of    *
- * integers.                                                                */
-
-struct s_ivec {
-    int nelem;
+/* Integer vector.nelem stores length,list[0..nelem-1] stores list of integers.*/
+typedef struct s_ivec {
+    int  nelem;
     int* list;
-};
-typedef struct s_ivec t_ivec;
-
+} vector_t;
 
 /************************ Memory allocation routines *************************/
+void* my_calloc(size_t nelem,
+                size_t size);
 
-void* my_calloc(size_t nelem, size_t size);
 void* my_malloc(size_t size);
+
 void* my_realloc(void* ptr, size_t size);
 
-void* my_chunk_malloc(size_t size, struct s_linked_vptr** chunk_ptr_head,
-                      int* mem_avail_ptr, char** next_mem_loc_ptr);
+void* my_chunk_malloc(size_t size,
+                      linked_vptr_t** chunk_ptr_head,
+                      int* mem_avail_ptr,
+                      char** next_mem_loc_ptr);
 
-void free_chunk_memory(struct s_linked_vptr* chunk_ptr_head);
+void free_chunk_memory(linked_vptr_t* chunk_ptr_head);
 
 
 /******************* Linked list, matrix and vector utilities ****************/
+void free_ivec_vector(vector_t* ivec_vector, int nrmin, int nrmax);
 
-void free_ivec_vector(struct s_ivec* ivec_vector, int nrmin, int nrmax);
-
-void free_ivec_matrix(struct s_ivec** ivec_matrix, int nrmin, int nrmax,
+void free_ivec_matrix(vector_t** ivec_matrix, int nrmin, int nrmax,
                       int ncmin, int ncmax);
 
-void free_ivec_matrix3(struct s_ivec** *ivec_matrix3, int nrmin, int nrmax,
+void free_ivec_matrix3(vector_t** *ivec_matrix3, int nrmin, int nrmax,
                        int ncmin, int ncmax, int ndmin, int ndmax);
 
 void** alloc_matrix(int nrmin, int nrmax, int ncmin, int ncmax,
@@ -79,7 +77,7 @@ void free_matrix(void* vptr, int nrmin, int nrmax, int ncmin, size_t elsize);
 void free_matrix3(void* vptr, int nrmin, int nrmax, int ncmin, int ncmax,
                   int ndmin, size_t elsize);
 
-struct s_linked_vptr* insert_in_vptr_list(struct s_linked_vptr* head,
+linked_vptr_t* insert_in_vptr_list(linked_vptr_t* head,
                                           void* vptr_to_add);
 
 t_linked_int* insert_in_int_list(t_linked_int* head, int data, t_linked_int**
@@ -88,7 +86,7 @@ t_linked_int* insert_in_int_list(t_linked_int* head, int data, t_linked_int**
 void free_int_list(t_linked_int** int_list_head_ptr);
 
 void alloc_ivector_and_copy_int_list(t_linked_int** list_head_ptr,
-                                     int num_items, struct s_ivec* ivec, t_linked_int
+                                     int num_items, vector_t* ivec, t_linked_int
                                      ** free_list_head_ptr);
 
 

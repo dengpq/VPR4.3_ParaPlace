@@ -93,7 +93,7 @@ void* my_realloc(void* ptr, size_t size)
 }
 
 
-void* my_chunk_malloc(size_t size, struct s_linked_vptr** chunk_ptr_head,
+void* my_chunk_malloc(size_t size, linked_vptr_t** chunk_ptr_head,
                       int* mem_avail_ptr, char** next_mem_loc_ptr)
 {
     /* This routine should be used for allocating fairly small data             *
@@ -117,13 +117,14 @@ void* my_chunk_malloc(size_t size, struct s_linked_vptr** chunk_ptr_head,
      * double.  Change the typedef below if this is the case.          */
     typedef long Align;
 #define CHUNK_SIZE 32768
+
 #define FRAGMENT_THRESHOLD 100
-    char* tmp_ptr;
+    char* tmp_ptr = NULL;
     int aligned_size;
 
     if (*mem_avail_ptr < size) {       /* Need to malloc more memory. */
         if (size > CHUNK_SIZE) {      /* Too big, use standard routine. */
-            tmp_ptr = my_malloc(size);
+            tmp_ptr = (char*)my_malloc(size);
 
             /*#ifdef DEBUG
                    printf("NB:  my_chunk_malloc got a request for %d bytes.\n",
@@ -135,11 +136,11 @@ void* my_chunk_malloc(size_t size, struct s_linked_vptr** chunk_ptr_head,
                 *chunk_ptr_head = insert_in_vptr_list(*chunk_ptr_head, tmp_ptr);
             }
 
-            return (tmp_ptr);
+            return tmp_ptr;
         }
 
         if (*mem_avail_ptr < FRAGMENT_THRESHOLD) {  /* Only a small scrap left. */
-            *next_mem_loc_ptr = my_malloc(CHUNK_SIZE);
+            *next_mem_loc_ptr = (char*)my_malloc(CHUNK_SIZE);
             *mem_avail_ptr = CHUNK_SIZE;
 
             if (chunk_ptr_head != NULL)
@@ -150,19 +151,18 @@ void* my_chunk_malloc(size_t size, struct s_linked_vptr** chunk_ptr_head,
          * and would leave too big an unused fragment.  Then we use malloc *
          * to allocate normally.                                           */
         else {
-            tmp_ptr = my_malloc(size);
-
+            tmp_ptr = (char*)my_malloc(size);
             if (chunk_ptr_head != NULL) {
-                *chunk_ptr_head = insert_in_vptr_list(*chunk_ptr_head, tmp_ptr);
+                *chunk_ptr_head = insert_in_vptr_list(*chunk_ptr_head,
+                                                      tmp_ptr);
             }
 
-            return (tmp_ptr);
+            return tmp_ptr;
         }
     }
 
     /* Find the smallest distance to advance the memory pointer and keep *
      * everything aligned.                                               */
-
     if (size % sizeof(Align) == 0) {
         aligned_size = size;
     } else {
@@ -176,10 +176,10 @@ void* my_chunk_malloc(size_t size, struct s_linked_vptr** chunk_ptr_head,
 }
 
 
-void free_chunk_memory(struct s_linked_vptr* chunk_ptr_head)
+void free_chunk_memory(linked_vptr_t* chunk_ptr_head)
 {
     /* Frees the memory allocated by a sequence of calls to my_chunk_malloc. */
-    struct s_linked_vptr* curr_ptr, *prev_ptr;
+    linked_vptr_t* curr_ptr, *prev_ptr;
     curr_ptr = chunk_ptr_head;
 
     while (curr_ptr != NULL) {
@@ -191,15 +191,15 @@ void free_chunk_memory(struct s_linked_vptr* chunk_ptr_head)
 }
 
 
-struct s_linked_vptr* insert_in_vptr_list(struct s_linked_vptr* head,
+linked_vptr_t* insert_in_vptr_list(linked_vptr_t* head,
                                           void* vptr_to_add) {
 
     /* Inserts a new element at the head of a linked list of void pointers. *
      * Returns the new head of the list.                                    */
 
-    struct s_linked_vptr* linked_vptr;
+    linked_vptr_t* linked_vptr;
 
-    linked_vptr = (struct s_linked_vptr*) my_malloc(sizeof(struct
+    linked_vptr = (linked_vptr_t*) my_malloc(sizeof(struct
                                                            s_linked_vptr));
 
     linked_vptr->data_vptr = vptr_to_add;
@@ -248,7 +248,7 @@ void free_int_list(t_linked_int** int_list_head_ptr)
 
 
 void alloc_ivector_and_copy_int_list(t_linked_int** list_head_ptr,
-                                     int num_items, struct s_ivec* ivec, t_linked_int
+                                     int num_items, vector_t* ivec, t_linked_int
                                      ** free_list_head_ptr)
 {
     /* Allocates an integer vector with num_items elements and copies the       *
@@ -361,8 +361,7 @@ char* my_strtok(char* ptr, char* tokens, FILE* fp, char* buf)
      * use local buffers in a bunch of subroutines calling each      *
      * other; the local buffer may be overwritten when the stack is  *
      * restored after return from the subroutine.                    */
-    char* val;
-    val = strtok(ptr, tokens);
+    char* val = strtok(ptr, tokens);
 
     while (1) {
         if (val != NULL || cont == 0) {
@@ -379,7 +378,7 @@ char* my_strtok(char* ptr, char* tokens, FILE* fp, char* buf)
 }
 
 
-void free_ivec_vector(struct s_ivec* ivec_vector, int nrmin, int nrmax)
+void free_ivec_vector(vector_t* ivec_vector, int nrmin, int nrmax)
 {
     /* Frees a 1D array of integer vectors.                              */
     int i;
@@ -393,7 +392,7 @@ void free_ivec_vector(struct s_ivec* ivec_vector, int nrmin, int nrmax)
 }
 
 
-void free_ivec_matrix(struct s_ivec** ivec_matrix, int nrmin, int nrmax,
+void free_ivec_matrix(vector_t** ivec_matrix, int nrmin, int nrmax,
                       int ncmin, int ncmax)
 {
     /* Frees a 2D matrix of integer vectors (ivecs).                     */
@@ -407,11 +406,11 @@ void free_ivec_matrix(struct s_ivec** ivec_matrix, int nrmin, int nrmax,
         }
     }
 
-    free_matrix(ivec_matrix, nrmin, nrmax, ncmin, sizeof(struct s_ivec));
+    free_matrix(ivec_matrix, nrmin, nrmax, ncmin, sizeof(vector_t));
 }
 
 
-void free_ivec_matrix3(struct s_ivec** *ivec_matrix3, int nrmin, int nrmax,
+void free_ivec_matrix3(vector_t** *ivec_matrix3, int nrmin, int nrmax,
                        int ncmin, int ncmax, int ndmin, int ndmax)
 {
     /* Frees a 3D matrix of integer vectors (ivecs).                     */
@@ -428,7 +427,7 @@ void free_ivec_matrix3(struct s_ivec** *ivec_matrix3, int nrmin, int nrmax,
     }
 
     free_matrix3(ivec_matrix3, nrmin, nrmax, ncmin, ncmax, ndmin,
-                 sizeof(struct s_ivec));
+                 sizeof(vector_t));
 }
 
 
@@ -437,7 +436,7 @@ void** alloc_matrix(int nrmin, int nrmax, int ncmin, int ncmax,
 {
     /* allocates an generic matrix with nrmax-nrmin + 1 rows and ncmax - *
      * ncmin + 1 columns, with each element of size elsize. i.e.         *
-     * returns a pointer to a storage block [nrmin..nrmax][ncmin..ncmax].*
+     * returns a pointer to a storage blocks [nrmin..nrmax][ncmin..ncmax].*
      * Simply cast the returned array pointer to the proper type.        */
     int i;
     char** cptr;
@@ -476,7 +475,7 @@ void*** alloc_matrix3(int nrmin, int nrmax, int ncmin, int ncmax,
 {
     /* allocates a 3D generic matrix with nrmax-nrmin + 1 rows, ncmax -  *
      * ncmin + 1 columns, and a depth of ndmax-ndmin + 1, with each      *
-     * element of size elsize. i.e. returns a pointer to a storage block *
+     * element of size elsize. i.e. returns a pointer to a storage blocks *
      * [nrmin..nrmax][ncmin..ncmax][ndmin..ndmax].  Simply cast the      *
      *  returned array pointer to the proper type.                       */
     int i, j;

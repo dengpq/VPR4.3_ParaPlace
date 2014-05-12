@@ -4,9 +4,9 @@
 #include "util.h"
 #include "route_tree_timing.h"
 
-boolean try_timing_driven_route(struct s_router_opts router_opts,
+boolean try_timing_driven_route(router_opts_t router_opts,
                                 double** net_slack, double** net_delay,
-                                t_ivec** clb_opins_used_locally);
+                                vector_t** clb_opins_used_locally);
 
 boolean timing_driven_route_net(int inet, double pres_fac,
                                 double max_criticality, double criticality_exp,

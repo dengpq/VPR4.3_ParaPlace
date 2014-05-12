@@ -23,15 +23,15 @@
  * For simple switch boxes this is overkill, but it will allow complicated  *
  * switch boxes with Fs > 3, etc. without trouble.                          */
 
-static struct s_ivec*** switch_block_conn;
+static vector_t*** switch_block_conn;
 
 
 
-static int get_simple_switch_block_track(enum e_side from_side, enum e_side
-                                         to_side, int from_track, enum e_switch_block_type
+static int get_simple_switch_block_track(side_types_t from_side, side_types_t
+                                         to_side, int from_track, switch_block_t
                                          switch_block_type, int nodes_per_chan);
 
-static enum e_side get_sbox_side(int get_i, int get_j, t_rr_type get_type,
+static side_types_t get_sbox_side(int get_i, int get_j, rr_types_t get_type,
                                  int comp_i, int comp_j);
 
 
@@ -39,14 +39,14 @@ static enum e_side get_sbox_side(int get_i, int get_j, t_rr_type get_type,
 
 
 void alloc_and_load_switch_block_conn(int nodes_per_chan,
-                                      enum e_switch_block_type switch_block_type)
+                                      switch_block_t switch_block_type)
 {
     /* Allocates and loads the switch_block_conn data structure.  This structure *
-     * lists which tracks connect to which at each switch block.                 */
-    enum e_side from_side, to_side;
+     * lists which tracks connect to which at each switch blocks.                 */
+    side_types_t from_side, to_side;
     int from_track, to_track;
-    switch_block_conn = (struct s_ivec***) alloc_matrix3(0, 3, 0, 3, 0,
-                                                         nodes_per_chan - 1, sizeof(struct s_ivec));
+    switch_block_conn = (vector_t***) alloc_matrix3(0, 3, 0, 3, 0,
+                                                         nodes_per_chan - 1, sizeof(vector_t));
 
     for (from_side = 0; from_side <= 3; from_side++) {
         for (to_side = 0; to_side <= 3; to_side++) {
@@ -78,8 +78,8 @@ void free_switch_block_conn(int nodes_per_chan)
 
 #define SBOX_ERROR -1
 
-static int get_simple_switch_block_track(enum e_side from_side, enum e_side
-                                         to_side, int from_track, enum e_switch_block_type
+static int get_simple_switch_block_track(side_types_t from_side, side_types_t
+                                         to_side, int from_track, switch_block_t
                                          switch_block_type, int nodes_per_chan)
 {
     /* This routine returns the track number to which the from_track should     *
@@ -173,14 +173,14 @@ static int get_simple_switch_block_track(enum e_side from_side, enum e_side
 }
 
 
-struct s_ivec get_switch_box_tracks(int from_i, int from_j, int from_track,
-                                    t_rr_type from_type, int to_i, int to_j, t_rr_type to_type, enum
-                                    e_switch_block_type switch_block_type, int nodes_per_chan) {
+vector_t get_switch_box_tracks(int from_i, int from_j, int from_track,
+                                    rr_types_t from_type, int to_i, int to_j, rr_types_t to_type,
+                                    switch_block_t switch_block_type, int nodes_per_chan) {
 
     /* Returns a vector of the tracks to which from_track at (from_i, from_j)   *
      * should connect at (to_i, to_j).                                          */
 
-    enum e_side from_side, to_side;
+    side_types_t from_side, to_side;
 
     from_side = get_sbox_side(from_i, from_j, from_type, to_i, to_j);
     to_side = get_sbox_side(to_i, to_j, to_type, from_i, from_j);
@@ -189,12 +189,12 @@ struct s_ivec get_switch_box_tracks(int from_i, int from_j, int from_track,
 }
 
 
-static enum e_side get_sbox_side(int get_i, int get_j, t_rr_type get_type,
+static side_types_t get_sbox_side(int get_i, int get_j, rr_types_t get_type,
                                  int comp_i, int comp_j)
 {
     /* Returns the side of the switch box that the get_node is on, as compared *
      * to the comp (comparison) node.                                          */
-    enum e_side side;
+    side_types_t side;
 
     if (get_type == CHANX) {
         if (get_i > comp_i) {

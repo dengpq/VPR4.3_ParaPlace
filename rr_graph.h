@@ -3,30 +3,30 @@
 
 #include "vpr_types.h"
 
-void build_rr_graph(enum e_route_type route_type,
-                    struct s_det_routing_arch det_routing_arch,
-                    t_segment_inf* segment_inf,
-                    t_timing_inf   timing_inf,
-                    enum e_base_cost_type base_cost_type);
+void build_rr_graph(router_types_t route_type,
+                    detail_routing_arch_t det_routing_arch,
+                    segment_info_t* segment_inf,
+                    timing_info_t   timing_inf,
+                    router_base_cost_t router_base_cost_type);
 
-void free_rr_graph_internals(enum e_route_type route_type,
-                             struct s_det_routing_arch det_routing_arch,
-                             t_segment_inf* segment_inf,
-                             t_timing_inf timing_inf,
-                             enum e_base_cost_type base_cost_type);
+void free_rr_graph_internals(router_types_t route_type,
+                             detail_routing_arch_t det_routing_arch,
+                             segment_info_t* segment_inf,
+                             timing_info_t timing_inf,
+                             router_base_cost_t router_base_cost_type);
 
 void free_rr_graph(void);
 
 void dump_rr_graph(char* file_name);                /* For debugging only */
 
-void print_rr_node(FILE* fp, int inode);            /* For debugging only */
+void prinrr_node_t(FILE* fp, int ivex);            /* For debugging only */
 
-void print_rr_indexed_data(FILE* fp, int index);    /* For debugging only */
+void prinrr_indexed_data_t(FILE* fp, int index);    /* For debugging only */
 
 void load_net_rr_terminals(int** rr_node_indices,
                            int nodes_per_chan);
 
-int** get_rr_node_indices(void);
+int** gerr_node_t_indices(void);
 
 int get_nodes_per_chan(void);
 

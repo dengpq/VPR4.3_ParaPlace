@@ -4,7 +4,7 @@
 #include "vpr_types.h"
 
 void print_netlist(char* foutput, char* net_file,
-                   t_subblock_data subblock_data);
+                   subblock_data_t subblock_data);
 
 #endif
 

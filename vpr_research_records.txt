@@ -1,0 +1,177 @@
+                                                 VPR4.3算法研究记录
+
+    目前我知道了VPR的PATH_TIMING_DRIVEN_ALGO中使用的net(线网)是指inter-clb间线网，即
+这些net是CLB与CLB之间的nets，不包括CLB内部的subblocks之间的线网(CLB内部的线网有3类：
+clb_inpin_to_subblock_inpin, subblock_outpin_to_subblock_inpin,
+subblock_outpin_to_clb_outpin)。但是，在PATH_TIMING_DRIVEN_ALGO中，作者创建的
+Timing_Graph中，却把netlist中用到的pins(包括所有的CLB及其内部的Subblocks, INPAD, OUTPAD)
+初始化为vertex_t, 而这些pins之间的connections(包括netlist中所有的Inter-CLB nets以及
+CLB内部的3种线网连接)都初始化为dge_t。
+
+    对pins的初始化，作者将netlist中所有用到的pin都初始化为vertex。
+int** num_uses_of_clb_ipins; [0..num_blocks-1][0..pins_per_clb-1]
+int** num_uses_of_sblk_outpins; [0..num_blocks-1][0..num_sblk_per_clb[iblk]-1];
+alloc_and_load_fanout_counts(&num_uses_of_clb_ipins,
+                             &num_uses_of_sblk_outpins,
+                             subblock_data);
+数组 num_uses_of_clb_ipins和num_uses_of_sblk_outpins记录了所有CLB及其内部的subblocks
+的pins上connections数量。若某个pin的connection为0, 那就说明该pin空闲，没有net连接上它；
+若某个pin的不是空闲，则它的connection数量必大于等于1。
+
+    特别注意，PATH_TIMING_DRIVEN_ALGO在计算TIMING_COST时，处理对象仅限于Inter-CLB net
+没有考虑CLB内部的connection，且Pins也仅限于INPAD，OUTPAD和CLB的pin，未考虑CLB内部的
+subblocks的pins。证据是double** net_delay和double** net_slack都是以Inter-CLB为准。
+但是，在使用图的层序遍历算法计算所有pins的arr_time和req_time的时候，却没有这样做
+(假如这样做，结果必然不准确)。
+
+    提到计算所有pins的arr_time和req_time，必须要用到delay。edge_t的delay计算需要用到4个
+delay_lookup_matrixs: delta_clb_to_clb, delta_inpad_to_clb, delta_clb_to_outpad,
+delta_inpad_to_outpad。特别注意，它不是PATH_ALGO的重点。
+
+
+    那么，我今晚就把程序写出来，先搞定TIMING_PLACE的参数，然后把剩下的两个函数补全。接下来就
+依据新参数加上if-else语句。在vpr_types.h中，定义了VPR中使用的TIMING_DRIVEN_PLACE算法，
+如下:
+typedef enum e_place_algorithm_t {
+    BOUNDING_BOX_PLACE = 0,
+    PATH_TIMING_DRIVEN_PLACE,
+    NET_TIMING_DRIVEN_PLACE,
+
+    /* NEW_TIMING_DRIVEN_PLACE是我新加入，基于2000的论文: "A Novel Net Weighting
+       Algorithm for Timing Driven Placement" */
+    NEW_TIMING_DRIVEN_PLACE
+} place_algorithm_t;
+
+另外，在main.c的parse_command()中，加入对place_algorithm的处理，多加上一条else if语句。
+if (strcmp(argv[i], "place_algorithm") == 0) {
+    ...
+    else if (strcmp(argv[i+1], "new_timing_driven_place") == 0) {
+        placer_opts->place_algorithm = NEW_TIMING_DRIVEN_PLACE;
+    }
+}
+我还在parse_command()加入了更多对TIMING_DRIVEN_PLACEMENT参数的处理语句。
+
+之后就是计算所有vertex_t的front_crit_path_throuhg_pin 和 behind_crit_path_through_pin.
+
+在place.c中，定义了3个内部函数
+static void calc_all_tnodes_front_crit_path_through_pin(const double max_delay);
+
+static void calc_all_tnodes_behind_crit_path_through_pin(const double max_delay);
+
+static void calc_all_
+
+    好了，我现在已经把基本的框架大好了，现在就剩下加上if-else 语句了。
+
+    今晚就加上。
+    
+================================================================================
+2014-03-24  星期一
+
+In  path_delay2.h
+/* [0..num_of_vertexs-1]  */
+double*  front_crit_path_through_pin;
+double*  behind_crit_path_through_pin;
+
+/*  [0..num_nets-1][1..num_pins-1] */
+double** subnet_forward_local_slack;    /* [inet][ipin] */
+double** subnet_backward_local_slack;
+double** subnet_local_crit_weight;
+--------------------------------------------------------------------------------
+
+In path_delay.h
+extern double*  front_crit_path_through_pin;
+extern double*  behind_crit_path_through_pin;
+
+extern double**  subnet_forward_local_slack;
+extern double**  subnet_backward_local_slack;
+extern double**  subnet_local_crit_weight;
+
+int  locate_source_vertex_index_by_net_index(const int inet);
+
+int  locate_sink_vertex_index_by_net_pin_index(const int inet,
+                                               const int ipin,
+                                               int** block_pin_to_tnode);
+--------------------------------------------------------------------------------
+
+In  path_delay.c
+static void alloc_3_arrays_need_by_path_algo(double** nets_forward_local_slack,
+                                             double** nets_backward_local_slack,
+                                             double** nets_local_crit_weight);
+/* this function will call the 3 following functions */
+static void alloc_all_nets_forward_local_slack(double** net_forward_local_slack);
+
+static void alloc_all_nets_backward_local_slack(double** nets_backward_local_slack);
+
+static void alloc_all_nets_local_crit_weight(double** nets_local_crit_weight);
+
+static void calc_all_nets_forward_local_slack(const double** net_delay,
+                                              const int** block_pin_to_tnode);
+                                              
+static void calc_all_nets_backward_local_slack(const double** net_delay,
+                                               const int** block_pin_to_tnode);
+                                               
+static void assign_front_crit_path_through_pin_to_primary_inputs();
+
+static void calc_all_tnodes_front_crit_path_through_pin(const int** block_pin_to_tnode,
+                                                        const double crit_delay);
+                                                        
+static void assign_behind_crit_path_through_pin_to_primary_outputs();
+
+static void calc_all_tnodes_behind_crit_path_through_pin(const int** block_pin_to_tnode,
+                                                         const double crit_delay);
+                                                        
+static void calc_all_nets_local_crit_weight(const double** net_delay,
+                                            const double T_crit,
+                                            const int**  block_pin_to_tnode);
+                                            
+/****************   NEW  ADDED  END!   *********************/
+
+/*  In place.h  */
+double compute_discount_value(const double x,
+                              const double y);
+
+
+/*  In place.c */
+extern int num_of_vertexs;
+extern vertex_t*  vertexs;
+
+extern int*  driver_node_index_of_net;
+
+static void compute_timing_driven_costs_by_path_algo(double* total_timing_cost,
+                                                     double* connection_delay_sum);
+
+double compute_discount_value(const double x,
+                              const double y)
+
+
+/* 将double** net_delay[0..num_nets-1][1..num_pins-1] 中存放的delay值赋给 对应的vertex
+ * 的edge.Tdel  */
+load_timing_graph_net_delays(double** net_delay);
+
+现将 double  load_net_slack_and_compute_crit_delay(double** net_slack,
+                                                   double  target_time);拆分为2个
+函数: double calc_timing_graph_arr_req_time(doulbe target_time)专注于计算timing_graph
+中所有边顶点的arr_time 和 req_time，而compute_net_slacks(double** net_slack)则计算所有
+边的slack值。
+
+                                                  
+
+注意下面的这几个函数，它们在Timing-Analysis时，总是同时出现！
+load_constant_net_delay(double** net_delay,
+                        double   place_delay_value);
+
+/* 将net_delay数组中存放的delay值 赋给timing_graph中相应的顶点的边的 Tdel  */
+load_timing_graph_net_delays(net_delay,
+                             place_delay_value);
+
+/* 计算 timing_graph 中所有顶点的 arrival_time和required_time，并返回关键路径上的时延 */
+double crit_delay = calc_all_vertexs_arr_req_time(double target_cycle_time);
+
+/* 计算 Timing_Graph中每天边的slack，并赋给 net_slack */
+compute_net_slacks(double** net_slack);
+
+/*  给Timing_Graph 中每条边 附上权重 */
+load_criticalities(double** net_slack,
+                   double crit_delay,
+                   double crit_exponent);
+

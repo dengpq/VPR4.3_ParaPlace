@@ -3,9 +3,9 @@
 
 #include "util.h"
 
-double** alloc_net_delay(struct s_linked_vptr** chunk_list_head_ptr);
+double** alloc_net_delay(linked_vptr_t** chunk_list_head_ptr);
 
-void free_net_delay(double** net_delay, struct s_linked_vptr
+void free_net_delay(double** net_delay, linked_vptr_t
                     ** chunk_list_head_ptr);
 
 void load_net_delay_from_routing(double** net_delay);

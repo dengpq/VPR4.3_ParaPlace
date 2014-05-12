@@ -14,24 +14,24 @@
 #include "stats.h"
 #include "path_delay.h"
 
-
 /******************** Global variables *************************/
 /********** Netlist to be mapped stuff ****************/
 int  num_nets;
 int  num_blocks;
-int  num_p_inputs;
-int  num_p_outputs;
+int  num_primary_inputs; /* maybe it was num_of_primary_inputs */
+int  num_primary_outputs; /* maybe it was num_of_primary_outputs */
 int  num_clbs;
 int  num_globals;
-struct s_net* net;
-struct s_block* block;
-boolean* is_global; /* FALSE if a net is normal, TRUE if it is. */
+net_t*   net;
+block_t* blocks;
 /*  Global signals are not routed.  */
+boolean* is_global; /* FALSE if a net is normal, TRUE if it is. */
 
+double ground_num;
 
 /********** Physical architecture stuff ****************/
-int nx;  /* num_of_block_columns */
-int ny;  /* num_of_block_rows */
+int num_of_columns;  /* num_of_block_columns */
+int num_of_rows;  /* num_of_block_rows */
 int io_rat;
 int pins_per_clb;
 /* Pinloc[0..3][0..pins_per_clb-1].  For each pin pinloc[0..3][i] is 1 if    *
@@ -50,20 +50,18 @@ int* clb_pin_class;  /* clb_pin_class[0..pins_per_clb-1].  Gives the class  *
  * generator and from creating extra switches that the area model would      *
  * count.                                                                    */
 
-boolean* is_global_clb_pin;     /* [0..pins_per_clb-1]. */
+boolean* is_global_clb_pin; /* [0..pins_per_clb-1]. */
 
-struct s_class* class_inf;   /* class_inf[0..num_class-1].  Provides   *
-                              * information on all available classes.  */
+pin_class_t* class_inf;   /* class_inf[0..num_pin_class-1].  Provides   *
+                           * information on all available classes.  */
+int num_pin_class; /* Number of different classes.  */
 
-int num_class;       /* Number of different classes.  */
+int* chan_width_x, *chan_width_y; /* [0..num_of_rows] and [0..num_of_columns] respectively  */
 
-int* chan_width_x, *chan_width_y;   /* [0..ny] and [0..nx] respectively  */
-
-struct s_clb** clb;   /* Physical block list */
+clb_t** clb;   /* Architecture blocks list */
 
 
 /******** Structures defining the routing ***********/
-
 /* [0..num_nets-1] of linked list start pointers. Define the routing. */
 struct s_trace** trace_head;
 struct s_trace** trace_tail;
@@ -71,10 +69,10 @@ struct s_trace** trace_tail;
 /**** Structures defining the FPGA routing architecture ****/
 
 int num_rr_nodes;
-t_rr_node* rr_node; /* [0..num_rr_nodes-1]  */
+rr_node_t* rr_node; /* [0..num_rr_nodes-1]  */
 
 int num_rr_indexed_data;
-t_rr_indexed_data* rr_indexed_data; /* [0..num_rr_indexed_data-1] */
+rr_indexed_data_t* rr_indexed_data; /* [0..num_rr_indexed_data-1] */
 
 /* Gives the rr_node indices of net terminals.    */
 
@@ -83,26 +81,37 @@ int** net_rr_terminals; /* [0..num_nets-1][0..num_pins-1]. */
 /* Gives information about all the switch types                      *
  * (part of routing architecture, but loaded in read_arch.c          */
 
-struct s_switch_inf* switch_inf; /* [0..det_routing_arch.num_switch-1] */
+switch_info_t* switch_inf; /* [0..det_routing_arch.num_switch-1] */
 
 /* Stores the SOURCE and SINK nodes of all CLBs (not valid for pads).     */
-int** rr_clb_source; /* [0..num_blocks-1][0..num_class-1]*/
+int** rr_clb_source; /* [0..num_blocks-1][0..num_pin_class-1]*/
 
 /********************** Subroutines local to this module ********************/
 static void get_input(char* net_file, char* arch_file, int place_cost_type,
                       int num_regions, double aspect_ratio, boolean user_sized,
-                      enum e_route_type route_type, struct s_det_routing_arch
-                      *det_routing_arch, t_segment_inf** segment_inf_ptr,
-                      t_timing_inf* timing_inf_ptr, t_subblock_data* subblock_data_ptr,
-                      t_chan_width_dist* chan_width_dist_ptr);
+                      router_types_t route_type, detail_routing_arch_t
+                      *det_routing_arch, segment_info_t** segment_inf_ptr,
+                      timing_info_t* timing_inf_ptr, subblock_data_t* subblock_data_ptr,
+                      chan_width_distr_t* chan_width_dist_ptr);
 
-static void parse_command(int argc, char* argv[], char* net_file, char
-                          *arch_file, char* place_file, char* route_file, enum e_operation
-                          *operation, double* aspect_ratio,  boolean* full_stats, boolean* user_sized,
-                          boolean* verify_binary_search, int* gr_automode, boolean* show_graphics,
-                          struct s_annealing_sched* annealing_sched, struct s_placer_opts
-                          *placer_opts, struct s_router_opts* router_opts, boolean
-                          *timing_analysis_enabled, double* constant_net_delay);
+static void parse_command(int argc,
+                          char* argv[],
+                          char* net_file,
+                          char* arch_file,
+                          char* place_file,
+                          char* route_file,
+                          operation_types_t* operation,
+                          double* aspect_ratio,
+                          boolean* full_stats,
+                          boolean* user_sized,
+                          boolean* verify_binary_search,
+                          int* gr_automode,
+                          boolean* show_graphics,
+                          annealing_sched_t* annealing_sched,
+                          placer_opts_t* placer_opts,
+                          router_opts_t* router_opts,
+                          boolean* timing_analysis_enabled,
+                          double* constant_net_delay);
 
 static int read_int_option(int argc, char* argv[], int iarg);
 static double read_double_option(int argc, char* argv[], int iarg);
@@ -128,32 +137,53 @@ int main(int argc, char* argv[])
     boolean full_stats, user_sized;
     char pad_loc_file[BUFSIZE];
 
-    enum e_operation operation;
+    operation_types_t operation;
 
     boolean verify_binary_search;
     boolean show_graphics;
 
     int    gr_automode;
-    struct  s_annealing_sched annealing_sched;
-    struct  s_placer_opts placer_opts;
-    struct  s_router_opts router_opts;
-    struct  s_det_routing_arch det_routing_arch;
-    t_segment_inf* segment_inf;
-    t_timing_inf   timing_inf;
-    t_subblock_data subblock_data;
-    t_chan_width_dist chan_width_dist;
+    annealing_sched_t annealing_sched;
+    placer_opts_t placer_opts;
+    router_opts_t router_opts;
+    detail_routing_arch_t det_routing_arch;
+    segment_info_t* segment_inf;
+    timing_info_t   timing_inf;
+    subblock_data_t subblock_data;
+    chan_width_distr_t chan_width_dist;
     double constant_net_delay;
     placer_opts.pad_loc_file = pad_loc_file;
     /* Parse the command line. */
-    parse_command(argc, argv, net_file, arch_file, place_file, route_file,
-                  &operation, &aspect_ratio,  &full_stats, &user_sized, &verify_binary_search,
-                  &gr_automode, &show_graphics, &annealing_sched, &placer_opts, &router_opts,
-                  &timing_inf.timing_analysis_enabled, &constant_net_delay);
+    parse_command(argc,
+                  argv,
+                  net_file,
+                  arch_file,
+                  place_file,
+                  route_file,
+                  &operation,
+                  &aspect_ratio,
+                  &full_stats,
+                  &user_sized,
+                  &verify_binary_search,
+                  &gr_automode,
+                  &show_graphics,
+                  &annealing_sched,
+                  &placer_opts,
+                  &router_opts,
+                  &timing_inf.timing_analysis_enabled,
+                  &constant_net_delay);
     /* Parse input circuit and architecture */
-    get_input(net_file, arch_file, placer_opts.place_cost_type,
-              placer_opts.num_regions, aspect_ratio, user_sized,
-              router_opts.route_type, &det_routing_arch, &segment_inf,
-              &timing_inf, &subblock_data, &chan_width_dist);
+    get_input(net_file,
+              arch_file,
+              placer_opts.place_cost_type,
+              placer_opts.num_regions,
+              aspect_ratio, user_sized,
+              router_opts.route_type,
+              &det_routing_arch,
+              &segment_inf,
+              &timing_inf,
+              &subblock_data,
+              &chan_width_dist);
 
     if (full_stats == TRUE) {
         print_lambda();
@@ -161,18 +191,27 @@ int main(int argc, char* argv[])
 
 #ifdef DEBUG
     print_netlist("net.echo", net_file, subblock_data);
-    print_arch(arch_file, router_opts.route_type, det_routing_arch,
-               segment_inf, timing_inf, subblock_data, chan_width_dist);
+    print_arch(arch_file,
+               router_opts.route_type,
+               det_routing_arch,
+               segment_inf,
+               timing_inf,
+               subblock_data,
+               chan_width_dist);
 #endif
 
     if (operation == TIMING_ANALYSIS_ONLY) {  /* Just run the timing analyzer. */
-        do_constant_net_delay_timing_analysis(timing_inf, subblock_data,
+        do_constant_net_delay_timing_analysis(placer_opts,
+                                              timing_inf,
+                                              subblock_data,
                                               constant_net_delay);
         free_subblock_data(&subblock_data);
         exit(0);
     }
 
-    set_graphics_state(show_graphics, gr_automode, router_opts.route_type);
+    set_graphics_state(show_graphics,
+                       gr_automode,
+                       router_opts.route_type);
 
     if (show_graphics) {
         /* Get graphics going */
@@ -208,38 +247,45 @@ int main(int argc, char* argv[])
     exit(0);
 }
 
-
-static void parse_command(int argc, char* argv[], char* net_file, char
-                          *arch_file, char* place_file, char* route_file, enum e_operation
-                          *operation, double* aspect_ratio,  boolean* full_stats, boolean* user_sized,
-                          boolean* verify_binary_search, int* gr_automode, boolean* show_graphics,
-                          struct s_annealing_sched* annealing_sched, struct s_placer_opts
-                          *placer_opts, struct s_router_opts* router_opts, boolean
-                          *timing_analysis_enabled, double* constant_net_delay)
+static void parse_command(int argc,
+                          char* argv[],
+                          char* net_file,
+                          char* arch_file,
+                          char* place_file,
+                          char* route_file,
+                          operation_types_t* operation,
+                          double* aspect_ratio,
+                          boolean* full_stats,
+                          boolean* user_sized,
+                          boolean* verify_binary_search,
+                          int* gr_automode,
+                          boolean* show_graphics,
+                          annealing_sched_t* annealing_sched,
+                          placer_opts_t* placer_opts,
+                          router_opts_t* router_opts,
+                          boolean* timing_analysis_enabled,
+                          double* constant_net_delay)
 {
-    /* Parse the command line to get the input and output files and options. */
-    int i;
-    boolean do_one_nonlinear_place, bend_cost_set, base_cost_type_set;
-    /* Set the defaults.  If the user specified an option on the command *
-    * line, the corresponding default is overwritten.                   */
+    /* First set the defaults parameters. If the user-specified an option on the *
+     * command line, the corresponding default value will be overwritten.        */
     int seed = 1;
     /* Flag to check if place_chan_width has been specified. */
-    do_one_nonlinear_place = FALSE;
-    bend_cost_set = FALSE;
-    base_cost_type_set = FALSE;
-    /* Allows me to see if nx and or ny have been set. */
-    nx = 0;
-    ny = 0;
+    boolean do_one_nonlinear_place = FALSE;
+    boolean bend_cost_set = FALSE;
+    boolean router_base_cost_type_set = FALSE;
+    /* Allows me to see if num_of_columns and or num_of_rows have been set. */
+    num_of_columns = 0;
+    num_of_rows = 0;
     *operation = PLACE_AND_ROUTE;
     annealing_sched->type = AUTO_SCHED;
-    annealing_sched->inner_num = 10.;
-    annealing_sched->init_t = 100.;
+    annealing_sched->inner_num = 10.0;
+    annealing_sched->init_t = 100.0;
     annealing_sched->alpha_t = 0.8;
     annealing_sched->exit_t = 0.01;
     placer_opts->place_algorithm = PATH_TIMING_DRIVEN_PLACE;
     placer_opts->timing_tradeoff = 0.5;
     placer_opts->block_dist = 1;
-    placer_opts->place_cost_exp = 1.;
+    placer_opts->place_cost_exp = 1.0;
     placer_opts->place_cost_type = LINEAR_CONG;
     placer_opts->num_regions = 4;        /* Really 4 x 4 array */
     placer_opts->place_freq = PLACE_ONCE;
@@ -259,7 +305,7 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     router_opts->initial_pres_fac = 0.5;
     router_opts->pres_fac_mult = 2;
     router_opts->acc_fac = 1;
-    router_opts->base_cost_type = DEMAND_ONLY;
+    router_opts->router_base_cost_type = DEMAND_ONLY;
     router_opts->bend_cost = 1.;
     router_opts->max_router_iterations = 30;
     router_opts->bb_factor = 3;
@@ -267,9 +313,9 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     router_opts->fixed_channel_width = NO_FIXED_CHANNEL_WIDTH;
     router_opts->astar_fac = 1.2;
     router_opts->max_criticality = 0.99;
-    router_opts->criticality_exp = 1.;
+    router_opts->criticality_exp = 1.0;
     *timing_analysis_enabled = TRUE;
-    *aspect_ratio = 1.;
+    *aspect_ratio = 1.0;
     *full_stats = FALSE;
     *user_sized = FALSE;
     *verify_binary_search = FALSE;
@@ -277,18 +323,18 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     *gr_automode = 1;     /* Wait for user input only after MAJOR updates. */
     *constant_net_delay = -1;
 
-    /* Start parsing the command line.  First four arguments are not   *
-     * optional.                                                       */
-
+    /* Second parsing the command line. First four arguments are not optional. *
+     * If user didn't input the required parameters, print the help info.     */ 
     if (argc < 5) {
         printf("Usage:  vpr circuit.net fpga.arch placed.out routed.out "
                "[Options ...]\n\n");
         printf("General Options:  [-nodisp] [-auto <int>] [-route_only]\n");
         printf("\t[-place_only] [-timing_analyze_only_with_net_delay <double>]\n");
-        printf("\t[-aspect_ratio <double>] [-nx <int>] [-ny <int>] [-fast]\n");
+        printf("\t[-aspect_ratio <double>] [-num_of_columns <int>] [-num_of_rows <int>] [-fast]\n");
         printf("\t[-full_stats] [-timing_analysis on | off]\n");
         printf("\nPlacer Options: \n");
-        printf("\t[-place_algorithm bounding_box | net_timing_driven | path_timing_driven]\n");
+        printf("\t[-place_algorithm bounding_box | net_timing_driven | path_timing_driven | new_timing_driven]\n");
+        printf("\t[-ground_num <double>]\n");
         printf("\t[-init_t <double>] [-exit_t <double>]\n");
         printf("\t[-alpha_t <double>] [-inner_num <double>] [-seed <int>]\n");
         printf("\t[-place_cost_exp <double>] [-place_cost_type linear | "
@@ -310,22 +356,20 @@ static void parse_command(int argc, char* argv[], char* net_file, char
                "\t[-bend_cost <double>] [-route_type global | detailed]\n"
                "\t[-verify_binary_search] [-route_chan_width <int>]\n"
                "\t[-router_algorithm breadth_first | timing_driven]\n"
-               "\t[-base_cost_type intrinsic_delay | delay_normalized | "
+               "\t[-router_base_cost_type intrinsic_delay | delay_normalized | "
                "demand_only]\n");
         printf("\nRouting options valid only for timing-driven routing:\n"
                "\t[-astar_fac <double>] [-max_criticality <double>]\n"
                "\t[-criticality_exp <double>]\n\n");
         exit(1);
     }
-
     strncpy(net_file, argv[1], BUFSIZE);
     strncpy(arch_file, argv[2], BUFSIZE);
     strncpy(place_file, argv[3], BUFSIZE);
     strncpy(route_file, argv[4], BUFSIZE);
-    i = 5;
 
-    /* Now get any optional arguments.      */
-
+    /* Third, parse the optional parameters that input by user. */
+    int i = 5;
     while (i < argc) {
         if (strcmp(argv[i], "-aspect_ratio") == 0) {
             *aspect_ratio = read_double_option(argc, argv, i);
@@ -404,12 +448,12 @@ static void parse_command(int argc, char* argv[], char* net_file, char
             continue;
         }
 
-        if (strcmp(argv[i], "-nx") == 0) {
-            nx = read_int_option(argc, argv, i);
+        if (strcmp(argv[i], "-num_of_columns") == 0) {
+            num_of_columns = read_int_option(argc, argv, i);
             *user_sized = TRUE;
 
-            if (nx <= 0) {
-                printf("Error:  -nx value must be greater than 0.\n");
+            if (num_of_columns <= 0) {
+                printf("Error:  -num_of_columns value must be greater than 0.\n");
                 exit(1);
             }
 
@@ -417,12 +461,12 @@ static void parse_command(int argc, char* argv[], char* net_file, char
             continue;
         }
 
-        if (strcmp(argv[i], "-ny") == 0) {
-            ny = read_int_option(argc, argv, i);
+        if (strcmp(argv[i], "-num_of_rows") == 0) {
+            num_of_rows = read_int_option(argc, argv, i);
             *user_sized = TRUE;
 
-            if (ny <= 0) {
-                printf("Error:  -ny value must be greater than 0.\n");
+            if (num_of_rows <= 0) {
+                printf("Error:  -num_of_rows value must be greater than 0.\n");
                 exit(1);
             }
 
@@ -582,12 +626,28 @@ static void parse_command(int argc, char* argv[], char* net_file, char
                 placer_opts->place_algorithm = NET_TIMING_DRIVEN_PLACE;
             } else if (strcmp(argv[i + 1], "path_timing_driven") == 0) {
                 placer_opts->place_algorithm = PATH_TIMING_DRIVEN_PLACE;
+            } else if (strcmp(argv[i + 1], "new_timing_driven") == 0) {
+                placer_opts->place_algorithm = NEW_TIMING_DRIVEN_PLACE;
             } else {
                 printf("Error:  -place_algorithm must be bounding_box, "
                        "net_timing_driven, or path_timing_driven\n");
                 exit(1);
             }
 
+            i += 2;
+            continue;
+        }
+        /* Now deal with ground_num */
+        if (strcmp(argv[i], "-ground_num") == 0) {
+            if (argc <= i + 1) {
+                printf("Error: NEW_TIMING_DRIVEN_PLACE need a ground num.\n");
+                exit(1);
+            }
+
+            ground_num = atof(argv[i+1]);
+            if (ground_num < 0.0) {
+                printf("Error: ground_num must bigger than 0!\n");
+            }
             i += 2;
             continue;
         }
@@ -813,26 +873,26 @@ static void parse_command(int argc, char* argv[], char* net_file, char
             continue;
         }
 
-        if (strcmp(argv[i], "-base_cost_type") == 0) {
+        if (strcmp(argv[i], "-router_base_cost_type") == 0) {
             if (argc <= i + 1) {
-                printf("Error:  -base_cost_type option requires a string "
+                printf("Error:  -router_base_cost_type option requires a string "
                        "parameter.\n");
                 exit(1);
             }
 
             if (strcmp(argv[i + 1], "intrinsic_delay") == 0) {
-                router_opts->base_cost_type = INTRINSIC_DELAY;
+                router_opts->router_base_cost_type = INTRINSIC_DELAY;
             } else if (strcmp(argv[i + 1], "delay_normalized") == 0) {
-                router_opts->base_cost_type = DELAY_NORMALIZED;
+                router_opts->router_base_cost_type = DELAY_NORMALIZED;
             } else if (strcmp(argv[i + 1], "demand_only") == 0) {
-                router_opts->base_cost_type = DEMAND_ONLY;
+                router_opts->router_base_cost_type = DEMAND_ONLY;
             } else {
-                printf("Error:  -base_cost_type must be intrinsic_delay, "
+                printf("Error:  -router_base_cost_type must be intrinsic_delay, "
                        "delay_normalized or demand_only.\n");
                 exit(1);
             }
 
-            base_cost_type_set = TRUE;
+            router_base_cost_type_set = TRUE;
             i += 2;
             continue;
         }
@@ -921,8 +981,7 @@ static void parse_command(int argc, char* argv[], char* net_file, char
         exit(1);
     }   /* End of giant while loop. */
 
-    /* Check for illegal options combinations. */
-
+    /* Forth, check for illegal options combinations. */
     if (placer_opts->place_cost_type == NONLINEAR_CONG && *operation !=
             PLACE_AND_ROUTE && do_one_nonlinear_place == FALSE) {
         printf("Error:  Replacing using the nonlinear congestion option\n");
@@ -932,8 +991,9 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     }
 
     if (placer_opts->place_cost_type == NONLINEAR_CONG &&
-            (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE ||
-             placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE)) {
+            (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE
+               || placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE
+               || placer_opts->place_algorithm == NEW_TIMING_DRIVEN_PLACE)) {
         /*note that this may work together, but I have not tested it */
         printf("Error: Cannot use nonlinear placement with \n"
                "      timing driven placement\n");
@@ -941,18 +1001,19 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     }
 
     if (router_opts->route_type == GLOBAL &&
-            (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE ||
-             placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE)) {
+            (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE
+               || placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE
+               || placer_opts->place_algorithm == NEW_TIMING_DRIVEN_PLACE)) {
         /* Works, but very weird.  Can't optimize timing well, since you're
-         * not doing proper architecture delay modelling.
-         */
+         * not doing proper architecture Tdel modelling.  */
         printf("Warning: Using global routing with timing-driven placement.\n");
         printf("\tThis is allowed, but strange, and circuit speed will suffer.\n");
     }
 
     if (*timing_analysis_enabled == FALSE  &&
-            (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE ||
-             placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE)) {
+            (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE
+               || placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE
+               || placer_opts->place_algorithm == NEW_TIMING_DRIVEN_PLACE)) {
         /*may work, not tested*/
         printf("Error: timing analysis must be enabled for timing-driven placement\n");
         exit(1);
@@ -981,9 +1042,9 @@ static void parse_command(int argc, char* argv[], char* net_file, char
             exit(1);
         }
 
-        if (*timing_analysis_enabled == FALSE && router_opts->base_cost_type
+        if (*timing_analysis_enabled == FALSE && router_opts->router_base_cost_type
                 != DEMAND_ONLY) {
-            printf("Error:  base_cost_type must be demand_only when timing "
+            printf("Error:  router_base_cost_type must be demand_only when timing "
                    "analysis is disabled.\n");
             exit(1);
         }
@@ -999,7 +1060,7 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     /* Now echo back the options the user has selected. */
     printf("\nGeneral Options:\n");
 
-    if (*aspect_ratio != 1.) {
+    if (*aspect_ratio != 1.0) {
         printf("\tFPGA will have a width/length ratio of %g.\n",
                *aspect_ratio);
     }
@@ -1007,18 +1068,18 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     if (*user_sized == TRUE) {
         printf("\tThe FPGA size has been specified by the user.\n");
 
-        /* If one of nx or ny was unspecified, compute it from the other and  *
+        /* If one of num_of_columns or num_of_rows was unspecified, compute it from the other and  *
          * the aspect ratio.  If both are unspecified, wait till the netlist  *
-         * is read and compute the smallest possible nx and ny in read_arch.  */
+         * is read and compute the smallest possible num_of_columns and num_of_rows in read_arch.  */
 
-        if (ny == 0) {
-            ny = (double) nx / (double) * aspect_ratio;
-        } else if (nx == 0) {
-            nx = ny *  *aspect_ratio;
-        } else if (*aspect_ratio != 1 && *aspect_ratio != nx / ny) {
+        if (num_of_rows == 0) {
+            num_of_rows = (double)num_of_columns / (double)(*aspect_ratio);
+        } else if (num_of_columns == 0) {
+            num_of_columns = num_of_rows *  *aspect_ratio;
+        } else if (*aspect_ratio != 1 && *aspect_ratio != num_of_columns / num_of_rows) {
             printf("\nError:  User-specified size and aspect ratio do\n");
             printf("not match.  Note that aspect ratio does not have to\n");
-            printf("be specified if both nx and ny are specified.\n");
+            printf("be specified if both num_of_columns and num_of_rows are specified.\n");
             exit(1);
         }
     }
@@ -1034,25 +1095,29 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     } else if (*operation == PLACE_AND_ROUTE) {
         printf("\tThe circuit will be placed and routed.\n");
     } else if (*operation == TIMING_ANALYSIS_ONLY) {
-        printf("\tOnly timing analysis (assuming a constant net delay) will "
+        printf("\tOnly timing analysis (assuming a constant net Tdel) will "
                "be performed.\n");
     }
 
     if (*operation == PLACE_ONLY || *operation == PLACE_AND_ROUTE) {
         printf("\nPlacer Options:\n");
-
         if (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE) {
             printf("\tPlacement algorithm is net_timing_driven\n");
-        }
-
-        if (placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE) {
+        } else if (placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE) {
             printf("\tPlacement algorithm is path_timing_driven\n");
+        } else if (placer_opts->place_algorithm == NEW_TIMING_DRIVEN_PLACE){
+            printf("\tPlacement algorithm is new_timing_driven, it depend on \"A Novel Net Weighting Algorithm for Timing-Driven Placement.\"\n");
+        } else {
+            printf("\tPlacement algorithm is wirelength-driven\n");
         }
 
-        if (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE ||
-                placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE) {
-            printf("\tTradeoff between bounding box and critical path: %g\n", placer_opts->timing_tradeoff);
-            printf("\tLower bound assumes block distance: %d\n", placer_opts->block_dist);
+        if (placer_opts->place_algorithm == NET_TIMING_DRIVEN_PLACE
+              || placer_opts->place_algorithm == PATH_TIMING_DRIVEN_PLACE
+              || placer_opts->place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+            printf("\tTradeoff between bounding box and critical path: %g\n",
+                    placer_opts->timing_tradeoff);
+            printf("\tLower bound assumes blocks distance: %d\n",
+                    placer_opts->block_dist);
             printf("\tRecomputing criticalities every %d temperature changes\n",
                    placer_opts->recompute_crit_iter);
             printf("\tInner loop computes criticalities every move_lim/%d moves\n",
@@ -1063,7 +1128,6 @@ static void parse_command(int argc, char* argv[], char* net_file, char
                    placer_opts->td_place_exp_last);
         } else if (placer_opts->place_algorithm == BOUNDING_BOX_PLACE) {
             printf("\tPlacement algorithm is bounding_box\n");
-
             if (placer_opts->enable_timing_computations) {
                 printf("\tPlacement algorithm will generate timing estimates\n"
                        "\t(estimates do not affect the placement in bounding_box mode)\n");
@@ -1122,9 +1186,9 @@ static void parse_command(int argc, char* argv[], char* net_file, char
             router_opts->bend_cost = 0.;    /*needed when computing  placement lookup matricies*/
         }
 
-        /* Default base_cost_type is DELAY_NORMALIZED for timing_driven routing */
-        if (!base_cost_type_set && router_opts->router_algorithm == TIMING_DRIVEN) {
-            router_opts->base_cost_type = DELAY_NORMALIZED;    /*needed when computing  placement lookup matricies*/
+        /* Default router_base_cost_type is DELAY_NORMALIZED for timing_driven routing */
+        if (!router_base_cost_type_set && router_opts->router_algorithm == TIMING_DRIVEN) {
+            router_opts->router_base_cost_type = DELAY_NORMALIZED;    /*needed when computing  placement lookup matricies*/
         }
 
         printf("\tInitial random seed: %d\n", seed);
@@ -1168,19 +1232,19 @@ static void parse_command(int argc, char* argv[], char* net_file, char
         printf("\tAccumulated sharing penalty factor (acc_fac): %g\n",
                router_opts->acc_fac);
 
-        /* Default base_cost_type is DELAY_NORMALIZED for timing_driven routing */
+        /* Default router_base_cost_type is DELAY_NORMALIZED for timing_driven routing */
 
-        if (!base_cost_type_set && router_opts->router_algorithm == TIMING_DRIVEN) {
-            router_opts->base_cost_type = DELAY_NORMALIZED;
+        if (!router_base_cost_type_set && router_opts->router_algorithm == TIMING_DRIVEN) {
+            router_opts->router_base_cost_type = DELAY_NORMALIZED;
         }
 
         printf("\tBase_cost_type:  ");
 
-        if (router_opts->base_cost_type == INTRINSIC_DELAY) {
-            printf("intrinsic delay.\n");
-        } else if (router_opts->base_cost_type == DELAY_NORMALIZED) {
-            printf("delay normalized.\n");
-        } else if (router_opts->base_cost_type == DEMAND_ONLY) {
+        if (router_opts->router_base_cost_type == INTRINSIC_DELAY) {
+            printf("intrinsic Tdel.\n");
+        } else if (router_opts->router_base_cost_type == DELAY_NORMALIZED) {
+            printf("Tdel normalized.\n");
+        } else if (router_opts->router_base_cost_type == DEMAND_ONLY) {
             printf("demand only.\n");
         }
 
@@ -1211,7 +1275,7 @@ static void parse_command(int argc, char* argv[], char* net_file, char
     }  /* End of echo router options. */
 
     if (*operation == TIMING_ANALYSIS_ONLY) {
-        printf("\tNet delay value for timing analysis: %g (s)\n",
+        printf("\tNet Tdel value for timing analysis: %g (s)\n",
                *constant_net_delay);
     }
 
@@ -1219,22 +1283,34 @@ static void parse_command(int argc, char* argv[], char* net_file, char
 }
 
 
-static void get_input(char* net_file, char* arch_file, int place_cost_type,
-                      int num_regions, double aspect_ratio, boolean user_sized,
-                      enum e_route_type route_type, struct s_det_routing_arch
-                      *det_routing_arch, t_segment_inf** segment_inf_ptr,
-                      t_timing_inf* timing_inf_ptr, t_subblock_data* subblock_data_ptr,
-                      t_chan_width_dist* chan_width_dist_ptr)
+static void get_input(char* net_file,
+                      char* arch_file,
+                      int place_cost_type,
+                      int num_regions,
+                      double aspect_ratio,
+                      boolean user_sized,
+                      router_types_t route_type,
+                      detail_routing_arch_t *det_routing_arch,
+                      segment_info_t** segment_inf_ptr,
+                      timing_info_t* timing_inf_ptr,
+                      subblock_data_t* subblock_data_ptr,
+                      chan_width_distr_t* chan_width_dist_ptr)
 {
     /* This subroutine reads in the netlist and architecture files, initializes *
     * some data structures and does any error checks that require knowledge of *
     * both the algorithms to be used and the FPGA architecture.                */
     printf("Reading the FPGA architectural description from %s.\n",
            arch_file);
-    read_arch(arch_file, route_type, det_routing_arch, segment_inf_ptr,
-              timing_inf_ptr, subblock_data_ptr, chan_width_dist_ptr);
+    read_arch(arch_file,
+              route_type,
+              det_routing_arch,
+              segment_inf_ptr,
+              timing_inf_ptr,
+              subblock_data_ptr,
+              chan_width_dist_ptr);
     printf("Successfully read %s.\n", arch_file);
-    printf("Pins per clb: %d.  Pads per row/column: %d.\n", pins_per_clb, io_rat);
+    printf("Pins per clb: %d.  Pads per row/column: %d.\n",
+            pins_per_clb,io_rat);
     printf("Subblocks per clb: %d.  Subblock LUT size: %d.\n",
            subblock_data_ptr->max_subblocks_per_block,
            subblock_data_ptr->subblock_lut_size);
@@ -1247,11 +1323,12 @@ static void get_input(char* net_file, char* arch_file, int place_cost_type,
         }
 
         printf("Fc_output: %g.  Fc_input: %g.  Fc_pad: %g.\n",
-               det_routing_arch->Fc_output, det_routing_arch->Fc_input,
+               det_routing_arch->Fc_output,
+               det_routing_arch->Fc_input,
                det_routing_arch->Fc_pad);
 
         if (det_routing_arch->switch_block_type == SUBSET) {
-            printf("Switch block type: Subset.\n");
+            printf("Switch blocks type: Subset.\n");
         } else if (det_routing_arch->switch_block_type == WILTON) {
             printf("Switch_block_type: WILTON.\n");
         } else {
@@ -1266,26 +1343,26 @@ static void get_input(char* net_file, char* arch_file, int place_cost_type,
 
     printf("\n");
     printf("Reading the circuit netlist from %s.\n", net_file);
-    read_net(net_file, subblock_data_ptr);
+    read_netlist(net_file, subblock_data_ptr);
     printf("Successfully read %s.\n", net_file);
     printf("%d blocks, %d nets, %d global nets.\n", num_blocks, num_nets,
            num_globals);
-    printf("%d clbs, %d inputs, %d outputs.\n", num_clbs, num_p_inputs,
-           num_p_outputs);
+    printf("%d clbs, %d inputs, %d outputs.\n", num_clbs, num_primary_inputs,
+           num_primary_outputs);
     /* Set up some physical FPGA data structures that need to   *
     *  know num_blocks.                                        */
-    init_arch(aspect_ratio, user_sized);
+    init_arch(aspect_ratio,
+              user_sized);
     printf("The circuit will be mapped into a %d x %d array of clbs.\n\n",
-           nx, ny);
+           num_of_columns, num_of_rows);
 
-    if (place_cost_type == NONLINEAR_CONG && (num_regions > nx ||
-                                              num_regions > ny)) {
+    if (place_cost_type == NONLINEAR_CONG && (num_regions > num_of_columns ||
+                                              num_regions > num_of_rows)) {
         printf("Error:  Cannot use more regions than clbs in placement cost "
                "function.\n");
         exit(1);
     }
 }
-
 
 static int read_int_option(int argc, char* argv[], int iarg)
 {

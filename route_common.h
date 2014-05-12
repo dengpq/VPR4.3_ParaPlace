@@ -65,13 +65,13 @@ typedef struct {
     short prev_edge;
     short
     target_flag;
-} t_rr_node_route_inf;
+} rr_node_t_route_inf;
 
 
 
 /**************** Variables shared by all route_files ***********************/
-extern t_rr_node_route_inf* rr_node_route_inf;       /* [0..num_rr_nodes-1] */
-extern struct s_bb* route_bb;                        /* [0..num_nets-1]     */
+extern rr_node_t_route_inf* rr_node_route_inf;       /* [0..num_rr_nodes-1] */
+extern bbox_t* route_bb;                        /* [0..num_nets-1]     */
 
 
 /******* Subroutines in route_common used only by other router modules ******/
@@ -84,11 +84,11 @@ struct s_trace* update_traceback(struct s_heap* hptr, int inet);
 
 void reset_path_costs(void);
 
-double get_rr_cong_cost(int inode);
+double get_rr_cong_cost(int ivex);
 
 void mark_ends(int inet);
 
-void node_to_heap(int inode, double cost, int prev_node, int prev_edge,
+void node_to_heap(int ivex, double cost, int prev_node, int prev_edge,
                   double backward_path_cost, double R_upstream);
 
 void free_traceback(int inet);
@@ -112,7 +112,7 @@ void alloc_and_load_rr_node_route_structs(void);
 void free_trace_structs(void);
 
 void reserve_locally_used_opins(double pres_fac, boolean rip_up_local_opins,
-                                t_ivec** clb_opins_used_locally);
+                                vector_t** clb_opins_used_locally);
 
 #endif
 

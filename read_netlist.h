@@ -3,7 +3,8 @@
 
 #include "vpr_types.h"
 
-void read_net(char* net_file, t_subblock_data* subblock_data_ptr);
+void read_netlist(char* net_file,
+                  subblock_data_t* subblock_data_ptr);
 
 #endif
 

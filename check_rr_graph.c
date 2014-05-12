@@ -12,13 +12,13 @@
 
 
 /*********************** Subroutines local to this module *******************/
-static boolean rr_node_is_global_clb_ipin(int inode);
+static boolean rr_node_is_global_clb_ipin(int ivex);
 
 static void check_pass_transistors(int from_node);
 
 
 /************************ Subroutine definitions ****************************/
-void check_rr_graph(enum e_route_type route_type, int num_switch)
+void check_rr_graph(router_types_t route_type, int num_switch)
 {
     /* This routine sanity checks the routing resource graph to see that it has *
      * no repeated edges between two nodes, that there are no disconnected      *
@@ -27,37 +27,37 @@ void check_rr_graph(enum e_route_type route_type, int num_switch)
     int* num_edges_from_current_to_node;   /* [0..num_rr_nodes-1] */
     int* total_edges_to_node;              /* [0..num_rr_nodes-1] */
     char* switch_types_from_current_to_node;  /* [0..num_rr_nodes-1] */
-    int inode, iedge, to_node, num_edges;
+    int ivex, iedge, to_node, num_edges;
     short switch_type;
-    t_rr_type rr_type, to_rr_type;
+    rr_types_t rr_type, to_rr_type;
     total_edges_to_node = (int*) my_calloc(num_rr_nodes, sizeof(int));
     num_edges_from_current_to_node = (int*) my_calloc(num_rr_nodes,
                                                       sizeof(int));
     switch_types_from_current_to_node = (char*) my_calloc(num_rr_nodes,
                                                           sizeof(char));
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        rr_type = rr_node[inode].type;
-        num_edges = rr_node[inode].num_edges;
-        check_node(inode, route_type);
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        rr_type = rr_node[ivex].type;
+        num_edges = rr_node[ivex].num_edges;
+        check_node(ivex, route_type);
 
         /* Check all the connectivity (edges, etc.) information. */
         for (iedge = 0; iedge < num_edges; iedge++) {
-            to_node = rr_node[inode].edges[iedge];
+            to_node = rr_node[ivex].edges[iedge];
 
             if (to_node < 0 || to_node >= num_rr_nodes) {
                 printf("Error in check_rr_graph:  node %d has an edge %d.\n"
-                       "Edge is out of range.\n", inode, to_node);
+                       "Edge is out of range.\n", ivex, to_node);
                 exit(1);
             }
 
             num_edges_from_current_to_node[to_node]++;
             total_edges_to_node[to_node]++;
-            switch_type = rr_node[inode].switches[iedge];
+            switch_type = rr_node[ivex].switches[iedge];
 
             if (switch_type < 0 || switch_type >= num_switch) {
                 printf("Error in check_rr_graph:  node %d has a switch type %d.\n"
-                       "Switch type is out of range.\n", inode, switch_type);
+                       "Switch type is out of range.\n", ivex, switch_type);
                 exit(1);
             }
 
@@ -69,7 +69,7 @@ void check_rr_graph(enum e_route_type route_type, int num_switch)
         }  /* End for all edges of node. */
 
         for (iedge = 0; iedge < num_edges; iedge++) {
-            to_node = rr_node[inode].edges[iedge];
+            to_node = rr_node[ivex].edges[iedge];
 
             if (num_edges_from_current_to_node[to_node] > 1) {
                 to_rr_type = rr_node[to_node].type;
@@ -77,7 +77,7 @@ void check_rr_graph(enum e_route_type route_type, int num_switch)
                 if ((to_rr_type != CHANX && to_rr_type != CHANY) ||
                         (rr_type != CHANX && rr_type != CHANY)) {
                     printf("Error in check_rr_graph:  node %d connects to node %d "
-                           "%d times.\n", inode, to_node,
+                           "%d times.\n", ivex, to_node,
                            num_edges_from_current_to_node[to_node]);
                     exit(1);
                 }
@@ -87,7 +87,7 @@ void check_rr_graph(enum e_route_type route_type, int num_switch)
                          switch_types_from_current_to_node[to_node] !=
                          BUF_AND_PTRANS_FLAG) {
                     printf("Error in check_rr_graph:  node %d connects to node %d "
-                           "%d times.\n", inode, to_node,
+                           "%d times.\n", ivex, to_node,
                            num_edges_from_current_to_node[to_node]);
                     exit(1);
                 }
@@ -99,28 +99,28 @@ void check_rr_graph(enum e_route_type route_type, int num_switch)
 
         /* Slow test below.  Leave commented out most of the time. */
 #ifdef DEBUG
-        check_pass_transistors(inode);
+        check_pass_transistors(ivex);
 #endif
     }    /* End for all rr_nodes */
 
     /* I built a list of how many edges went to everything in the code above -- *
      * now I check that everything is reachable.                                */
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        rr_type = rr_node[inode].type;
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        rr_type = rr_node[ivex].type;
 
         if (rr_type != SOURCE) {
-            if (total_edges_to_node[inode] < 1 &&
-                    !rr_node_is_global_clb_ipin(inode)) {
+            if (total_edges_to_node[ivex] < 1 &&
+                    !rr_node_is_global_clb_ipin(ivex)) {
                 /* A global CLB input pin will not have any edges, and neither will  *
                  * a SOURCE.  Anything else is an error.                             */
-                printf("Error in check_rr_graph:  node %d has no fanin.\n", inode);
+                printf("Error in check_rr_graph:  node %d has no fanin.\n", ivex);
                 exit(1);
             }
         } else { /* SOURCE.  No fanin for now; change if feedthroughs allowed. */
-            if (total_edges_to_node[inode] != 0) {
+            if (total_edges_to_node[ivex] != 0) {
                 printf("Error in check_rr_graph:  SOURCE node %d has a fanin\n"
-                       "\tof %d, expected 0.\n", inode, total_edges_to_node[inode]);
+                       "\tof %d, expected 0.\n", ivex, total_edges_to_node[ivex]);
                 exit(1);
             }
         }
@@ -132,40 +132,40 @@ void check_rr_graph(enum e_route_type route_type, int num_switch)
 }
 
 
-static boolean rr_node_is_global_clb_ipin(int inode)
+static boolean rr_node_is_global_clb_ipin(int ivex)
 {
-    /* Returns TRUE if inode refers to a global CLB input pin node.   */
+    /* Returns TRUE if ivex refers to a global CLB input pin node.   */
     int ipin;
 
-    if (rr_node[inode].type != IPIN) {
+    if (rr_node[ivex].type != IPIN) {
         return (FALSE);
     }
 
-    if (rr_node[inode].xlow == 0 || rr_node[inode].xlow == nx + 1 ||
-            rr_node[inode].ylow == 0 || rr_node[inode].ylow == ny + 1) { /* I/O pad */
+    if (rr_node[ivex].xlow == 0 || rr_node[ivex].xlow == num_of_columns + 1 ||
+            rr_node[ivex].ylow == 0 || rr_node[ivex].ylow == num_of_rows + 1) { /* I/O pad */
         return (FALSE);
     }
 
-    ipin = rr_node[inode].ptc_num;
+    ipin = rr_node[ivex].ptc_num;
     return (is_global_clb_pin[ipin]);
 }
 
 
-void check_node(int inode, enum e_route_type route_type)
+void check_node(int ivex, router_types_t route_type)
 {
     /* This routine checks that the rr_node is inside the grid and has a valid  *
      * pin number, etc.                                                         */
     int xlow, ylow, xhigh, yhigh, ptc_num, capacity;
-    t_rr_type rr_type;
+    rr_types_t rr_type;
     int nodes_per_chan, tracks_per_node, num_edges, cost_index;
     double C, R;
-    rr_type = rr_node[inode].type;
-    xlow = rr_node[inode].xlow;
-    xhigh = rr_node[inode].xhigh;
-    ylow = rr_node[inode].ylow;
-    yhigh = rr_node[inode].yhigh;
-    ptc_num = rr_node[inode].ptc_num;
-    capacity = rr_node[inode].capacity;
+    rr_type = rr_node[ivex].type;
+    xlow = rr_node[ivex].xlow;
+    xhigh = rr_node[ivex].xhigh;
+    ylow = rr_node[ivex].ylow;
+    yhigh = rr_node[ivex].yhigh;
+    ptc_num = rr_node[ivex].ptc_num;
+    capacity = rr_node[ivex].capacity;
 
     if (xlow > xhigh || ylow > yhigh) {
         printf("Error in check_node:  rr endpoints are (%d,%d) and (%d,%d).\n",
@@ -173,7 +173,7 @@ void check_node(int inode, enum e_route_type route_type)
         exit(1);
     }
 
-    if (xlow < 0 || xhigh > nx + 1 || ylow < 0 || yhigh > ny + 1) {
+    if (xlow < 0 || xhigh > num_of_columns + 1 || ylow < 0 || yhigh > num_of_rows + 1) {
         printf("Error in check_node:  rr endpoints, (%d,%d) and (%d,%d), \n"
                "are out of range.\n", xlow, ylow, xhigh, yhigh);
         exit(1);
@@ -181,7 +181,7 @@ void check_node(int inode, enum e_route_type route_type)
 
     if (ptc_num < 0) {
         printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-               "of %d.\n", inode, rr_type, ptc_num);
+               "of %d.\n", ivex, rr_type, ptc_num);
         exit(1);
     }
 
@@ -194,41 +194,41 @@ void check_node(int inode, enum e_route_type route_type)
         case OPIN:
             if (xlow != xhigh || ylow != yhigh) {
                 printf("Error in check_node:  Node %d (type %d) has endpoints of\n"
-                       "(%d,%d) and (%d,%d)\n", inode, rr_type, xlow, ylow, xhigh, yhigh);
+                       "(%d,%d) and (%d,%d)\n", ivex, rr_type, xlow, ylow, xhigh, yhigh);
                 exit(1);
             }
 
             if (clb[xlow][ylow].type != CLB && clb[xlow][ylow].type != IO) {
                 printf("Error in check_node:  Node %d (type %d) is at an illegal\n"
-                       " clb location (%d, %d).\n", inode, rr_type, xlow, ylow);
+                       " clb location (%d, %d).\n", ivex, rr_type, xlow, ylow);
                 exit(1);
             }
 
             break;
 
         case CHANX:
-            if (xlow < 1 || xhigh > nx || yhigh > ny || yhigh != ylow) {
+            if (xlow < 1 || xhigh > num_of_columns || yhigh > num_of_rows || yhigh != ylow) {
                 printf("Error in check_node:  CHANX out of range.\n");
                 printf("Endpoints: (%d,%d) and (%d,%d)\n", xlow, ylow, xhigh, yhigh);
                 exit(1);
             }
 
             if (route_type == GLOBAL && xlow != xhigh) {
-                printf("Error in check_node:  node %d spans multiple channel segments\n"               "which is not allowed with global routing.\n", inode);
+                printf("Error in check_node:  node %d spans multiple channel segments\n"               "which is not allowed with global routing.\n", ivex);
                 exit(1);
             }
 
             break;
 
         case CHANY:
-            if (xhigh > nx || ylow < 1 || yhigh > ny || xlow != xhigh) {
+            if (xhigh > num_of_columns || ylow < 1 || yhigh > num_of_rows || xlow != xhigh) {
                 printf("Error in check_node:  CHANY out of range.\n");
                 printf("Endpoints: (%d,%d) and (%d,%d)\n", xlow, ylow, xhigh, yhigh);
                 exit(1);
             }
 
             if (route_type == GLOBAL && ylow != yhigh) {
-                printf("Error in check_node:  node %d spans multiple channel segments\n"               "which is not allowed with global routing.\n", inode);
+                printf("Error in check_node:  node %d spans multiple channel segments\n"               "which is not allowed with global routing.\n", ivex);
                 exit(1);
             }
 
@@ -244,27 +244,27 @@ void check_node(int inode, enum e_route_type route_type)
     switch (rr_type) {
         case SOURCE:
             if (clb[xlow][ylow].type == CLB) {
-                if (ptc_num >= num_class || class_inf[ptc_num].type != DRIVER) {
+                if (ptc_num >= num_pin_class || class_inf[ptc_num].type != DRIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
 
                 if (class_inf[ptc_num].num_pins != capacity) {
                     printf("Error in check_node.  Inode %d (type %d) had a capacity\n"
-                           "of %d.\n", inode, rr_type, capacity);
+                           "of %d.\n", ivex, rr_type, capacity);
                     exit(1);
                 }
-            } else { /* IO block */
+            } else { /* IO blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
 
                 if (capacity != 1) {
                     printf("Error in check_node:  Inode %d (type %d) had a capacity\n"
-                           "of %d.\n", inode, rr_type, capacity);
+                           "of %d.\n", ivex, rr_type, capacity);
                     exit(1);
                 }
             }
@@ -273,27 +273,27 @@ void check_node(int inode, enum e_route_type route_type)
 
         case SINK:
             if (clb[xlow][ylow].type == CLB) {
-                if (ptc_num >= num_class || class_inf[ptc_num].type != RECEIVER) {
+                if (ptc_num >= num_pin_class || class_inf[ptc_num].type != RECEIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
 
                 if (class_inf[ptc_num].num_pins != capacity) {
                     printf("Error in check_node.  Inode %d (type %d) has a capacity\n"
-                           "of %d.\n", inode, rr_type, capacity);
+                           "of %d.\n", ivex, rr_type, capacity);
                     exit(1);
                 }
-            } else { /* IO block */
+            } else { /* IO blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
 
                 if (capacity != 1) {
                     printf("Error in check_node:  Inode %d (type %d) has a capacity\n"
-                           "of %d.\n", inode, rr_type, capacity);
+                           "of %d.\n", ivex, rr_type, capacity);
                     exit(1);
                 }
             }
@@ -305,20 +305,20 @@ void check_node(int inode, enum e_route_type route_type)
                 if (ptc_num >= pins_per_clb || class_inf[clb_pin_class[ptc_num]].type
                         != DRIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
-            } else { /* IO block */
+            } else { /* IO blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
             }
 
             if (capacity != 1) {
                 printf("Error in check_node:  Inode %d (type %d) has a capacity\n"
-                       "of %d.\n", inode, rr_type, capacity);
+                       "of %d.\n", ivex, rr_type, capacity);
                 exit(1);
             }
 
@@ -329,20 +329,20 @@ void check_node(int inode, enum e_route_type route_type)
                 if (ptc_num >= pins_per_clb || class_inf[clb_pin_class[ptc_num]].type
                         != RECEIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
-            } else { /* IO block */
+            } else { /* IO blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
-                           "of %d.\n", inode, rr_type, ptc_num);
+                           "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
             }
 
             if (capacity != 1) {
                 printf("Error in check_node:  Inode %d (type %d) has a capacity\n"
-                       "of %d.\n", inode, rr_type, capacity);
+                       "of %d.\n", ivex, rr_type, capacity);
                 exit(1);
             }
 
@@ -359,13 +359,13 @@ void check_node(int inode, enum e_route_type route_type)
 
             if (ptc_num >= nodes_per_chan) {
                 printf("Error in check_node:  Inode %d (type %d) has a ptc_num\n"
-                       "of %d.\n", inode, rr_type, ptc_num);
+                       "of %d.\n", ivex, rr_type, ptc_num);
                 exit(1);
             }
 
             if (capacity != tracks_per_node) {
                 printf("Error in check_node:  Inode %d (type %d) has a capacity\n"
-                       "of %d.\n", inode, rr_type, capacity);
+                       "of %d.\n", ivex, rr_type, capacity);
                 exit(1);
             }
 
@@ -382,13 +382,13 @@ void check_node(int inode, enum e_route_type route_type)
 
             if (ptc_num >= nodes_per_chan) {
                 printf("Error in check_node:  Inode %d (type %d) has a ptc_num\n"
-                       "of %d.\n", inode, rr_type, ptc_num);
+                       "of %d.\n", ivex, rr_type, ptc_num);
                 exit(1);
             }
 
             if (capacity != tracks_per_node) {
                 printf("Error in check_node:  Inode %d (type %d) has a capacity\n"
-                       "of %d.\n", inode, rr_type, capacity);
+                       "of %d.\n", ivex, rr_type, capacity);
                 exit(1);
             }
 
@@ -400,44 +400,44 @@ void check_node(int inode, enum e_route_type route_type)
     }
 
     /* Check that the number of (out) edges is reasonable. */
-    num_edges = rr_node[inode].num_edges;
+    num_edges = rr_node[ivex].num_edges;
 
     if (rr_type != SINK) {
         if (num_edges <= 0) {
-            printf("Error in check_node: node %d has no edges.\n", inode);
+            printf("Error in check_node: node %d has no edges.\n", ivex);
             exit(1);
         }
     } else { /* SINK -- remove this check if feedthroughs allowed */
         if (num_edges != 0) {
             printf("Error in check_node: node %d is a sink, but has "
-                   "%d edges.\n", inode, num_edges);
+                   "%d edges.\n", ivex, num_edges);
             exit(1);
         }
     }
 
     /* Check that the capacitance, resistance and cost_index are reasonable. */
-    C = rr_node[inode].C;
-    R = rr_node[inode].R;
+    C = rr_node[ivex].C;
+    R = rr_node[ivex].R;
 
     if (rr_type == CHANX || rr_type == CHANY) {
         if (C < 0. || R < 0.) {
             printf("Error in check_node: node %d of type %d has R = %g "
-                   "and C = %g.\n", inode, rr_type, R, C);
+                   "and C = %g.\n", ivex, rr_type, R, C);
             exit(1);
         }
     } else {
         if (C != 0. || R != 0.) {
             printf("Error in check_node: node %d of type %d has R = %g "
-                   "and C = %g.\n", inode, rr_type, R, C);
+                   "and C = %g.\n", ivex, rr_type, R, C);
             exit(1);
         }
     }
 
-    cost_index = rr_node[inode].cost_index;
+    cost_index = rr_node[ivex].cost_index;
 
     if (cost_index < 0 || cost_index >= num_rr_indexed_data) {
         printf("Error in check_node:  node %d cost index (%d) is out of "
-               "range.\n", inode, cost_index);
+               "range.\n", ivex, cost_index);
         exit(1);
     }
 }
@@ -448,7 +448,7 @@ static void check_pass_transistors(int from_node)
     /* This routine checks that all pass transistors in the routing truly are  *
      * bidirectional.  It may be a slow check, so don't use it all the time.   */
     int from_edge, to_node, to_edge, from_num_edges, to_num_edges;
-    t_rr_type from_rr_type, to_rr_type;
+    rr_types_t from_rr_type, to_rr_type;
     short from_switch_type;
     boolean trans_matched;
     from_rr_type = rr_node[from_node].type;

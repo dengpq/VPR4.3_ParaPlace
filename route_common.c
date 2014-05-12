@@ -13,9 +13,9 @@
 
 /***************** Variables shared only by route modules *******************/
 
-t_rr_node_route_inf* rr_node_route_inf = NULL;       /* [0..num_rr_nodes-1] */
+rr_node_t_route_inf* rr_node_route_inf = NULL;       /* [0..num_rr_nodes-1] */
 
-struct s_bb* route_bb = NULL; /* [0..num_nets-1]. Limits area in which each  */
+bbox_t* route_bb = NULL; /* [0..num_nets-1]. Limits area in which each  */
 /* net must be routed.                         */
 
 
@@ -81,17 +81,17 @@ static void add_to_heap(struct s_heap* hptr);
 static struct s_heap* alloc_heap_data(void);
 static struct s_linked_f_pointer* alloc_linked_f_pointer(void);
 
-static t_ivec** alloc_and_load_clb_opins_used_locally(t_subblock_data
+static vector_t** alloc_and_load_clb_opins_used_locally(subblock_data_t
                                                       subblock_data);
-static void adjust_one_rr_occ_and_pcost(int inode, int add_or_sub, double
+static void adjust_one_rr_occ_and_pcost(int ivex, int add_or_sub, double
                                         pres_fac);
 
 
 
 /************************** Subroutine definitions ***************************/
 
-void save_routing(struct s_trace** best_routing, t_ivec
-                  ** clb_opins_used_locally, t_ivec** saved_clb_opins_used_locally)
+void save_routing(struct s_trace** best_routing, vector_t
+                  ** clb_opins_used_locally, vector_t** saved_clb_opins_used_locally)
 {
     /* This routing frees any routing currently held in best routing,       *
      * then copies over the current routing (held in trace_head), and       *
@@ -124,7 +124,7 @@ void save_routing(struct s_trace** best_routing, t_ivec
     /* Save which OPINs are locally used.                           */
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        for (iclass = 0; iclass < num_class; iclass++) {
+        for (iclass = 0; iclass < num_pin_class; iclass++) {
             num_local_opins = clb_opins_used_locally[iblk][iclass].nelem;
 
             for (ipin = 0; ipin < num_local_opins; ipin++) {
@@ -136,8 +136,8 @@ void save_routing(struct s_trace** best_routing, t_ivec
 }
 
 
-void restore_routing(struct s_trace** best_routing, t_ivec
-                     ** clb_opins_used_locally, t_ivec** saved_clb_opins_used_locally)
+void restore_routing(struct s_trace** best_routing, vector_t
+                     ** clb_opins_used_locally, vector_t** saved_clb_opins_used_locally)
 {
     /* Deallocates any current routing in trace_head, and replaces it with    *
      * the routing in best_routing.  Best_routing is set to NULL to show that *
@@ -158,7 +158,7 @@ void restore_routing(struct s_trace** best_routing, t_ivec
     /* Save which OPINs are locally used.                           */
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        for (iclass = 0; iclass < num_class; iclass++) {
+        for (iclass = 0; iclass < num_pin_class; iclass++) {
             num_local_opins = clb_opins_used_locally[iblk][iclass].nelem;
 
             for (ipin = 0; ipin < num_local_opins; ipin++) {
@@ -175,7 +175,7 @@ void get_serial_num(void)
     /* This routine finds a "magic cookie" for the routing and prints it.    *
      * Use this number as a routing serial number to ensure that programming *
      * changes do not break the router.                                      */
-    int inet, serial_num, inode;
+    int inet, serial_num, ivex;
     struct s_trace* tptr;
     serial_num = 0;
 
@@ -185,11 +185,11 @@ void get_serial_num(void)
         tptr = trace_head[inet];
 
         while (tptr != NULL) {
-            inode = tptr->index;
-            serial_num += (inet + 1) * (rr_node[inode].xlow * (nx + 1) -
-                                        rr_node[inode].yhigh);
-            serial_num -= rr_node[inode].ptc_num * (inet + 1) * 10;
-            serial_num -= rr_node[inode].type * (inet + 1) * 100;
+            ivex = tptr->index;
+            serial_num += (inet + 1) * (rr_node[ivex].xlow * (num_of_columns + 1) -
+                                        rr_node[ivex].yhigh);
+            serial_num -= rr_node[ivex].ptc_num * (inet + 1) * 10;
+            serial_num -= rr_node[ivex].type * (inet + 1) * 100;
             serial_num %= 2000000000;  /* Prevent overflow */
             tptr = tptr->next;
         }
@@ -201,12 +201,12 @@ void get_serial_num(void)
 
 
 /* FIXME: main function about PathFinder-based Router */
-boolean try_route(int width_fac, struct s_router_opts router_opts,
-                  struct s_det_routing_arch det_routing_arch,
-                  t_segment_inf* segment_inf, t_timing_inf timing_inf,
+boolean try_route(int width_fac, router_opts_t router_opts,
+                  detail_routing_arch_t det_routing_arch,
+                  segment_info_t* segment_inf, timing_info_t timing_inf,
                   double** net_slack, double** net_delay,
-                  t_chan_width_dist chan_width_dist,
-                  t_ivec** clb_opins_used_locally)
+                  chan_width_distr_t chan_width_dist,
+                  vector_t** clb_opins_used_locally)
 {
     /* Attempts a routing via an iterated maze router algorithm.  Width_fac *
      * specifies the relative width of the channels, while the members of   *
@@ -218,18 +218,18 @@ boolean try_route(int width_fac, struct s_router_opts router_opts,
     printf("width) of %d.\n", width_fac);
 
     /* Set the channel widths */
-    init_chan(width_fac, chan_width_dist);
+    init_channel_t(width_fac, chan_width_dist);
 
     /* Free any old routing graph, if one exists. */
     free_rr_graph();
 
     /* Set up the routing resource graph defined by this FPGA architecture. */
     build_rr_graph(router_opts.route_type, det_routing_arch, segment_inf,
-                   timing_inf, router_opts.base_cost_type);
+                   timing_inf, router_opts.router_base_cost_type);
 
     /* TODO: Q: Why did Router free routing-resource_graph internals? */
     free_rr_graph_internals(router_opts.route_type, det_routing_arch, segment_inf,
-                            timing_inf, router_opts.base_cost_type);
+                            timing_inf, router_opts.router_base_cost_type);
 
     /* Allocate and load some additional rr_graph information needed only by *
      * the router.                                                           */
@@ -254,10 +254,10 @@ boolean feasible_routing(void)
     /* This routine checks to see if this is a resource-feasible routing.      *
      * That is, are all rr_node capacity limitations respected?  It assumes    *
      * that the occupancy arrays are up to date when it is called.             */
-    int inode;
+    int ivex;
 
-    for (inode = 0; inode < num_rr_nodes; inode++)
-        if (rr_node[inode].occ > rr_node[inode].capacity) {
+    for (ivex = 0; ivex < num_rr_nodes; ivex++)
+        if (rr_node[ivex].occ > rr_node[ivex].capacity) {
             return (FALSE);
         }
 
@@ -276,7 +276,7 @@ void pathfinder_update_one_cost(struct s_trace* route_segment_start,
      * net is added to the routing.  The size of pres_fac determines how severly *
      * oversubscribed rr_nodes are penalized.                                    */
     struct s_trace* tptr;
-    int inode, occ, capacity;
+    int ivex, occ, capacity;
     tptr = route_segment_start;
 
     if (tptr == NULL) {      /* No routing yet. */
@@ -284,23 +284,23 @@ void pathfinder_update_one_cost(struct s_trace* route_segment_start,
     }
 
     while (1) {
-        inode = tptr->index;
-        occ = rr_node[inode].occ + add_or_sub;
-        capacity = rr_node[inode].capacity;
-        rr_node[inode].occ = occ;
+        ivex = tptr->index;
+        occ = rr_node[ivex].occ + add_or_sub;
+        capacity = rr_node[ivex].capacity;
+        rr_node[ivex].occ = occ;
 
         /* pres_cost is Pn in the Pathfinder paper. I set my pres_cost according to *
          * the overuse that would result from having ONE MORE net use this routing  *
          * node.                                                                    */
 
         if (occ < capacity) {
-            rr_node_route_inf[inode].pres_cost = 1.;
+            rr_node_route_inf[ivex].pres_cost = 1.;
         } else {
-            rr_node_route_inf[inode].pres_cost = 1. + (occ + 1 - capacity) *
+            rr_node_route_inf[ivex].pres_cost = 1. + (occ + 1 - capacity) *
                                                  pres_fac;
         }
 
-        if (rr_node[inode].type == SINK) {
+        if (rr_node[ivex].type == SINK) {
             tptr = tptr->next;             /* Skip next segment. */
 
             if (tptr == NULL) {
@@ -322,21 +322,21 @@ void pathfinder_update_cost(double pres_fac, double acc_fac)
      * times acc_fac.  It also updates pres_cost, since pres_fac may have        *
      * changed.  THIS ROUTINE ASSUMES THE OCCUPANCY VALUES IN RR_NODE ARE UP TO  *
      * DATE.                                                                     */
-    int inode, occ, capacity;
+    int ivex, occ, capacity;
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        occ = rr_node[inode].occ;
-        capacity = rr_node[inode].capacity;
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        occ = rr_node[ivex].occ;
+        capacity = rr_node[ivex].capacity;
 
         if (occ > capacity) {
-            rr_node_route_inf[inode].acc_cost += (occ - capacity) * acc_fac;
-            rr_node_route_inf[inode].pres_cost = 1. + (occ + 1 - capacity) *
+            rr_node_route_inf[ivex].acc_cost += (occ - capacity) * acc_fac;
+            rr_node_route_inf[ivex].pres_cost = 1. + (occ + 1 - capacity) *
                                                  pres_fac;
         }
         /* If occ == capacity, we don't need to increase acc_cost, but a change    *
          * in pres_fac could have made it necessary to recompute the cost anyway.  */
         else if (occ == capacity) {
-            rr_node_route_inf[inode].pres_cost = 1. + pres_fac;
+            rr_node_route_inf[ivex].pres_cost = 1. + pres_fac;
         }
     }
 }
@@ -386,16 +386,16 @@ struct s_trace* update_traceback(struct s_heap* hptr, int inet) {
      * the first "new" node in the traceback (node not previously in trace).    */
 
     struct s_trace* tptr, *prevptr, *temptail, *ret_ptr;
-    int inode;
+    int ivex;
     short iedge;
 #ifdef DEBUG
-    t_rr_type rr_type;
+    rr_types_t rr_type;
 #endif
 
-    inode = hptr->index;
+    ivex = hptr->index;
 
 #ifdef DEBUG
-    rr_type = rr_node[inode].type;
+    rr_type = rr_node[ivex].type;
 
     if (rr_type != SINK) {
         printf("Error in update_traceback.  Expected type = SINK (%d).\n",
@@ -407,7 +407,7 @@ struct s_trace* update_traceback(struct s_heap* hptr, int inet) {
 #endif
 
     tptr = alloc_trace_data();    /* SINK on the end of the connection */
-    tptr->index = inode;
+    tptr->index = ivex;
     tptr->iswitch = OPEN;
     tptr->next = NULL;
     temptail = tptr;              /* This will become the new tail at the end */
@@ -415,17 +415,17 @@ struct s_trace* update_traceback(struct s_heap* hptr, int inet) {
 
     /* Now do it's predecessor. */
 
-    inode = hptr->u.prev_node;
+    ivex = hptr->u.prev_node;
     iedge = hptr->prev_edge;
 
-    while (inode != NO_PREVIOUS) {
+    while (ivex != NO_PREVIOUS) {
         prevptr = alloc_trace_data();
-        prevptr->index = inode;
-        prevptr->iswitch = rr_node[inode].switches[iedge];
+        prevptr->index = ivex;
+        prevptr->iswitch = rr_node[ivex].switches[iedge];
         prevptr->next = tptr;
         tptr = prevptr;
-        iedge = rr_node_route_inf[inode].prev_edge;
-        inode = rr_node_route_inf[inode].prev_node;
+        iedge = rr_node_route_inf[ivex].prev_edge;
+        ivex = rr_node_route_inf[ivex].prev_node;
     }
 
     if (trace_tail[inet] != NULL) {
@@ -477,15 +477,15 @@ void reset_path_costs(void)
 }
 
 
-double get_rr_cong_cost(int inode)
+double get_rr_cong_cost(int ivex)
 {
     /* Returns the *congestion* cost of using this rr_node. */
     short cost_index;
     double cost;
-    cost_index = rr_node[inode].cost_index;
+    cost_index = rr_node[ivex].cost_index;
     cost = rr_indexed_data[cost_index].base_cost *
-           rr_node_route_inf[inode].acc_cost *
-           rr_node_route_inf[inode].pres_cost;
+           rr_node_route_inf[ivex].acc_cost *
+           rr_node_route_inf[ivex].pres_cost;
     return (cost);
 }
 
@@ -500,13 +500,13 @@ void mark_ends(int inet)
     /* int ipin = 0; */
     int ipin = 0;
     for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
-        int inode = net_rr_terminals[inet][ipin];
-        ++(rr_node_route_inf[inode].target_flag);
+        int ivex = net_rr_terminals[inet][ipin];
+        ++(rr_node_route_inf[ivex].target_flag);
     }
 }
 
 
-void node_to_heap(int inode, double cost, int prev_node, int prev_edge,
+void node_to_heap(int ivex, double cost, int prev_node, int prev_edge,
                   double backward_path_cost, double R_upstream)
 {
     /* Puts an rr_node on the heap, if the new cost given is lower than the     *
@@ -517,12 +517,12 @@ void node_to_heap(int inode, double cost, int prev_node, int prev_edge,
      * timing-driven router -- the breadth-first router ignores them.           */
     struct s_heap* hptr;
 
-    if (cost >= rr_node_route_inf[inode].path_cost) {
+    if (cost >= rr_node_route_inf[ivex].path_cost) {
         return;
     }
 
     hptr = alloc_heap_data();
-    hptr->index = inode;
+    hptr->index = ivex;
     hptr->cost = cost;
     hptr->u.prev_node = prev_node;
     hptr->prev_edge = prev_edge;
@@ -549,45 +549,45 @@ void free_traceback(int inet)
 }
 
 
-t_ivec** alloc_route_structs(t_subblock_data subblock_data)
+vector_t** alloc_route_structs(subblock_data_t subblock_data)
 {
     /* Allocates the data structures needed for routing.    */
-    t_ivec** clb_opins_used_locally;
+    vector_t** clb_opins_used_locally;
     trace_head = (struct s_trace**) my_calloc(num_nets,
                                               sizeof(struct s_trace*));
     trace_tail = (struct s_trace**) my_malloc(num_nets *
                                               sizeof(struct s_trace*));
-    heap_size = nx * ny;
+    heap_size = num_of_columns * num_of_rows;
     heap = (struct s_heap**) my_malloc(heap_size *
                                        sizeof(struct s_heap*));
     heap--;   /* heap stores from [1..heap_size] */
     heap_tail = 1;
-    route_bb = (struct s_bb*) my_malloc(num_nets * sizeof(struct s_bb));
+    route_bb = (bbox_t*) my_malloc(num_nets * sizeof(bbox_t));
     clb_opins_used_locally = alloc_and_load_clb_opins_used_locally(
                                  subblock_data);
     return (clb_opins_used_locally);
 }
 
 
-struct s_trace** alloc_saved_routing(t_ivec** clb_opins_used_locally,
-                                     t_ivec** *saved_clb_opins_used_locally_ptr) {
+struct s_trace** alloc_saved_routing(vector_t** clb_opins_used_locally,
+                                     vector_t** *saved_clb_opins_used_locally_ptr) {
 
     /* Allocates data structures into which the key routing data can be saved,   *
      * allowing the routing to be recovered later (e.g. after a another routing  *
      * is attempted).                                                            */
 
     struct s_trace** best_routing;
-    t_ivec** saved_clb_opins_used_locally;
+    vector_t** saved_clb_opins_used_locally;
     int iblk, iclass, num_local_opins;
 
     best_routing = (struct s_trace**) my_calloc(num_nets,
                                                 sizeof(struct s_trace*));
 
-    saved_clb_opins_used_locally = (t_ivec**) alloc_matrix(0, num_blocks - 1, 0,
-                                                           num_class - 1, sizeof(t_ivec));
+    saved_clb_opins_used_locally = (vector_t**) alloc_matrix(0, num_blocks - 1, 0,
+                                                           num_pin_class - 1, sizeof(vector_t));
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        for (iclass = 0; iclass < num_class; iclass++) {
+        for (iclass = 0; iclass < num_pin_class; iclass++) {
             num_local_opins = clb_opins_used_locally[iblk][iclass].nelem;
             saved_clb_opins_used_locally[iblk][iclass].nelem = num_local_opins;
 
@@ -605,29 +605,29 @@ struct s_trace** alloc_saved_routing(t_ivec** clb_opins_used_locally,
 }
 
 
-static t_ivec** alloc_and_load_clb_opins_used_locally(t_subblock_data
+static vector_t** alloc_and_load_clb_opins_used_locally(subblock_data_t
                                                       subblock_data)
 {
     /* Allocates and loads the data needed to make the router reserve some CLB  *
      * output pins for connections made locally within a CLB (if the netlist    *
      * specifies that this is necessary).                                       */
-    t_ivec** clb_opins_used_locally;
+    vector_t** clb_opins_used_locally;
     int* num_subblocks_per_block;
-    t_subblock** subblock_inf;
+    subblock_t** subblock_inf;
     int iblk, isub, clb_pin, iclass, num_local_opins;
-    clb_opins_used_locally = (t_ivec**) alloc_matrix(0, num_blocks - 1, 0,
-                                                     num_class - 1, sizeof(t_ivec));
+    clb_opins_used_locally = (vector_t**) alloc_matrix(0, num_blocks - 1, 0,
+                                                     num_pin_class - 1, sizeof(vector_t));
     num_subblocks_per_block = subblock_data.num_subblocks_per_block;
     subblock_inf = subblock_data.subblock_inf;
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        if (block[iblk].type != CLB) {
-            for (iclass = 0; iclass < num_class; iclass++) {
+        if (blocks[iblk].type != CLB) {
+            for (iclass = 0; iclass < num_pin_class; iclass++) {
                 clb_opins_used_locally[iblk][iclass].nelem = 0;
                 clb_opins_used_locally[iblk][iclass].list = NULL;
             }
         } else { /* CLB */
-            for (iclass = 0; iclass < num_class; iclass++) {
+            for (iclass = 0; iclass < num_pin_class; iclass++) {
                 clb_opins_used_locally[iblk][iclass].nelem = 0;
             }
 
@@ -635,13 +635,13 @@ static t_ivec** alloc_and_load_clb_opins_used_locally(t_subblock_data
                 clb_pin = subblock_inf[iblk][isub].output;
 
                 /* Subblock output used only locally, but must connect to a CLB OPIN?  */
-                if (clb_pin != OPEN && block[iblk].nets[clb_pin] == OPEN) {
+                if (clb_pin != OPEN && blocks[iblk].nets[clb_pin] == OPEN) {
                     iclass = clb_pin_class[clb_pin];
                     clb_opins_used_locally[iblk][iclass].nelem++;
                 }
             }
 
-            for (iclass = 0; iclass < num_class; iclass++) {
+            for (iclass = 0; iclass < num_pin_class; iclass++) {
                 num_local_opins =
                     clb_opins_used_locally[iblk][iclass].nelem;
 
@@ -674,7 +674,7 @@ void free_trace_structs(void)
     trace_tail = NULL;
 }
 
-void free_route_structs(t_ivec** clb_opins_used_locally)
+void free_route_structs(vector_t** clb_opins_used_locally)
 {
     /* Frees the temporary storage needed only during the routing.  The  *
      * final routing result is not freed.                                */
@@ -682,19 +682,19 @@ void free_route_structs(t_ivec** clb_opins_used_locally)
     free(route_bb);
     heap = NULL;         /* Defensive coding:  crash hard if I use these. */
     route_bb = NULL;
-    free_ivec_matrix(clb_opins_used_locally, 0, num_blocks - 1, 0, num_class - 1);
+    free_ivec_matrix(clb_opins_used_locally, 0, num_blocks - 1, 0, num_pin_class - 1);
     /* NB:  Should use my chunk_malloc for tptr, hptr, and mod_ptr structures. *
      * I could free everything except the tptrs at the end then.               */
 }
 
 
-void free_saved_routing(struct s_trace** best_routing, t_ivec
+void free_saved_routing(struct s_trace** best_routing, vector_t
                         ** saved_clb_opins_used_locally)
 {
     /* Frees the data structures needed to save a routing.                     */
     free(best_routing);
     free_ivec_matrix(saved_clb_opins_used_locally, 0, num_blocks - 1, 0,
-                     num_class - 1);
+                     num_pin_class - 1);
 }
 
 /* allocate and load routing_resource_node_route_information  */
@@ -702,7 +702,7 @@ void alloc_and_load_rr_node_route_structs(void)
 {
     /* Allocates some extra information about each rr_node that is used only   *
      * during routing.                                                         */
-    int inode;
+    int ivex;
 
     if (rr_node_route_inf != NULL) {
         printf("Error in alloc_and_load_rr_node_route_structs:  \n"
@@ -710,15 +710,15 @@ void alloc_and_load_rr_node_route_structs(void)
         exit(1);
     }
 
-    rr_node_route_inf = my_malloc(num_rr_nodes * sizeof(t_rr_node_route_inf));
+    rr_node_route_inf = my_malloc(num_rr_nodes * sizeof(rr_node_t_route_inf));
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        rr_node_route_inf[inode].prev_node = NO_PREVIOUS;
-        rr_node_route_inf[inode].prev_edge = NO_PREVIOUS;
-        rr_node_route_inf[inode].pres_cost = 1.;
-        rr_node_route_inf[inode].acc_cost = 1.;
-        rr_node_route_inf[inode].path_cost = HUGE_FLOAT;
-        rr_node_route_inf[inode].target_flag = 0;
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        rr_node_route_inf[ivex].prev_node = NO_PREVIOUS;
+        rr_node_route_inf[ivex].prev_edge = NO_PREVIOUS;
+        rr_node_route_inf[ivex].pres_cost = 1.;
+        rr_node_route_inf[ivex].acc_cost = 1.;
+        rr_node_route_inf[ivex].path_cost = HUGE_FLOAT;
+        rr_node_route_inf[ivex].target_flag = 0;
     }
 }
 
@@ -739,24 +739,24 @@ static void load_route_bb(int bb_factor)
      * limited to channels contained with the net bounding box expanded    *
      * by bb_factor channels on each side.  For example, if bb_factor is   *
      * 0, the maze router must route each net within its bounding box.     *
-     * If bb_factor = nx, the maze router will search every channel in     *
+     * If bb_factor = num_of_columns, the maze router will search every channel in     *
      * the FPGA if necessary.  The bounding boxes returned by this routine *
      * are different from the ones used by the placer in that they are     *
-     * clipped to lie within (0,0) and (nx+1,ny+1) rather than (1,1) and   *
-     * (nx,ny).                                                            */
+     * clipped to lie within (0,0) and (num_of_columns+1,num_of_rows+1) rather than (1,1) and   *
+     * (num_of_columns,num_of_rows).                                                            */
     int k, xmax, ymax, xmin, ymin, x, y, inet;
 
     for (inet = 0; inet < num_nets; inet++) {
-        x = block[net[inet].blocks[0]].x;
-        y = block[net[inet].blocks[0]].y;
+        x = blocks[net[inet].blocks[0]].x;
+        y = blocks[net[inet].blocks[0]].y;
         xmin = x;
         ymin = y;
         xmax = x;
         ymax = y;
 
         for (k = 1; k < net[inet].num_pins; k++) {
-            x = block[net[inet].blocks[k]].x;
-            y = block[net[inet].blocks[k]].y;
+            x = blocks[net[inet].blocks[k]].x;
+            y = blocks[net[inet].blocks[k]].y;
 
             if (x < xmin) {
                 xmin = x;
@@ -777,9 +777,9 @@ static void load_route_bb(int bb_factor)
         /* Expand the net bounding box by bb_factor, then clip to the physical *
          * chip area.                                                          */
         route_bb[inet].xmin = max(xmin - bb_factor, 0);
-        route_bb[inet].xmax = min(xmax + bb_factor, nx + 1);
+        route_bb[inet].xmax = min(xmax + bb_factor, num_of_columns + 1);
         route_bb[inet].ymin = max(ymin - bb_factor, 0);
-        route_bb[inet].ymax = min(ymax + bb_factor, ny + 1);
+        route_bb[inet].ymax = min(ymax + bb_factor, num_of_rows + 1);
     }
 }
 
@@ -1017,13 +1017,13 @@ static struct s_linked_f_pointer* alloc_linked_f_pointer(void) {
 void print_route(char* route_file)
 {
     /* Prints out the routing to file route_file.  */
-    int inet, inode, ipin, bnum, ilow, jlow, blk_pin, iclass;
-    t_rr_type rr_type;
+    int inet, ivex, ipin, bnum, ilow, jlow, blk_pin, iclass;
+    rr_types_t rr_type;
     struct s_trace* tptr;
     char* name_type[] = {"SOURCE", "SINK", "IPIN", "OPIN", "CHANX", "CHANY"};
     FILE* fp;
     fp = my_fopen(route_file, "w", 0);
-    fprintf(fp, "Array size: %d x %d logic blocks.\n", nx, ny);
+    fprintf(fp, "Array size: %d x %d logic blocks.\n", num_of_columns, num_of_rows);
     fprintf(fp, "\nRouting:");
 
     for (inet = 0; inet < num_nets; inet++) {
@@ -1032,16 +1032,16 @@ void print_route(char* route_file)
             tptr = trace_head[inet];
 
             while (tptr != NULL) {
-                inode = tptr->index;
-                rr_type = rr_node[inode].type;
-                ilow = rr_node[inode].xlow;
-                jlow = rr_node[inode].ylow;
+                ivex = tptr->index;
+                rr_type = rr_node[ivex].type;
+                ilow = rr_node[ivex].xlow;
+                jlow = rr_node[ivex].ylow;
                 fprintf(fp, "%6s (%d,%d) ", name_type[rr_type], ilow, jlow);
 
-                if ((ilow != rr_node[inode].xhigh) || (jlow !=
-                                                       rr_node[inode].yhigh))
-                    fprintf(fp, "to (%d,%d) ", rr_node[inode].xhigh,
-                            rr_node[inode].yhigh);
+                if ((ilow != rr_node[ivex].xhigh) || (jlow !=
+                                                       rr_node[ivex].yhigh))
+                    fprintf(fp, "to (%d,%d) ", rr_node[ivex].xhigh,
+                            rr_node[ivex].yhigh);
 
                 switch (rr_type) {
                     case IPIN:
@@ -1076,7 +1076,7 @@ void print_route(char* route_file)
                         break;
                 }
 
-                fprintf(fp, "%d  ", rr_node[inode].ptc_num);
+                fprintf(fp, "%d  ", rr_node[ivex].ptc_num);
                 /* Uncomment line below if you're debugging and want to see the switch types *
                  * used in the routing.                                                      */
                 /*          fprintf (fp, "Switch: %d", tptr->iswitch);    */
@@ -1090,7 +1090,7 @@ void print_route(char* route_file)
             for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
                 bnum = net[inet].blocks[ipin];
 
-                if (block[bnum].type == CLB) {
+                if (blocks[bnum].type == CLB) {
                     blk_pin = net[inet].blk_pin[ipin];
                     iclass = clb_pin_class[blk_pin];
                 } else {            /* IO pad */
@@ -1098,7 +1098,7 @@ void print_route(char* route_file)
                 }
 
                 fprintf(fp, "Block %s (#%d) at (%d, %d), Pin class %d.\n",
-                        block[bnum].name, bnum, block[bnum].x, block[bnum].y,
+                        blocks[bnum].name, bnum, blocks[bnum].x, blocks[bnum].y,
                         iclass);
             }
         }
@@ -1117,7 +1117,7 @@ void print_route(char* route_file)
 
 
 void reserve_locally_used_opins(double pres_fac, boolean rip_up_local_opins,
-                                t_ivec** clb_opins_used_locally)
+                                vector_t** clb_opins_used_locally)
 {
     /* If some subblock outputs are hooked directly to CLB outputs, then      *
      * some CLB outputs are occupied if their associated subblock is used     *
@@ -1126,27 +1126,27 @@ void reserve_locally_used_opins(double pres_fac, boolean rip_up_local_opins,
      * logically equivalent outputs.  Code below makes sure any CLB outputs   *
      * that are used by being directly hooked to subblocks get properly       *
      * reserved.                                                              */
-    int iblk, num_local_opin, inode, from_node, iconn, num_edges, to_node;
+    int iblk, num_local_opin, ivex, from_node, iconn, num_edges, to_node;
     int iclass, ipin;
     double cost;
     struct s_heap* heap_head_ptr;
 
     if (rip_up_local_opins) {
         for (iblk = 0; iblk < num_blocks; iblk++) {
-            for (iclass = 0; iclass < num_class; iclass++) {
+            for (iclass = 0; iclass < num_pin_class; iclass++) {
                 num_local_opin = clb_opins_used_locally[iblk][iclass].nelem;
 
                 /* Always 0 for pads and for RECEIVER (IPIN) classes */
                 for (ipin = 0; ipin < num_local_opin; ipin++) {
-                    inode = clb_opins_used_locally[iblk][iclass].list[ipin];
-                    adjust_one_rr_occ_and_pcost(inode, -1, pres_fac);
+                    ivex = clb_opins_used_locally[iblk][iclass].list[ipin];
+                    adjust_one_rr_occ_and_pcost(ivex, -1, pres_fac);
                 }
             }
         }
     }
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        for (iclass = 0; iclass < num_class; iclass++) {
+        for (iclass = 0; iclass < num_pin_class; iclass++) {
             num_local_opin = clb_opins_used_locally[iblk][iclass].nelem;
             /* Always 0 for pads and for RECEIVER (IPIN) classes */
 
@@ -1162,9 +1162,9 @@ void reserve_locally_used_opins(double pres_fac, boolean rip_up_local_opins,
 
                 for (ipin = 0; ipin < num_local_opin; ipin++) {
                     heap_head_ptr = get_heap_head();
-                    inode = heap_head_ptr->index;
-                    adjust_one_rr_occ_and_pcost(inode, 1, pres_fac);
-                    clb_opins_used_locally[iblk][iclass].list[ipin] = inode;
+                    ivex = heap_head_ptr->index;
+                    adjust_one_rr_occ_and_pcost(ivex, 1, pres_fac);
+                    clb_opins_used_locally[iblk][iclass].list[ipin] = ivex;
                     free_heap_data(heap_head_ptr);
                 }
 
@@ -1175,20 +1175,20 @@ void reserve_locally_used_opins(double pres_fac, boolean rip_up_local_opins,
 }
 
 
-static void adjust_one_rr_occ_and_pcost(int inode, int add_or_sub, double
+static void adjust_one_rr_occ_and_pcost(int ivex, int add_or_sub, double
                                         pres_fac)
 {
     /* Increments or decrements (depending on add_or_sub) the occupancy of    *
      * one rr_node, and adjusts the present cost of that node appropriately.  */
     int occ, capacity;
-    occ = rr_node[inode].occ + add_or_sub;
-    capacity = rr_node[inode].capacity;
-    rr_node[inode].occ = occ;
+    occ = rr_node[ivex].occ + add_or_sub;
+    capacity = rr_node[ivex].capacity;
+    rr_node[ivex].occ = occ;
 
     if (occ < capacity) {
-        rr_node_route_inf[inode].pres_cost = 1.;
+        rr_node_route_inf[ivex].pres_cost = 1.;
     } else {
-        rr_node_route_inf[inode].pres_cost = 1. + (occ + 1 - capacity) *
+        rr_node_route_inf[ivex].pres_cost = 1. + (occ + 1 - capacity) *
                                              pres_fac;
     }
 }

@@ -1,6 +1,6 @@
 #!/bin/bash
-sed -i s/double/double/g check_netlist.h
-sed -i s/double/double/g check_route.h
+sed -i s/\<float\>/double/g check_netlist.h
+sed -i s/\<float\>/double/g check_route.h
 sed -i s/double/double/g check_rr_graph.h
 sed -i s/double/double/g draw.h
 sed -i s/double/double/g globals.h

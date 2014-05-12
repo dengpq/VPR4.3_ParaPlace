@@ -55,7 +55,7 @@ void free_linked_edge_soft(t_linked_edge* edge_ptr, t_linked_edge
 }
 
 
-int seg_index_of_cblock(t_rr_type from_rr_type, int to_node)
+int seg_index_of_cblock(rr_types_t from_rr_type, int to_node)
 {
     /* Returns the segment number (distance along the channel) of the connection *
      * box from from_rr_type (CHANX or CHANY) to to_node (IPIN).                 */
@@ -74,8 +74,8 @@ int seg_index_of_sblock(int from_node, int to_node)
      * switch box on the left side of a CHANX segment at (i,j) has seg_index =   *
      * i-1, while the switch box on the right side of that segment has seg_index *
      * = i.  CHANY stuff works similarly.  Hence the range of values returned is *
-     * 0 to nx (if from_node is a CHANX) or 0 to ny (if from_node is a CHANY).   */
-    t_rr_type from_rr_type, to_rr_type;
+     * 0 to num_of_columns (if from_node is a CHANX) or 0 to num_of_rows (if from_node is a CHANY).   */
+    rr_types_t from_rr_type, to_rr_type;
     from_rr_type = rr_node[from_node].type;
     to_rr_type = rr_node[to_node].type;
 

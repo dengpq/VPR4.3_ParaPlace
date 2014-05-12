@@ -9,23 +9,23 @@ static int hash_value(char* name);
 
 
 
-struct s_hash** alloc_hash_table(void) {
+hash_t** alloc_hash_table(void) {
 
     /* Creates a hash table with HASHSIZE different locations (hash values).   */
 
-    struct s_hash** hash_table;
+    hash_t** hash_table;
 
-    hash_table = (struct s_hash**) my_calloc(sizeof(struct s_hash*),
+    hash_table = (hash_t**) my_calloc(sizeof(hash_t*),
                                              HASHSIZE);
     return (hash_table);
 }
 
 
-void free_hash_table(struct s_hash** hash_table)
+void free_hash_table(hash_t** hash_table)
 {
     /* Frees all the storage associated with a hash table. */
     int i;
-    struct s_hash* h_ptr, *temp_ptr;
+    hash_t* h_ptr, *temp_ptr;
 
     for (i = 0; i < HASHSIZE; i++) {
         h_ptr = hash_table[i];
@@ -55,14 +55,14 @@ struct s_hash_iterator start_hash_table_iterator(void) {
 }
 
 
-struct s_hash* get_next_hash(struct s_hash** hash_table, struct
+hash_t* get_next_hash(hash_t** hash_table, struct
                              s_hash_iterator* hash_iterator) {
 
     /* Returns the next occupied hash entry, and moves the iterator structure    *
      * forward so the next call gets the next entry.                             */
 
     int i;
-    struct s_hash* h_ptr;
+    hash_t* h_ptr;
 
     i = hash_iterator->i;
     h_ptr = hash_iterator->h_ptr;
@@ -83,7 +83,7 @@ struct s_hash* get_next_hash(struct s_hash** hash_table, struct
 }
 
 
-struct s_hash* insert_in_hash_table(struct s_hash** hash_table, char* name,
+hash_t* insert_in_hash_table(hash_t** hash_table, char* name,
                                     int next_free_index) {
 
     /* Adds the string pointed to by name to the hash table, and returns the    *
@@ -93,7 +93,7 @@ struct s_hash* insert_in_hash_table(struct s_hash** hash_table, char* name,
      * created.                                                                 */
 
     int i;
-    struct s_hash* h_ptr, *prev_ptr;
+    hash_t* h_ptr, *prev_ptr;
 
     i = hash_value(name);
     prev_ptr = NULL;
@@ -111,7 +111,7 @@ struct s_hash* insert_in_hash_table(struct s_hash** hash_table, char* name,
 
     /* Name string wasn't in the hash table.  Add it. */
 
-    h_ptr = (struct s_hash*) my_malloc(sizeof(struct s_hash));
+    h_ptr = (hash_t*) my_malloc(sizeof(hash_t));
 
     if (prev_ptr == NULL) {
         hash_table[i] = h_ptr;
@@ -128,13 +128,13 @@ struct s_hash* insert_in_hash_table(struct s_hash** hash_table, char* name,
 }
 
 
-struct s_hash* get_hash_entry(struct s_hash** hash_table, char* name) {
+hash_t* get_hash_entry(hash_t** hash_table, char* name) {
 
     /* Returns the hash entry with this name, or NULL if there is no            *
      * corresponding entry.                                                     */
 
     int i;
-    struct s_hash* h_ptr;
+    hash_t* h_ptr;
 
     i = hash_value(name);
     h_ptr = hash_table[i];

@@ -1,12 +1,12 @@
 #ifndef HASH_H
 #define HASH_H
 
-struct s_hash {
+typedef struct s_hash_t {
     char* name;
-    int index;
-    int count;
-    struct s_hash* next;
-};
+    int   index;
+    int   count;
+    struct s_hash_t* next;
+} hash_t;
 
 /* name:  The string referred to by this hash entry.                        *
  * index: The integer identifier for this entry.                            *
@@ -14,11 +14,9 @@ struct s_hash {
  *        the table.                                                        *
  * next:  A pointer to the next (string,index) entry that mapped to the     *
  *        same hash value, or NULL if there are no more entries.            */
-
-
 struct s_hash_iterator {
     int i;
-    struct s_hash* h_ptr;
+    hash_t* h_ptr;
 };
 
 /* i:  current "line" of the hash table.  That is, hash_table[i] is the     *
@@ -27,14 +25,14 @@ struct s_hash_iterator {
  *         iteration.                                                       */
 
 
-struct s_hash** alloc_hash_table(void);
-void free_hash_table(struct s_hash** hash_table);
+hash_t** alloc_hash_table(void);
+void   free_hash_table(hash_t** hash_table);
 struct s_hash_iterator start_hash_table_iterator(void);
-struct s_hash* get_next_hash(struct s_hash** hash_table, struct
-                             s_hash_iterator* hash_iterator);
-struct s_hash* insert_in_hash_table(struct s_hash** hash_table, char* name,
-                                    int next_free_index);
-struct s_hash* get_hash_entry(struct s_hash** hash_table, char* name);
+hash_t* get_next_hash(hash_t** hash_table, struct
+                      s_hash_iterator* hash_iterator);
+hash_t* insert_in_hash_table(hash_t** hash_table, char* name,
+                             int next_free_index);
+hash_t* get_hash_entry(hash_t** hash_table, char* name);
 
 #endif
 

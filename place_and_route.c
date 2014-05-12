@@ -16,35 +16,35 @@
 
 /******************* Subroutines local to this module ************************/
 
-static int binary_search_place_and_route(struct s_placer_opts
-                                         placer_opts, char* place_file, char* net_file, char* arch_file,
+static int binary_search_place_and_route(placer_opts_t
+                                         placer_opts, char* place_file, char* netlist_file, char* arch_file,
                                          char* route_file, boolean full_stats, boolean verify_binary_search,
-                                         struct s_annealing_sched annealing_sched, struct s_router_opts
-                                         router_opts, struct s_det_routing_arch det_routing_arch,
-                                         t_segment_inf* segment_inf, t_timing_inf timing_inf, t_subblock_data
-                                         *subblock_data_ptr, t_chan_width_dist chan_width_dist);
+                                         annealing_sched_t annealing_sched, router_opts_t
+                                         router_opts, detail_routing_arch_t det_routing_arch,
+                                         segment_info_t* segment_inf, timing_info_t timing_inf, subblock_data_t
+                                         *subblock_data_ptr, chan_width_distr_t chan_width_dist);
 
-static double comp_width(t_chan* chan, double x, double separation);
+static double comp_width(channel_t* chan, double x, double separation);
 
 
 /************************* Subroutine Definitions ****************************/
 /*FIXME: the main function about VPR4.3 placement and routing  *
- *TODO: What about the t_segment_inf and t_timing_inf do?      */
-void place_and_route(enum e_operation operation,
-                     struct s_placer_opts placer_opts,
-                     char* place_file,
-                     char* net_file,
-                     char* arch_file,
-                     char* route_file,
-                     boolean full_stats,
-                     boolean verify_binary_search,
-                     struct s_annealing_sched annealing_sched,
-                     struct s_router_opts router_opts,
-                     struct s_det_routing_arch det_routing_arch,
-                     t_segment_inf* segment_inf,
-                     t_timing_inf timing_inf,
-                     t_subblock_data *subblock_data_ptr,
-                     t_chan_width_dist chan_width_dist)
+ *TODO: What about the segment_info_t and timing_info_t do?      */
+void place_and_route(operation_types_t operation,
+                     placer_opts_t placer_opts,
+                     char*  place_file,
+                     char*  netlist_file,
+                     char*  arch_file,
+                     char*  route_file,
+                     boolean  full_stats,
+                     boolean  verify_binary_search,
+                     annealing_sched_t  annealing_sched,
+                     router_opts_t     router_opts,
+                     detail_routing_arch_t  det_routing_arch,
+                     segment_info_t*    segment_inf,
+                     timing_info_t      timing_inf,
+                     subblock_data_t*   subblock_data_ptr,
+                     chan_width_distr_t chan_width_dist)
 {
     /* This routine controls the overall placement and routing of a circuit. */
     char     msg[BUFSIZE] = "";
@@ -52,12 +52,12 @@ void place_and_route(enum e_operation operation,
     boolean  success = FALSE;
     double** net_delay = NULL;
     double** net_slack = NULL;
-    struct s_linked_vptr* net_delay_chunk_list_head = NULL;
-    t_ivec** clb_opins_used_locally; /* [0..num_blocks-1][0..num_class-1] */
+    linked_vptr_t* net_delay_chunk_list_head = NULL;
+    vector_t** clb_opins_used_locally; /* [0..num_blocks-1][0..num_pin_class-1] */
 
     if (placer_opts.place_freq == PLACE_NEVER) {
         read_place(place_file,
-                   net_file,
+                   netlist_file,
                    arch_file,
                    placer_opts,
                    router_opts,
@@ -67,7 +67,8 @@ void place_and_route(enum e_operation operation,
                    timing_inf,
                    subblock_data_ptr);
     } else if (placer_opts.place_freq == PLACE_ONCE) {
-        try_place(placer_opts,
+        try_place(netlist_file,
+                  placer_opts,
                   annealing_sched,
                   chan_width_dist,
                   router_opts,
@@ -77,13 +78,15 @@ void place_and_route(enum e_operation operation,
                   subblock_data_ptr);
 
         print_place(place_file,
-                    net_file,
+                    netlist_file,
                     arch_file);
     } else if (placer_opts.place_freq == PLACE_ALWAYS
-                 && router_opts.fixed_channel_width != NO_FIXED_CHANNEL_WIDTH) {
+                 && router_opts.fixed_channel_width
+                      != NO_FIXED_CHANNEL_WIDTH) {
         placer_opts.place_chan_width = router_opts.fixed_channel_width;
 
-        try_place(placer_opts,
+        try_place(netlist_file,
+                  placer_opts,
                   annealing_sched,
                   chan_width_dist,
                   router_opts,
@@ -93,7 +96,7 @@ void place_and_route(enum e_operation operation,
                   subblock_data_ptr);
 
         print_place(place_file,
-                    net_file,
+                    netlist_file,
                     arch_file);
     }
 
@@ -106,10 +109,20 @@ void place_and_route(enum e_operation operation,
     /* Binary search over channel width required? */
 
     if (router_opts.fixed_channel_width == NO_FIXED_CHANNEL_WIDTH) {
-        width_fac = binary_search_place_and_route(placer_opts, place_file,
-                                                  net_file, arch_file, route_file, full_stats, verify_binary_search,
-                                                  annealing_sched, router_opts, det_routing_arch, segment_inf,
-                                                  timing_inf, subblock_data_ptr, chan_width_dist);
+        width_fac = binary_search_place_and_route(placer_opts,
+                                                  place_file,
+                                                  netlist_file,
+                                                  arch_file,
+                                                  route_file,
+                                                  full_stats,
+                                                  verify_binary_search,
+                                                  annealing_sched,
+                                                  router_opts,
+                                                  det_routing_arch,
+                                                  segment_inf,
+                                                  timing_inf,
+                                                  subblock_data_ptr,
+                                                  chan_width_dist);
         return;
     } else {  /* Only need to route (or try to route) once. */
         width_fac = router_opts.fixed_channel_width;
@@ -117,7 +130,10 @@ void place_and_route(enum e_operation operation,
         clb_opins_used_locally = alloc_route_structs(*subblock_data_ptr);
 
         if (timing_inf.timing_analysis_enabled) {
-            net_slack = alloc_and_load_timing_graph(timing_inf, *subblock_data_ptr);
+            alloc_and_load_timing_graph(placer_opts,
+                                        timing_inf,
+                                        *subblock_data_ptr);
+            net_slack = alloc_net_slack();
             net_delay = alloc_net_delay(&net_delay_chunk_list_head);
         } else {
             net_delay = NULL;    /* Defensive coding. */
@@ -126,8 +142,14 @@ void place_and_route(enum e_operation operation,
 
         /* Only needed to build timing graph and clb_opins_used_locally */
         free_subblock_data(subblock_data_ptr);
-        success = try_route(width_fac, router_opts, det_routing_arch, segment_inf,
-                            timing_inf, net_slack, net_delay, chan_width_dist,
+        success = try_route(width_fac,
+                            router_opts,
+                            det_routing_arch,
+                            segment_inf,
+                            timing_inf,
+                            net_slack,
+                            net_delay,
+                            chan_width_dist,
                             clb_opins_used_locally);
     }
 
@@ -137,7 +159,8 @@ void place_and_route(enum e_operation operation,
         sprintf(msg, "Routing failed with a channel width factor of %d.  ILLEGAL "
                 "routing shown.", width_fac);
     } else {
-        check_route(router_opts.route_type, det_routing_arch.num_switch,
+        check_route(router_opts.route_type,
+                    det_routing_arch.num_switch,
                     clb_opins_used_locally);
         get_serial_num();
         printf("Circuit successfully routed with a channel width factor of %d."
@@ -168,36 +191,40 @@ void place_and_route(enum e_operation operation,
 }
 
 /* try to iterate route the netlist, to find the minimum tracks per channel that can route successfully */
-static int binary_search_place_and_route(struct s_placer_opts placer_opts,
-                                         char* place_file, char* net_file,
+static int binary_search_place_and_route(placer_opts_t placer_opts,
+                                         char* place_file, char* netlist_file,
                                          char* arch_file, char* route_file,
-                                         boolean full_stats, boolean verify_binary_search,
-                                         struct s_annealing_sched annealing_sched,
-                                         struct s_router_opts router_opts,
-                                         struct s_det_routing_arch det_routing_arch,
-                                         t_segment_inf* segment_inf,
-                                         t_timing_inf timing_inf,
-                                         t_subblock_data *subblock_data_ptr,
-                                         t_chan_width_dist chan_width_dist)
+                                         boolean full_stats,
+                                         boolean verify_binary_search,
+                                         annealing_sched_t annealing_sched,
+                                         router_opts_t router_opts,
+                                         detail_routing_arch_t det_routing_arch,
+                                         segment_info_t* segment_inf,
+                                         timing_info_t timing_inf,
+                                         subblock_data_t *subblock_data_ptr,
+                                         chan_width_distr_t chan_width_dist)
 {
     /* This routine performs a binary search to find the minimum number of      *
      * tracks per channel required to successfully route a circuit, and returns *
      * that minimum width_fac.                                                  */
     char msg[BUFSIZE];
-    struct s_linked_vptr* net_delay_chunk_list_head;
+    linked_vptr_t* net_delay_chunk_list_head;
 
     /* Allocate the major routing structures. */
-    /* t_ivec clb_opins_used_locally[0..num_blocks-1][0..num_class-1] */
-    t_ivec**  clb_opins_used_locally = alloc_route_structs(*subblock_data_ptr);
-    t_ivec**  saved_clb_opins_used_locally;
+    /* vector_t clb_opins_used_locally[0..num_blocks-1][0..num_pin_class-1] */
+    vector_t**  clb_opins_used_locally = alloc_route_structs(*subblock_data_ptr);
+    vector_t**  saved_clb_opins_used_locally;
     /* Saves the best routing found so far. */
     struct s_trace** best_routing = alloc_saved_routing(clb_opins_used_locally,
-                                       &saved_clb_opins_used_locally);
+                                                        &saved_clb_opins_used_locally);
 
     double**  net_delay = NULL;
     double**  net_slack = NULL;
     if (timing_inf.timing_analysis_enabled) {
-        net_slack = alloc_and_load_timing_graph(timing_inf, *subblock_data_ptr);
+        alloc_and_load_timing_graph(placer_opts,
+                                    timing_inf,
+                                    *subblock_data_ptr);
+        net_slack = alloc_net_slack();
         net_delay = alloc_net_delay(&net_delay_chunk_list_head);
     } else {
         net_delay = NULL; /* Defensive coding. */
@@ -231,19 +258,31 @@ static int binary_search_place_and_route(struct s_placer_opts placer_opts,
         if (placer_opts.place_freq == PLACE_ALWAYS) {
             /* using current channel width to placement */
             placer_opts.place_chan_width = current;
-            try_place(placer_opts, annealing_sched, chan_width_dist,
-                      router_opts, det_routing_arch, segment_inf,
-                      timing_inf, subblock_data_ptr);
+            try_place(netlist_file,
+                      placer_opts,
+                      annealing_sched,
+                      chan_width_dist,
+                      router_opts,
+                      det_routing_arch,
+                      segment_inf,
+                      timing_inf,
+                      subblock_data_ptr);
         }
         /* try to route according to current tracks per channel */
-        success = try_route(current, router_opts, det_routing_arch, segment_inf,
-                            timing_inf, net_slack, net_delay, chan_width_dist,
+        success = try_route(current,
+                            router_opts,
+                            det_routing_arch,
+                            segment_inf,
+                            timing_inf,
+                            net_slack,
+                            net_delay,
+                            chan_width_dist,
                             clb_opins_used_locally); /* FIXME */
         if (success) {
             high = current;
             /* If we're re-placing constantly, save placement in case it is best. */
             if (placer_opts.place_freq == PLACE_ALWAYS) {
-                print_place(place_file, net_file, arch_file);
+                print_place(place_file, netlist_file, arch_file);
             }
 
             /* Save routing in case it is best. */
@@ -299,9 +338,15 @@ static int binary_search_place_and_route(struct s_placer_opts placer_opts,
 
             if (placer_opts.place_freq == PLACE_ALWAYS) {
                 placer_opts.place_chan_width = current;
-                try_place(placer_opts, annealing_sched, chan_width_dist,
-                          router_opts, det_routing_arch, segment_inf,
-                          timing_inf, subblock_data_ptr);
+                try_place(netlist_file,
+                          placer_opts,
+                          annealing_sched,
+                          chan_width_dist,
+                          router_opts,
+                          det_routing_arch,
+                          segment_inf,
+                          timing_inf,
+                          subblock_data_ptr);
             }
 
             success = try_route(current, router_opts, det_routing_arch,
@@ -314,7 +359,7 @@ static int binary_search_place_and_route(struct s_placer_opts placer_opts,
                              saved_clb_opins_used_locally);
 
                 if (placer_opts.place_freq == PLACE_ALWAYS) {
-                    print_place(place_file, net_file, arch_file);
+                    print_place(place_file, netlist_file, arch_file);
                 }
             }
 
@@ -326,13 +371,13 @@ static int binary_search_place_and_route(struct s_placer_opts placer_opts,
 
     /* Restore the best placement (if necessary), the best routing, and  *
      * the best channel widths for final drawing and statistics output.  */
-    init_chan(final, chan_width_dist);
+    init_channel_t(final, chan_width_dist);
 
     if (placer_opts.place_freq == PLACE_ALWAYS) {
         printf("Reading best placement back in.\n");
         placer_opts.place_chan_width = final;
         /* read placement file */
-        read_place(place_file, net_file, arch_file, placer_opts, router_opts,
+        read_place(place_file, netlist_file, arch_file, placer_opts, router_opts,
                    chan_width_dist, det_routing_arch, segment_inf, timing_inf,
                    subblock_data_ptr);
     }
@@ -340,10 +385,10 @@ static int binary_search_place_and_route(struct s_placer_opts placer_opts,
     free_rr_graph(); /* free existed routing_resource graph */
 
     build_rr_graph(router_opts.route_type, det_routing_arch, segment_inf,
-                   timing_inf, router_opts.base_cost_type);
+                   timing_inf, router_opts.router_base_cost_type);
 
     free_rr_graph_internals(router_opts.route_type, det_routing_arch, segment_inf,
-                            timing_inf, router_opts.base_cost_type);
+                            timing_inf, router_opts.router_base_cost_type);
 
     restore_routing(best_routing, clb_opins_used_locally,
                     saved_clb_opins_used_locally);
@@ -381,51 +426,53 @@ static int binary_search_place_and_route(struct s_placer_opts placer_opts,
 /* Assigns widths to channels(in tracks). The minimum value was one track per    *
  * channel. IO channels are io_rat * maximum in interior tracks wide. The channel*
  * tracks wide. The channel distributions read from the architecture file are    *
- * are scaled by cfactor.                                                        */
-void init_chan(int cfactor, t_chan_width_dist chan_width_dist)
+ * are scaled by cfactor.                                                        *
+ * Initial channel_width_x and channel_width_y.                                  */
+void init_channel_t(int cfactor,
+                    chan_width_distr_t chan_width_dist)
 {
     double  chan_width_io = chan_width_dist.chan_width_io;
-    t_chan chan_x_dist = chan_width_dist.chan_x_dist;
-    t_chan chan_y_dist = chan_width_dist.chan_y_dist;
+    channel_t chan_x_dist = chan_width_dist.chan_x_dist;
+    channel_t chan_y_dist = chan_width_dist.chan_y_dist;
 
     /* io channel widths are io_ratio * maximum in interior tracks wide */
     int nio = (int)floor(cfactor * chan_width_io + 0.5);
     if (nio == 0) {
         nio = 1;    /* No zero width channels */
     }
-    /* the 0 and nx or ny was io */
-    chan_width_x[0] = chan_width_x[ny] = nio;
-    chan_width_y[0] = chan_width_y[nx] = nio;
+    /* the 0 and num_of_columns or num_of_rows was io */
+    chan_width_x[0] = chan_width_x[num_of_rows] = nio;
+    chan_width_y[0] = chan_width_y[num_of_columns] = nio;
 
     double x, separation;
     int i;
-    /* then initial chan_width_x[1...ny-1] */
-    if (ny > 1) {
-        separation = 1.0 / (ny - 2.0); /* Norm. distance between two channels in y-dix. */
-        x = 0.0;    /* This avoids div by zero if ny = 2. */
+    /* then initial chan_width_x[1...num_of_rows-1] */
+    if (num_of_rows > 1) {
+        separation = 1.0 / (num_of_rows - 2.0); /* Norm. distance between two channels in y-dix. */
+        x = 0.0;    /* This avoids div by zero if num_of_rows = 2. */
         chan_width_x[1] = (int)floor(cfactor * comp_width(&chan_x_dist, x,
                                                           separation) + 0.5);
         /* No zero width channels */
         chan_width_x[1] = max(chan_width_x[1], 1);
-        /* TODO: Why did the chan_width_x[1...ny-1] should initial like the
+        /* TODO: Why did the chan_width_x[1...num_of_rows-1] should initial like the
          * following statement? */
-        for (i = 1; i < ny-1; ++i) {
-            x = (double)i / ((double)(ny - 2.0));
+        for (i = 1; i < num_of_rows-1; ++i) {
+            x = (double)i / ((double)(num_of_rows - 2.0));
             chan_width_x[i+1] = (int)floor(cfactor * comp_width(&chan_x_dist, x,
                                                                 separation) + 0.5);
             chan_width_x[i+1] = max(chan_width_x[i+1], 1);
         }
     }
-    /* then initial chan_width_y[1...nx-1] */
-    if (nx > 1) {
-        separation = 1.0 / (nx - 2.0); /* Norm. distance between two channels in x-dix. */
-        x = 0.0;    /* Avoids div by zero if nx = 2. */
+    /* then initial chan_width_y[1...num_of_columns-1] */
+    if (num_of_columns > 1) {
+        separation = 1.0 / (num_of_columns - 2.0); /* Norm. distance between two channels in x-dix. */
+        x = 0.0;    /* Avoids div by zero if num_of_columns = 2. */
         chan_width_y[1] = (int)floor(cfactor * comp_width(&chan_y_dist, x,
                                                           separation) + 0.5);
         chan_width_y[1] = max(chan_width_y[1], 1);
         /* TODO: Q: like previous question. */
-        for (i = 1; i < nx - 1; i++) {
-            x = (double)i / ((double)(nx - 2.0));
+        for (i = 1; i < num_of_columns - 1; i++) {
+            x = (double)i / ((double)(num_of_columns - 2.0));
             chan_width_y[i + 1] = (int)floor(cfactor * comp_width(&chan_y_dist, x,
                                                                    separation) + 0.5);
             chan_width_y[i + 1] = max(chan_width_y[i + 1], 1);
@@ -435,22 +482,22 @@ void init_chan(int cfactor, t_chan_width_dist chan_width_dist)
 #ifdef VERBOSE
     printf("\nchan_width_x:\n");
 
-    for (i = 0; i <= ny; i++) {
+    for (i = 0; i <= num_of_rows; i++) {
         printf("%d  ", chan_width_x[i]);
     }
 
     printf("\n\nchan_width_y:\n");
 
-    for (i = 0; i <= nx; i++) {
+    for (i = 0; i <= num_of_columns; i++) {
         printf("%d  ", chan_width_y[i]);
     }
 
     printf("\n\n");
 #endif
-} /* end of void init_chan(int cfactor, t_chan_width_dist chan_width_dist) */
+} /* end of void init_channel_t(int cfactor, chan_width_distr_t chan_width_dist) */
 
 
-static double comp_width(t_chan* chan, double x, double separation)
+static double comp_width(channel_t* chan, double x, double separation)
 {
     /* Return the relative channel density.  *chan points to a channel   *
      * functional description data structure, and x is the distance      *
@@ -500,5 +547,5 @@ static double comp_width(t_chan* chan, double x, double separation)
             break;
     }
 
-    return(val);
+    return val;
 }

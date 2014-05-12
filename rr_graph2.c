@@ -28,17 +28,17 @@ t_linked_edge* free_edge_list_head = NULL;
 /* Two arrays below give the rr_node_index of the channel segment at        *
  * (i,j,track) for fast index lookup.                                       */
 
-static int*** chanx_rr_indices; /* [1..nx][0..ny][0..nodes_per_chan-1] */
-static int*** chany_rr_indices; /* [0..nx][1..ny][0..nodes_per_chan-1] */
+static int*** chanx_rr_indices; /* [1..num_of_columns][0..num_of_rows][0..nodes_per_chan-1] */
+static int*** chany_rr_indices; /* [0..num_of_columns][1..num_of_rows][0..nodes_per_chan-1] */
 
 
 
 /************************** Subroutines local to this module ****************/
 
-static int load_chanx_rr_indices(t_seg_details* seg_details_x, int
+static int load_chanx_rr_indices(segment_details_t* seg_details_x, int
                                  nodes_per_chan, int start_index, int i, int j);
 
-static int load_chany_rr_indices(t_seg_details* seg_details_y, int
+static int load_chany_rr_indices(segment_details_t* seg_details_y, int
                                  nodes_per_chan, int start_index, int i, int j);
 
 static void get_switch_type(boolean is_from_sbox, boolean is_to_sbox,
@@ -46,8 +46,8 @@ static void get_switch_type(boolean is_from_sbox, boolean is_to_sbox,
 
 
 /******************** Subroutine definitions *******************************/
-t_seg_details* alloc_and_load_seg_details(int nodes_per_chan,
-                                          t_segment_inf *segment_inf,
+segment_details_t* alloc_and_load_seg_details(int nodes_per_chan,
+                                          segment_info_t *segment_inf,
                                           int num_seg_types,
                                           int max_len)
 {
@@ -64,8 +64,8 @@ t_seg_details* alloc_and_load_seg_details(int nodes_per_chan,
     double frac_left, start_step, sb_step, cb_step;
     double cb_off_step, sb_off_step;
     boolean longline;
-    t_seg_details* seg_details = (t_seg_details*)my_malloc(nodes_per_chan * sizeof
-                                             (t_seg_details));
+    segment_details_t* seg_details = (segment_details_t*)my_malloc(nodes_per_chan * sizeof
+                                             (segment_details_t));
     tracks_left = nodes_per_chan;
     next_track = 0;
     frac_left = 1.;
@@ -179,7 +179,7 @@ t_seg_details* alloc_and_load_seg_details(int nodes_per_chan,
 }
 
 
-void free_seg_details(t_seg_details* seg_details, int nodes_per_chan)
+void free_seg_details(segment_details_t* seg_details, int nodes_per_chan)
 {
     /* Frees all the memory allocated to an array of seg_details structures. */
     int i;
@@ -193,7 +193,7 @@ void free_seg_details(t_seg_details* seg_details, int nodes_per_chan)
 }
 
 
-void dump_seg_details(t_seg_details* seg_details, int nodes_per_chan, char
+void dump_seg_details(segment_details_t* seg_details, int nodes_per_chan, char
                       *fname)
 {
     /* Dumps out an array of seg_details structures to file fname.  Used only   *
@@ -229,7 +229,7 @@ void dump_seg_details(t_seg_details* seg_details, int nodes_per_chan, char
 }
 
 
-int get_closest_seg_start(t_seg_details* seg_details, int itrack, int seg_num,
+int get_closest_seg_start(segment_details_t* seg_details, int itrack, int seg_num,
                           int chan_num)
 {
     /* Returns the segment number at which the segment this track lies on        *
@@ -252,7 +252,7 @@ int get_closest_seg_start(t_seg_details* seg_details, int itrack, int seg_num,
 
 
 int get_clb_opin_connections(int** *clb_opin_to_tracks, int ipin, int i, int
-                             j, int Fc_output, t_seg_details* seg_details_x, t_seg_details
+                             j, int Fc_output, segment_details_t* seg_details_x, segment_details_t
                              *seg_details_y, t_linked_edge** edge_list_ptr, int nodes_per_chan, int
                              ** rr_node_indices)
 {
@@ -260,10 +260,10 @@ int get_clb_opin_connections(int** *clb_opin_to_tracks, int ipin, int i, int
      * Also stores the nodes to which this pin connects in the linked list       *
      * pointed to by *edge_list_ptr.                                             */
     int iside, num_conn, iconn, itrack, tr_j, tr_i, to_node;
-    t_rr_type to_rr_type;
+    rr_types_t to_rr_type;
     boolean cbox_exists;
     t_linked_edge* edge_list_head;
-    t_seg_details* seg_details;
+    segment_details_t* seg_details;
     edge_list_head = *edge_list_ptr;
     num_conn = 0;
 
@@ -302,7 +302,7 @@ int get_clb_opin_connections(int** *clb_opin_to_tracks, int ipin, int i, int
                 }
 
                 if (cbox_exists) {
-                    to_node = get_rr_node_index(tr_i, tr_j, to_rr_type, itrack,
+                    to_node = gerr_node_t_index(tr_i, tr_j, to_rr_type, itrack,
                                                 nodes_per_chan, rr_node_indices);
                     edge_list_head = insert_in_edge_list(edge_list_head, to_node,
                                                          seg_details[itrack].opin_switch, &free_edge_list_head);
@@ -324,17 +324,17 @@ int get_clb_opin_connections(int** *clb_opin_to_tracks, int ipin, int i, int
 
 
 int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
-                             int Fc_pad, t_seg_details* seg_details_x, t_seg_details* seg_details_y,
+                             int Fc_pad, segment_details_t* seg_details_x, segment_details_t* seg_details_y,
                              t_linked_edge** edge_list_ptr, int nodes_per_chan, int
                              ** rr_node_indices)
 {
     /* Returns the number of tracks to which the pad opin at (i,j) connects.     *
      * If edge_ptr isn't NULL, it also loads the edge array.                     */
     int chan_i, chan_j, iconn, itrack, num_conn, to_node;
-    t_rr_type chan_type;
+    rr_types_t chan_type;
     boolean cbox_exists;
     t_linked_edge* edge_list_head;
-    t_seg_details* seg_details;
+    segment_details_t* seg_details;
 
     /* Find location of adjacent channel. */
 
@@ -343,7 +343,7 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
         chan_j = j;
         chan_type = CHANX;
         seg_details = seg_details_x;
-    } else if (j == ny + 1) {
+    } else if (j == num_of_rows + 1) {
         chan_i = i;
         chan_j = j - 1;
         chan_type = CHANX;
@@ -353,13 +353,13 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
         chan_j = j;
         chan_type = CHANY;
         seg_details = seg_details_y;
-    } else if (i == nx + 1) {
+    } else if (i == num_of_columns + 1) {
         chan_i = i - 1;
         chan_j = j;
         chan_type = CHANY;
         seg_details = seg_details_y;
     } else {
-        printf("Error in get_pad_opin_connections:  requested IO block at "
+        printf("Error in get_pad_opin_connections:  requested IO blocks at "
                "(%d,%d) does not exist.\n", i, j);
         exit(1);
     }
@@ -377,7 +377,7 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
         }
 
         if (cbox_exists) {
-            to_node = get_rr_node_index(chan_i, chan_j, chan_type, itrack,
+            to_node = gerr_node_t_index(chan_i, chan_j, chan_type, itrack,
                                         nodes_per_chan, rr_node_indices);
             edge_list_head = insert_in_edge_list(edge_list_head, to_node,
                                                  seg_details[itrack].opin_switch, &free_edge_list_head);
@@ -396,7 +396,7 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
 }
 
 
-boolean is_cbox(int seg_num, int chan_num, int itrack, t_seg_details
+boolean is_cbox(int seg_num, int chan_num, int itrack, segment_details_t
                 *seg_details)
 {
     /* Returns 1 (TRUE) if the track segment at this segment and channel         *
@@ -410,8 +410,8 @@ boolean is_cbox(int seg_num, int chan_num, int itrack, t_seg_details
 
 
 int** alloc_and_load_rr_node_indices(int nodes_per_clb,
-                                     int nodes_per_pad, int nodes_per_chan, t_seg_details* seg_details_x,
-                                     t_seg_details* seg_details_y)
+                                     int nodes_per_pad, int nodes_per_chan, segment_details_t* seg_details_x,
+                                     segment_details_t* seg_details_y)
 {
     /* Allocates and loads all the structures needed for fast lookups of the   *
      * index of an rr_node.  rr_node_indices is a matrix containing the index  *
@@ -420,15 +420,15 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
      * track in each (i,j) channel segment.                                    */
     int index, i, j;
     int** rr_node_indices;
-    rr_node_indices = (int**) alloc_matrix(0, nx + 1, 0, ny + 1, sizeof(int));
-    chanx_rr_indices = (int***) alloc_matrix3(1, nx, 0, ny, 0,
+    rr_node_indices = (int**) alloc_matrix(0, num_of_columns + 1, 0, num_of_rows + 1, sizeof(int));
+    chanx_rr_indices = (int***) alloc_matrix3(1, num_of_columns, 0, num_of_rows, 0,
                                               nodes_per_chan - 1, sizeof(int));
-    chany_rr_indices = (int***) alloc_matrix3(0, nx, 1, ny, 0,
+    chany_rr_indices = (int***) alloc_matrix3(0, num_of_columns, 1, num_of_rows, 0,
                                               nodes_per_chan - 1, sizeof(int));
     index = 0;
 
-    for (i = 0; i <= nx + 1; i++) {
-        for (j = 0; j <= ny + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             rr_node_indices[i][j] = index;
 
             if (clb[i][j].type == CLB) {
@@ -463,13 +463,13 @@ void free_rr_node_indices(int** rr_node_indices)
 {
     /* Frees all the rr_node_indices structures allocated for fast index       *
      * computations.                                                           */
-    free_matrix(rr_node_indices, 0, nx + 1, 0, sizeof(int));
-    free_matrix3(chanx_rr_indices, 1, nx, 0, ny, 0, sizeof(int));
-    free_matrix3(chany_rr_indices, 0, nx, 1, ny, 0, sizeof(int));
+    free_matrix(rr_node_indices, 0, num_of_columns + 1, 0, sizeof(int));
+    free_matrix3(chanx_rr_indices, 1, num_of_columns, 0, num_of_rows, 0, sizeof(int));
+    free_matrix3(chany_rr_indices, 0, num_of_columns, 1, num_of_rows, 0, sizeof(int));
 }
 
 
-static int load_chanx_rr_indices(t_seg_details* seg_details_x, int
+static int load_chanx_rr_indices(segment_details_t* seg_details_x, int
                                  nodes_per_chan, int start_index, int i, int j)
 {
     /* Loads the chanx_rr_indices array for all track segments starting at     *
@@ -487,7 +487,7 @@ static int load_chanx_rr_indices(t_seg_details* seg_details_x, int
             continue;
         }
 
-        iend = get_seg_end(seg_details_x, itrack, istart, j, nx);
+        iend = get_seg_end(seg_details_x, itrack, istart, j, num_of_columns);
 
         for (iseg = istart; iseg <= iend; iseg++) {
             chanx_rr_indices[iseg][j][itrack] = rr_index;
@@ -500,7 +500,7 @@ static int load_chanx_rr_indices(t_seg_details* seg_details_x, int
 }
 
 
-static int load_chany_rr_indices(t_seg_details* seg_details_y, int
+static int load_chany_rr_indices(segment_details_t* seg_details_y, int
                                  nodes_per_chan, int start_index, int i, int j)
 {
     /* Loads the chany_rr_indices array for all track segments starting at     *
@@ -518,7 +518,7 @@ static int load_chany_rr_indices(t_seg_details* seg_details_y, int
             continue;
         }
 
-        jend = get_seg_end(seg_details_y, itrack, jstart, i, ny);
+        jend = get_seg_end(seg_details_y, itrack, jstart, i, num_of_rows);
 
         for (jseg = jstart; jseg <= jend; jseg++) {
             chany_rr_indices[i][jseg][itrack] = rr_index;
@@ -531,7 +531,7 @@ static int load_chany_rr_indices(t_seg_details* seg_details_y, int
 }
 
 
-int get_rr_node_index(int i, int j, t_rr_type rr_type, int ioff,
+int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
                       int nodes_per_chan, int** rr_node_indices)
 {
     /* Returns the index of the specified routing resource node.  (i,j) are     *
@@ -539,7 +539,7 @@ int get_rr_node_index(int i, int j, t_rr_type rr_type, int ioff,
      * and ioff gives the number of this resource.  ioff is the class number,   *
      * pin number or track number, depending on what type of resource this      *
      * is.  All ioffs start at 0 and go up to pins_per_clb-1 or the equivalent. *
-     * The order within a clb is:  SOURCEs + SINKs (num_class of them); IPINs,  *
+     * The order within a clb is:  SOURCEs + SINKs (num_pin_class of them); IPINs,  *
      * and OPINs (pins_per_clb of them); CHANX; and CHANY (nodes_per_chan of    *
      * each).  For (i,j) locations that point at pads the order is:  io_rat     *
      * occurances of SOURCE, SINK, OPIN, IPIN (one for each pad), then one      *
@@ -554,21 +554,21 @@ int get_rr_node_index(int i, int j, t_rr_type rr_type, int ioff,
      * question exists.                                                         */
     int index, iclass;
     assert(ioff >= 0);
-    assert(i >= 0 && i < nx + 2);
-    assert(j >= 0 && j < ny + 2);
-    index = rr_node_indices[i][j];  /* Start of that block */
+    assert(i >= 0 && i < num_of_columns + 2);
+    assert(j >= 0 && j < num_of_rows + 2);
+    index = rr_node_indices[i][j];  /* Start of that blocks */
 
     switch (clb[i][j].type) {
         case CLB:
             switch (rr_type) {
                 case SOURCE:
-                    assert(ioff < num_class);
+                    assert(ioff < num_pin_class);
                     assert(class_inf[ioff].type == DRIVER);
                     index += ioff;
                     return (index);
 
                 case SINK:
-                    assert(ioff < num_class);
+                    assert(ioff < num_pin_class);
                     assert(class_inf[ioff].type == RECEIVER);
                     index += ioff;
                     return (index);
@@ -577,14 +577,14 @@ int get_rr_node_index(int i, int j, t_rr_type rr_type, int ioff,
                     assert(ioff < pins_per_clb);
                     iclass = clb_pin_class[ioff];
                     assert(class_inf[iclass].type == DRIVER);
-                    index += num_class + ioff;
+                    index += num_pin_class + ioff;
                     return (index);
 
                 case IPIN:
                     assert(ioff < pins_per_clb);
                     iclass = clb_pin_class[ioff];
                     assert(class_inf[iclass].type == RECEIVER);
-                    index += num_class + ioff;
+                    index += num_pin_class + ioff;
                     return (index);
 
                 case CHANX:
@@ -598,7 +598,7 @@ int get_rr_node_index(int i, int j, t_rr_type rr_type, int ioff,
                     return (index);
 
                 default:
-                    printf("Error:  Bad rr_node passed to get_rr_node_index.\n"
+                    printf("Error:  Bad rr_node passed to gerr_node_t_index.\n"
                            "Request for type %d number %d at (%d, %d).\n", rr_type,
                            ioff, i, j);
                     exit(1);
@@ -641,7 +641,7 @@ int get_rr_node_index(int i, int j, t_rr_type rr_type, int ioff,
                     return (index);
 
                 default:
-                    printf("Error:  Bad rr_node passed to get_rr_node_index.\n"
+                    printf("Error:  Bad rr_node passed to gerr_node_t_index.\n"
                            "Request for type %d number %d at (%d, %d).\n", rr_type,
                            ioff, i, j);
                     exit(1);
@@ -650,20 +650,20 @@ int get_rr_node_index(int i, int j, t_rr_type rr_type, int ioff,
             break;
 
         default:
-            printf("Error in get_rr_node_index:  unexpected block type (%d) at "
+            printf("Error in gerr_node_t_index:  unexpected blocks type (%d) at "
                    "(%d, %d).\nrr_type: %d.\n", clb[i][j].type, i, j, rr_type);
             exit(1);
     }
 }
 
 
-int get_seg_end(t_seg_details* seg_details, int itrack, int seg_start, int
+int get_seg_end(segment_details_t* seg_details, int itrack, int seg_start, int
                 chan_num, int max_end)
 {
     /* Returns the segment number (coordinate along the channel) at which this *
      * segment ends.  For a segment spanning clbs from 1 to 4, seg_end is 4.   *
      * max_end is the maximum dimension of the FPGA in this direction --       *
-     * either nx or ny.                                                        */
+     * either num_of_columns or num_of_rows.                                                        */
     int seg_end, length, norm_start;
     length = seg_details[itrack].length;
 
@@ -681,9 +681,9 @@ int get_seg_end(t_seg_details* seg_details, int itrack, int seg_start, int
 
 
 int get_xtrack_to_clb_ipin_edges(int tr_istart, int tr_iend, int tr_j,
-                                 int itrack, int iside, t_linked_edge** edge_list_ptr, struct s_ivec
+                                 int itrack, int iside, t_linked_edge** edge_list_ptr, vector_t
                                  ** tracks_to_clb_ipin, int nodes_per_chan, int** rr_node_indices,
-                                 t_seg_details* seg_details_x, int wire_to_ipin_switch)
+                                 segment_details_t* seg_details_x, int wire_to_ipin_switch)
 {
     /* This routine counts how many connections should be made from this segment *
      * to the clbs above (TOP) or below (BOTTOM) it.   It also adds them to the  *
@@ -711,7 +711,7 @@ int get_xtrack_to_clb_ipin_edges(int tr_istart, int tr_iend, int tr_j,
         if (is_cbox(i, tr_j, itrack, seg_details_x)) {
             for (iconn = 0; iconn < max_conn; iconn++) {
                 ipin = tracks_to_clb_ipin[itrack][iside].list[iconn];
-                to_node = get_rr_node_index(i, clb_j, IPIN, ipin, nodes_per_chan,
+                to_node = gerr_node_t_index(i, clb_j, IPIN, ipin, nodes_per_chan,
                                             rr_node_indices);
                 edge_list_head = insert_in_edge_list(edge_list_head, to_node,
                                                      wire_to_ipin_switch, &free_edge_list_head);
@@ -727,9 +727,9 @@ int get_xtrack_to_clb_ipin_edges(int tr_istart, int tr_iend, int tr_j,
 
 
 int get_ytrack_to_clb_ipin_edges(int tr_jstart, int tr_jend, int tr_i,
-                                 int itrack, int iside, t_linked_edge** edge_list_ptr, struct s_ivec
+                                 int itrack, int iside, t_linked_edge** edge_list_ptr, vector_t
                                  ** tracks_to_clb_ipin, int nodes_per_chan, int** rr_node_indices,
-                                 t_seg_details* seg_details_y, int wire_to_ipin_switch)
+                                 segment_details_t* seg_details_y, int wire_to_ipin_switch)
 {
     /* This routine counts how many connections should be made from this segment *
      * to the clbs to the LEFT or RIGHT of it.  It also adds them to the edge    *
@@ -757,7 +757,7 @@ int get_ytrack_to_clb_ipin_edges(int tr_jstart, int tr_jend, int tr_i,
         if (is_cbox(j, tr_i, itrack, seg_details_y)) {
             for (iconn = 0; iconn < max_conn; iconn++) {
                 ipin = tracks_to_clb_ipin[itrack][iside].list[iconn];
-                to_node = get_rr_node_index(clb_i, j, IPIN, ipin, nodes_per_chan,
+                to_node = gerr_node_t_index(clb_i, j, IPIN, ipin, nodes_per_chan,
                                             rr_node_indices);
                 edge_list_head = insert_in_edge_list(edge_list_head, to_node,
                                                      wire_to_ipin_switch, &free_edge_list_head);
@@ -773,9 +773,9 @@ int get_ytrack_to_clb_ipin_edges(int tr_jstart, int tr_jend, int tr_i,
 
 
 int get_xtrack_to_pad_edges(int tr_istart, int tr_iend, int tr_j, int pad_j,
-                            int itrack, t_linked_edge** edge_list_ptr, struct s_ivec
+                            int itrack, t_linked_edge** edge_list_ptr, vector_t
                             *tracks_to_pads, int nodes_per_chan, int** rr_node_indices,
-                            t_seg_details* seg_details_x, int wire_to_ipin_switch)
+                            segment_details_t* seg_details_x, int wire_to_ipin_switch)
 {
     /* This routine counts how many connections should be made from this segment *
      * to the row of pads above or below it.  It also adds these edges to the    *
@@ -790,7 +790,7 @@ int get_xtrack_to_pad_edges(int tr_istart, int tr_iend, int tr_j, int pad_j,
         if (is_cbox(i, tr_j, itrack, seg_details_x)) {
             for (iconn = 0; iconn < max_conn; iconn++) {
                 ipad = tracks_to_pads[itrack].list[iconn];
-                to_node = get_rr_node_index(i, pad_j, IPIN, ipad, nodes_per_chan,
+                to_node = gerr_node_t_index(i, pad_j, IPIN, ipad, nodes_per_chan,
                                             rr_node_indices);
                 edge_list_head = insert_in_edge_list(edge_list_head, to_node,
                                                      wire_to_ipin_switch, &free_edge_list_head);
@@ -806,9 +806,9 @@ int get_xtrack_to_pad_edges(int tr_istart, int tr_iend, int tr_j, int pad_j,
 
 
 int get_ytrack_to_pad_edges(int tr_jstart, int tr_jend, int tr_i, int pad_i,
-                            int itrack, t_linked_edge** edge_list_ptr, struct s_ivec
+                            int itrack, t_linked_edge** edge_list_ptr, vector_t
                             *tracks_to_pads, int nodes_per_chan, int** rr_node_indices,
-                            t_seg_details* seg_details_y, int wire_to_ipin_switch)
+                            segment_details_t* seg_details_y, int wire_to_ipin_switch)
 {
     /* This routine counts how many connections should be made from this segment *
      * to the row of pads to the left or right of it.  Additionally, if rr_edges *
@@ -824,7 +824,7 @@ int get_ytrack_to_pad_edges(int tr_jstart, int tr_jend, int tr_i, int pad_i,
         if (is_cbox(j, tr_i, itrack, seg_details_y)) {
             for (iconn = 0; iconn < tracks_to_pads[itrack].nelem; iconn++) {
                 ipad = tracks_to_pads[itrack].list[iconn];
-                to_node = get_rr_node_index(pad_i, j, IPIN, ipad, nodes_per_chan,
+                to_node = gerr_node_t_index(pad_i, j, IPIN, ipad, nodes_per_chan,
                                             rr_node_indices);
                 edge_list_head = insert_in_edge_list(edge_list_head, to_node,
                                                      wire_to_ipin_switch, &free_edge_list_head);
@@ -841,8 +841,8 @@ int get_ytrack_to_pad_edges(int tr_jstart, int tr_jend, int tr_i, int pad_i,
 
 int get_xtrack_to_ytracks(int from_istart, int from_iend, int from_j, int
                           from_track, int to_j, t_linked_edge** edge_list_ptr, int nodes_per_chan,
-                          int** rr_node_indices, t_seg_details* seg_details_x, t_seg_details
-                          *seg_details_y, enum e_switch_block_type switch_block_type)
+                          int** rr_node_indices, segment_details_t* seg_details_x, segment_details_t
+                          *seg_details_y, switch_block_t switch_block_type)
 {
     /* Counts how many connections should be made from this segment to the y-   *
      * segments in the adjacent channels at to_j.  It returns the number of     *
@@ -865,7 +865,7 @@ int get_xtrack_to_ytracks(int from_istart, int from_iend, int from_j, int
     short switch_types[2];
     boolean is_x_sbox, is_y_sbox, yconn_to_above;
     t_linked_edge* edge_list_head;
-    struct s_ivec conn_tracks;
+    vector_t conn_tracks;
     num_conn = 0;
     edge_list_head = *edge_list_ptr;
 
@@ -902,7 +902,7 @@ int get_xtrack_to_ytracks(int from_istart, int from_iend, int from_j, int
             get_switch_type(is_x_sbox, is_y_sbox, from_node_switch, to_node_switch,                         switch_types);
 
             if (switch_types[0] != OPEN) {
-                to_node = get_rr_node_index(i - 1, to_j, CHANY, to_track,
+                to_node = gerr_node_t_index(i - 1, to_j, CHANY, to_track,
                                             nodes_per_chan, rr_node_indices);
 
                 if (!rr_edge_done[to_node]) {   /* Not a repeat edge. */
@@ -935,7 +935,7 @@ int get_xtrack_to_ytracks(int from_istart, int from_iend, int from_j, int
                             switch_types);
 
             if (switch_types[0] != OPEN) {
-                to_node = get_rr_node_index(i, to_j, CHANY, to_track,
+                to_node = gerr_node_t_index(i, to_j, CHANY, to_track,
                                             nodes_per_chan, rr_node_indices);
 
                 if (!rr_edge_done[to_node]) {   /* Not a repeat edge. */
@@ -961,8 +961,8 @@ int get_xtrack_to_ytracks(int from_istart, int from_iend, int from_j, int
 
 int get_ytrack_to_xtracks(int from_jstart, int from_jend, int from_i, int
                           from_track, int to_i, t_linked_edge** edge_list_ptr, int nodes_per_chan,
-                          int** rr_node_indices, t_seg_details* seg_details_x, t_seg_details
-                          *seg_details_y, enum e_switch_block_type switch_block_type)
+                          int** rr_node_indices, segment_details_t* seg_details_x, segment_details_t
+                          *seg_details_y, switch_block_t switch_block_type)
 {
     /* Counts how many connections should be made from this segment to the x-   *
      * segments in the adjacent channels at to_i.  It returns the number of     *
@@ -985,7 +985,7 @@ int get_ytrack_to_xtracks(int from_jstart, int from_jend, int from_i, int
     short switch_types[2];
     boolean is_x_sbox, is_y_sbox, xconn_to_right;
     t_linked_edge* edge_list_head;
-    struct s_ivec conn_tracks;
+    vector_t conn_tracks;
     num_conn = 0;
     edge_list_head = *edge_list_ptr;
 
@@ -1023,7 +1023,7 @@ int get_ytrack_to_xtracks(int from_jstart, int from_jend, int from_i, int
                             switch_types);
 
             if (switch_types[0] != OPEN) {
-                to_node = get_rr_node_index(to_i, j - 1, CHANX, to_track,
+                to_node = gerr_node_t_index(to_i, j - 1, CHANX, to_track,
                                             nodes_per_chan, rr_node_indices);
 
                 if (!rr_edge_done[to_node]) {    /* Not a repeat edge. */
@@ -1056,7 +1056,7 @@ int get_ytrack_to_xtracks(int from_jstart, int from_jend, int from_i, int
                             switch_types);
 
             if (switch_types[0] != OPEN) {
-                to_node = get_rr_node_index(to_i, j, CHANX, to_track,
+                to_node = gerr_node_t_index(to_i, j, CHANX, to_track,
                                             nodes_per_chan, rr_node_indices);
 
                 if (!rr_edge_done[to_node]) {    /* Not a repeat edge. */
@@ -1082,8 +1082,8 @@ int get_ytrack_to_xtracks(int from_jstart, int from_jend, int from_i, int
 
 int get_xtrack_to_xtrack(int from_i, int j, int from_track, int to_i,
                          t_linked_edge** edge_list_ptr, int nodes_per_chan, int
-                         ** rr_node_indices, t_seg_details* seg_details_x, enum
-                         e_switch_block_type switch_block_type)
+                         ** rr_node_indices, segment_details_t* seg_details_x,
+                         switch_block_t switch_block_type)
 {
     /* Returns the number of edges between the specified channel segments.      *
      * Also updates edge_list_ptr to point at the new (extended) linked list    *
@@ -1092,7 +1092,7 @@ int get_xtrack_to_xtrack(int from_i, int j, int from_track, int to_i,
     int to_track, to_node, iconn, num_conn;
     int from_node_switch, to_node_switch;
     short switch_types[2];
-    struct s_ivec conn_tracks;
+    vector_t conn_tracks;
 
     if (from_i < to_i) {
         from_goes_right = TRUE;
@@ -1118,7 +1118,7 @@ int get_xtrack_to_xtrack(int from_i, int j, int from_track, int to_i,
                         to_node_switch, switch_types);
 
         if (switch_types[0] != OPEN) {
-            to_node = get_rr_node_index(to_i, j, CHANX, to_track, nodes_per_chan,
+            to_node = gerr_node_t_index(to_i, j, CHANX, to_track, nodes_per_chan,
                                         rr_node_indices);
             /* No need to check for repeats with the current switch boxes. */
             *edge_list_ptr = insert_in_edge_list(*edge_list_ptr, to_node,
@@ -1139,8 +1139,8 @@ int get_xtrack_to_xtrack(int from_i, int j, int from_track, int to_i,
 
 int get_ytrack_to_ytrack(int i, int from_j, int from_track, int to_j,
                          t_linked_edge** edge_list_ptr, int nodes_per_chan, int
-                         ** rr_node_indices, t_seg_details* seg_details_y, enum
-                         e_switch_block_type switch_block_type)
+                         ** rr_node_indices, segment_details_t* seg_details_y,
+                         switch_block_t switch_block_type)
 {
     /* Returns the number of edges between the specified channel segments.      *
      * Also updates edge_list_ptr to point at the new (extended) linked list    *
@@ -1149,7 +1149,7 @@ int get_ytrack_to_ytrack(int i, int from_j, int from_track, int to_j,
     int to_track, to_node, iconn, num_conn;
     int from_node_switch, to_node_switch;
     short switch_types[2];
-    struct s_ivec conn_tracks;
+    vector_t conn_tracks;
 
     if (from_j < to_j) {
         from_goes_up = TRUE;
@@ -1175,7 +1175,7 @@ int get_ytrack_to_ytrack(int i, int from_j, int from_track, int to_j,
                         to_node_switch, switch_types);
 
         if (switch_types[0] != OPEN) {
-            to_node = get_rr_node_index(i, to_j, CHANY, to_track, nodes_per_chan,
+            to_node = gerr_node_t_index(i, to_j, CHANY, to_track, nodes_per_chan,
                                         rr_node_indices);
             /* No need to check for repeats with the current switch boxes. */
             *edge_list_ptr = insert_in_edge_list(*edge_list_ptr, to_node,
@@ -1194,7 +1194,7 @@ int get_ytrack_to_ytrack(int i, int from_j, int from_track, int to_j,
 }
 
 
-boolean is_sbox(int seg_num, int chan_num, int itrack, t_seg_details
+boolean is_sbox(int seg_num, int chan_num, int itrack, segment_details_t
                 *seg_details, boolean above_or_right)
 {
     /* Returns TRUE if the specified segment has a switch box at the specified  *

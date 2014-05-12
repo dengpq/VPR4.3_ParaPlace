@@ -11,7 +11,7 @@ void alloc_draw_structs(void);
 void init_draw_coords(double clb_width);
 
 void set_graphics_state(boolean show_graphics_val, int gr_automode_val,
-                        enum e_route_type route_type);
+                        router_types_t route_type);
 
 #endif
 

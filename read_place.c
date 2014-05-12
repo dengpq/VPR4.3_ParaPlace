@@ -15,7 +15,7 @@ static void read_place_header(FILE* fp, char* net_file, char* arch_file,
 void read_user_pad_loc(char* pad_loc_file)
 {
     /* Reads in the locations of the IO pads from a file. */
-    struct s_hash** hash_table, *h_ptr;
+    hash_t** hash_table, *h_ptr;
     int iblk, i, j, xtmp, ytmp, bnum, isubblk;
     FILE* fp;
     char buf[BUFSIZE], bname[BUFSIZE], *ptr;
@@ -25,14 +25,14 @@ void read_user_pad_loc(char* pad_loc_file)
     hash_table = alloc_hash_table();
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        if (block[iblk].type == INPAD || block[iblk].type == OUTPAD) {
-            h_ptr = insert_in_hash_table(hash_table, block[iblk].name, iblk);
-            block[iblk].x = OPEN;   /* Mark as not seen yet. */
+        if (blocks[iblk].type == INPAD || blocks[iblk].type == OUTPAD) {
+            h_ptr = insert_in_hash_table(hash_table, blocks[iblk].name, iblk);
+            blocks[iblk].x = OPEN;   /* Mark as not seen yet. */
         }
     }
 
-    for (i = 0; i <= nx + 1; i++) {
-        for (j = 0; j <= ny + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             if (clb[i][j].type == IO) {
                 for (isubblk = 0; isubblk < io_rat; isubblk++) {
                     clb[i][j].u.io_blocks[isubblk] = OPEN;    /* Flag for err. check */
@@ -86,7 +86,7 @@ void read_user_pad_loc(char* pad_loc_file)
         h_ptr = get_hash_entry(hash_table, bname);
 
         if (h_ptr == NULL) {
-            printf("Error:  block %s on line %d: no such IO pad.\n",
+            printf("Error:  blocks %s on line %d: no such IO pad.\n",
                    bname, linenum);
             exit(1);
         }
@@ -95,23 +95,23 @@ void read_user_pad_loc(char* pad_loc_file)
         i = xtmp;
         j = ytmp;
 
-        if (block[bnum].x != OPEN) {
+        if (blocks[bnum].x != OPEN) {
             printf("Error:  line %d.  Block %s listed twice in pad file.\n",
                    linenum, bname);
             exit(1);
         }
 
-        if (i < 0 || i > nx + 1 || j < 0 || j > ny + 1) {
-            printf("Error:  block #%d (%s) location\n", bnum, bname);
+        if (i < 0 || i > num_of_columns + 1 || j < 0 || j > num_of_rows + 1) {
+            printf("Error:  blocks #%d (%s) location\n", bnum, bname);
             printf("(%d,%d) is out of range.\n", i, j);
             exit(1);
         }
 
-        block[bnum].x = i;   /* Will be reloaded by initial_placement anyway. */
-        block[bnum].y = j;   /* I need to set .x only as a done flag.         */
+        blocks[bnum].x = i;   /* Will be reloaded by initial_placement anyway. */
+        blocks[bnum].y = j;   /* I need to set .x only as a done flag.         */
 
         if (clb[i][j].type != IO) {
-            printf("Error:  attempt to place IO block %s in \n", bname);
+            printf("Error:  attempt to place IO blocks %s in \n", bname);
             printf("an illegal location (%d, %d).\n", i, j);
             exit(1);
         }
@@ -128,16 +128,16 @@ void read_user_pad_loc(char* pad_loc_file)
     }
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        if ((block[iblk].type == INPAD || block[iblk].type == OUTPAD) &&
-                block[iblk].x == OPEN) {
-            printf("Error:  IO block %s location was not specified in "
-                   "the pad file.\n", block[iblk].name);
+        if ((blocks[iblk].type == INPAD || blocks[iblk].type == OUTPAD) &&
+                blocks[iblk].x == OPEN) {
+            printf("Error:  IO blocks %s location was not specified in "
+                   "the pad file.\n", blocks[iblk].name);
             exit(1);
         }
     }
 
-    for (i = 0; i <= nx + 1; i++) {
-        for (j = 0; j <= ny + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             if (clb[i][j].type == IO) {
                 for (isubblk = 0; isubblk < clb[i][j].occ; isubblk++) {
                     if (clb[i][j].u.io_blocks[isubblk] == OPEN) {
@@ -161,13 +161,13 @@ void dump_clbs(void)
     /* Output routine for debugging. */
     int i, j, index;
 
-    for (i = 0; i <= nx + 1; i++) {
-        for (j = 0; j <= ny + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             printf("clb (%d,%d):  type: %d  occ: %d\n",
                    i, j, clb[i][j].type, clb[i][j].occ);
 
             if (clb[i][j].type == CLB) {
-                printf("block: %d\n", clb[i][j].u.block);
+                printf("blocks: %d\n", clb[i][j].u.blocks);
             }
 
             if (clb[i][j].type == IO) {
@@ -183,7 +183,7 @@ void dump_clbs(void)
     }
 
     for (i = 0; i < num_blocks; i++) {
-        printf("block: %d, (i,j): (%d, %d)\n", i, block[i].x, block[i].y);
+        printf("blocks: %d, (i,j): (%d, %d)\n", i, blocks[i].x, blocks[i].y);
     }
 }
 
@@ -199,23 +199,23 @@ void print_place(char* place_file, char* net_file, char* arch_file)
     fp = my_fopen(place_file, "w", 0);
     fprintf(fp, "Netlist file: %s   Architecture file: %s\n", net_file,
             arch_file);
-    fprintf(fp, "Array size: %d x %d logic blocks\n\n", nx, ny);
-    fprintf(fp, "#block name\tx\ty\tsubblk\tblock number\n");
+    fprintf(fp, "Array size: %d x %d logic blocks\n\n", num_of_columns, num_of_rows);
+    fprintf(fp, "#blocks name\tx\ty\tsubblk\tblock number\n");
     fprintf(fp, "#----------\t--\t--\t------\t------------\n");
 
     for (i = 0; i < num_blocks; i++) {
-        fprintf(fp, "%s\t", block[i].name);
+        fprintf(fp, "%s\t", blocks[i].name);
 
-        if (strlen(block[i].name) < 8) {
+        if (strlen(blocks[i].name) < 8) {
             fprintf(fp, "\t");
         }
 
-        fprintf(fp, "%d\t%d", block[i].x, block[i].y);
+        fprintf(fp, "%d\t%d", blocks[i].x, blocks[i].y);
 
-        if (block[i].type == CLB) {
-            fprintf(fp, "\t%d", 0);       /* Sub block number not meaningful. */
-        } else {              /* IO block.  Save sub block number. */
-            subblock = get_subblock(block[i].x, block[i].y, i);
+        if (blocks[i].type == CLB) {
+            fprintf(fp, "\t%d", 0);       /* Sub blocks number not meaningful. */
+        } else {              /* IO blocks.  Save sub blocks number. */
+            subblock = get_subblock(blocks[i].x, blocks[i].y, i);
             fprintf(fp, "\t%d", subblock);
         }
 
@@ -229,7 +229,7 @@ void print_place(char* place_file, char* net_file, char* arch_file)
 static int get_subblock(int i, int j, int bnum)
 {
     /* Use this routine only for IO blocks.  It passes back the index of the *
-     * subblock containing block bnum at location (i,j).                     */
+     * subblock containing blocks bnum at location (i,j).                     */
     int k;
 
     for (k = 0; k < io_rat; k++) {
@@ -250,15 +250,15 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
     FILE* fp;
     char bname[BUFSIZE];
     char buf[BUFSIZE], *ptr;
-    struct s_hash** hash_table, *h_ptr;
+    hash_t** hash_table, *h_ptr;
     int i, j, bnum, isubblock, xtmp, ytmp;
     printf("Reading the placement from file %s.\n", place_file);
     fp = my_fopen(place_file, "r", 0);
     linenum = 0;
     read_place_header(fp, net_file, arch_file, buf);
 
-    for (i = 0; i <= nx + 1; i++) {
-        for (j = 0; j <= ny + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             clb[i][j].occ = 0;
 
             if (clb[i][j].type == IO) {
@@ -270,13 +270,13 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
     }
 
     for (i = 0; i < num_blocks; i++) {
-        block[i].x = OPEN;    /* Flag to show not read yet. */
+        blocks[i].x = OPEN;    /* Flag to show not read yet. */
     }
 
     hash_table = alloc_hash_table();
 
     for (i = 0; i < num_blocks; i++) {
-        h_ptr = insert_in_hash_table(hash_table, block[i].name, i);
+        h_ptr = insert_in_hash_table(hash_table, blocks[i].name, i);
     }
 
     ptr = my_fgets(buf, BUFSIZE, fp);
@@ -324,7 +324,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
         h_ptr = get_hash_entry(hash_table, bname);
 
         if (h_ptr == NULL) {
-            printf("Error:  block %s on line %d does not exist in the netlist.\n",
+            printf("Error:  blocks %s on line %d does not exist in the netlist.\n",
                    bname, linenum);
             exit(1);
         }
@@ -333,36 +333,36 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
         i = xtmp;
         j = ytmp;
 
-        if (block[bnum].x != OPEN) {
+        if (blocks[bnum].x != OPEN) {
             printf("Error:  line %d.  Block %s listed twice in placement file.\n",
                    linenum, bname);
             exit(1);
         }
 
-        if (i < 0 || i > nx + 1 || j < 0 || j > ny + 1) {
+        if (i < 0 || i > num_of_columns + 1 || j < 0 || j > num_of_rows + 1) {
             printf("Error in read_place.  Block #%d (%s) location\n", bnum, bname);
             printf("(%d,%d) is out of range.\n", i, j);
             exit(1);
         }
 
-        block[bnum].x = i;
-        block[bnum].y = j;
+        blocks[bnum].x = i;
+        blocks[bnum].y = j;
 
         if (clb[i][j].type == CLB) {
-            if (block[bnum].type != CLB) {
-                printf("Error in read_place.  Attempt to place block #%d (%s) in\n",
+            if (blocks[bnum].type != CLB) {
+                printf("Error in read_place.  Attempt to place blocks #%d (%s) in\n",
                        bnum, bname);
-                printf("a logic block location (%d, %d).\n", i, j);
+                printf("a logic blocks location (%d, %d).\n", i, j);
                 exit(1);
             }
 
-            clb[i][j].u.block = bnum;
+            clb[i][j].u.blocks = bnum;
             clb[i][j].occ++;
         } else if (clb[i][j].type == IO) {
-            if (block[bnum].type != INPAD && block[bnum].type != OUTPAD) {
-                printf("Error in read_place.  Attempt to place block #%d (%s) in\n",
+            if (blocks[bnum].type != INPAD && blocks[bnum].type != OUTPAD) {
+                printf("Error in read_place.  Attempt to place blocks #%d (%s) in\n",
                        bnum, bname);
-                printf("an IO block location (%d, %d).\n", i, j);
+                printf("an IO blocks location (%d, %d).\n", i, j);
                 exit(1);
             }
 
@@ -388,15 +388,15 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
     fclose(fp);
 
     for (i = 0; i < num_blocks; i++) {
-        if (block[i].x == OPEN) {
-            printf("Error in read_place:  block %s location was not specified in "
-                   "the placement file.\n", block[i].name);
+        if (blocks[i].x == OPEN) {
+            printf("Error in read_place:  blocks %s location was not specified in "
+                   "the placement file.\n", blocks[i].name);
             exit(1);
         }
     }
 
-    for (i = 0; i <= nx + 1; i++) {
-        for (j = 0; j <= ny + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             if (clb[i][j].type == IO) {
                 for (isubblock = 0; isubblock < clb[i][j].occ; isubblock++) {
                     if (clb[i][j].u.io_blocks[isubblock] == OPEN) {
@@ -519,10 +519,10 @@ static void read_place_header(FILE* fp, char* net_file, char* arch_file,
         }
     }
 
-    if (nx_check != nx || ny_check != ny) {
+    if (nx_check != num_of_columns || ny_check != num_of_rows) {
         printf("Error:  placement file assumes an array size of %d x %d.\n",
                nx_check, ny_check);
-        printf("Current size is %d x %d.\n", nx, ny);
+        printf("Current size is %d x %d.\n", num_of_columns, num_of_rows);
         exit(1);
     }
 }

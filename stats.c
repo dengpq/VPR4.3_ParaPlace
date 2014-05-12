@@ -19,15 +19,15 @@ static void get_num_bends_and_length(int inet, int* bends, int* length, int
 
 static void get_length_and_bends_stats(void);
 
-static void get_channel_occupancy_stats(void);
+static void gechannel_tnel_occupancy_stats(void);
 
 
 
 /************************* Subroutine definitions ****************************/
 
 
-void routing_stats(boolean full_stats, enum e_route_type route_type,
-                   int num_switch, t_segment_inf* segment_inf, int num_segment,
+void routing_stats(boolean full_stats, router_types_t route_type,
+                   int num_switch, segment_info_t* segment_inf, int num_segment,
                    double R_minW_nmos, double R_minW_pmos, boolean timing_analysis_enabled,
                    double** net_slack, double** net_delay)
 {
@@ -35,7 +35,7 @@ void routing_stats(boolean full_stats, enum e_route_type route_type,
      * and an rr_graph must exist when you call this routine.                   */
     double T_crit;
     get_length_and_bends_stats();
-    get_channel_occupancy_stats();
+    gechannel_tnel_occupancy_stats();
 
     if (route_type == DETAILED) {
         count_routing_transistors(num_switch, R_minW_nmos, R_minW_pmos);
@@ -47,7 +47,9 @@ void routing_stats(boolean full_stats, enum e_route_type route_type,
             print_net_delay(net_delay, "net_delay.echo");
 #endif
             load_timing_graph_net_delays(net_delay);
-            T_crit = load_net_slack(net_slack, 0);
+            T_crit = calc_all_vertexs_arr_req_time(0);
+            compute_net_slacks(net_slack);
+
 #ifdef PRINT_TIMING_GRAPH
             print_timing_graph("timing_graph.echo");
 #endif
@@ -109,31 +111,31 @@ static void get_length_and_bends_stats(void)
 }
 
 
-static void get_channel_occupancy_stats(void)
+static void gechannel_tnel_occupancy_stats(void)
 {
     /* Determines how many tracks are used in each channel.                    */
     int i, j, max_occ, total_x, total_y;
     double av_occ;
-    int** chanx_occ;   /* [1..nx][0..ny] */
-    int** chany_occ;   /* [0..nx][1..ny] */
-    chanx_occ = (int**) alloc_matrix(1, nx, 0, ny, sizeof(int));
-    chany_occ = (int**) alloc_matrix(0, nx, 1, ny, sizeof(int));
+    int** chanx_occ;   /* [1..num_of_columns][0..num_of_rows] */
+    int** chany_occ;   /* [0..num_of_columns][1..num_of_rows] */
+    chanx_occ = (int**) alloc_matrix(1, num_of_columns, 0, num_of_rows, sizeof(int));
+    chany_occ = (int**) alloc_matrix(0, num_of_columns, 1, num_of_rows, sizeof(int));
     load_channel_occupancies(chanx_occ, chany_occ);
     printf("\nX - Directed channels:\n\n");
     printf("j\tmax occ\tav_occ\t\tcapacity\n");
     total_x = 0;
 
-    for (j = 0; j <= ny; j++) {
+    for (j = 0; j <= num_of_rows; j++) {
         total_x += chan_width_x[j];
         av_occ = 0.;
         max_occ = -1;
 
-        for (i = 1; i <= nx; i++) {
+        for (i = 1; i <= num_of_columns; i++) {
             max_occ = max(chanx_occ[i][j], max_occ);
             av_occ += chanx_occ[i][j];
         }
 
-        av_occ /= nx;
+        av_occ /= num_of_columns;
         printf("%d\t%d\t%-#9g\t%d\n", j, max_occ, av_occ, chan_width_x[j]);
     }
 
@@ -141,24 +143,24 @@ static void get_channel_occupancy_stats(void)
     printf("i\tmax occ\tav_occ\t\tcapacity\n");
     total_y = 0;
 
-    for (i = 0; i <= nx; i++) {
+    for (i = 0; i <= num_of_columns; i++) {
         total_y += chan_width_y[i];
         av_occ = 0.;
         max_occ = -1;
 
-        for (j = 1; j <= ny; j++) {
+        for (j = 1; j <= num_of_rows; j++) {
             max_occ = max(chany_occ[i][j], max_occ);
             av_occ += chany_occ[i][j];
         }
 
-        av_occ /= ny;
+        av_occ /= num_of_rows;
         printf("%d\t%d\t%-#9g\t%d\n", i, max_occ, av_occ, chan_width_y[i]);
     }
 
     printf("\nTotal Tracks in X-direction: %d  in Y-direction: %d\n\n",
            total_x, total_y);
-    free_matrix(chanx_occ, 1, nx, 0, sizeof(int));
-    free_matrix(chany_occ, 0, nx, 1, sizeof(int));
+    free_matrix(chanx_occ, 1, num_of_columns, 0, sizeof(int));
+    free_matrix(chany_occ, 0, num_of_columns, 1, sizeof(int));
 }
 
 
@@ -166,19 +168,19 @@ static void load_channel_occupancies(int** chanx_occ, int** chany_occ)
 {
     /* Loads the two arrays passed in with the total occupancy at each of the  *
      * channel segments in the FPGA.                                           */
-    int i, j, inode, inet;
+    int i, j, ivex, inet;
     struct s_trace* tptr;
-    t_rr_type rr_type;
+    rr_types_t rr_type;
 
     /* First set the occupancy of everything to zero. */
 
-    for (i = 1; i <= nx; i++)
-        for (j = 0; j <= ny; j++) {
+    for (i = 1; i <= num_of_columns; i++)
+        for (j = 0; j <= num_of_rows; j++) {
             chanx_occ[i][j] = 0;
         }
 
-    for (i = 0; i <= nx; i++)
-        for (j = 1; j <= ny; j++) {
+    for (i = 0; i <= num_of_columns; i++)
+        for (j = 1; j <= num_of_rows; j++) {
             chany_occ[i][j] = 0;
         }
 
@@ -192,8 +194,8 @@ static void load_channel_occupancies(int** chanx_occ, int** chany_occ)
         tptr = trace_head[inet];
 
         while (tptr != NULL) {
-            inode = tptr->index;
-            rr_type = rr_node[inode].type;
+            ivex = tptr->index;
+            rr_type = rr_node[ivex].type;
 
             if (rr_type == SINK) {
                 tptr = tptr->next;                /* Skip next segment. */
@@ -202,15 +204,15 @@ static void load_channel_occupancies(int** chanx_occ, int** chany_occ)
                     break;
                 }
             } else if (rr_type == CHANX) {
-                j = rr_node[inode].ylow;
+                j = rr_node[ivex].ylow;
 
-                for (i = rr_node[inode].xlow; i <= rr_node[inode].xhigh; i++) {
+                for (i = rr_node[ivex].xlow; i <= rr_node[ivex].xhigh; i++) {
                     chanx_occ[i][j]++;
                 }
             } else if (rr_type == CHANY) {
-                i = rr_node[inode].xlow;
+                i = rr_node[ivex].xlow;
 
-                for (j = rr_node[inode].ylow; j <= rr_node[inode].yhigh; j++) {
+                for (j = rr_node[ivex].ylow; j <= rr_node[ivex].yhigh; j++) {
                     chany_occ[i][j]++;
                 }
             }
@@ -227,8 +229,8 @@ static void get_num_bends_and_length(int inet, int* bends_ptr, int* len_ptr,
     /* Counts and returns the number of bends, wirelength, and number of routing *
      * resource segments in net inet's routing.                                  */
     struct s_trace* tptr, *prevptr;
-    int inode;
-    t_rr_type curr_type, prev_type;
+    int ivex;
+    rr_types_t curr_type, prev_type;
     int bends, length, segments;
     bends = 0;
     length = 0;
@@ -241,13 +243,13 @@ static void get_num_bends_and_length(int inet, int* bends_ptr, int* len_ptr,
         exit(1);
     }
 
-    inode = prevptr->index;
-    prev_type = rr_node[inode].type;
+    ivex = prevptr->index;
+    prev_type = rr_node[ivex].type;
     tptr = prevptr->next;
 
     while (tptr != NULL) {
-        inode = tptr->index;
-        curr_type = rr_node[inode].type;
+        ivex = tptr->index;
+        curr_type = rr_node[ivex].type;
 
         if (curr_type == SINK) {  /* Starting a new segment */
             tptr = tptr->next;      /* Link to existing path - don't add to len. */
@@ -259,8 +261,8 @@ static void get_num_bends_and_length(int inet, int* bends_ptr, int* len_ptr,
             curr_type = rr_node[tptr->index].type;
         } else if (curr_type == CHANX || curr_type == CHANY) {
             segments++;
-            length += 1 + rr_node[inode].xhigh - rr_node[inode].xlow +
-                      rr_node[inode].yhigh - rr_node[inode].ylow;
+            length += 1 + rr_node[ivex].xhigh - rr_node[ivex].xlow +
+                      rr_node[ivex].yhigh - rr_node[ivex].ylow;
 
             if (curr_type != prev_type && (prev_type == CHANX || prev_type ==
                                            CHANY)) {
@@ -287,7 +289,7 @@ void print_wirelen_prob_dist(void)
     double norm_fac, two_point_length;
     int inet, bends, length, segments, index;
     double av_length;
-    prob_dist = (double*) my_calloc(nx + ny + 3, sizeof(double));
+    prob_dist = (double*) my_calloc(num_of_columns + num_of_rows + 3, sizeof(double));
     norm_fac = 0.;
 
     for (inet = 0; inet < num_nets; inet++) {
@@ -312,7 +314,7 @@ void print_wirelen_prob_dist(void)
     printf("Length    p(Lenth)\n");
     av_length = 0;
 
-    for (index = 0; index < nx + ny + 3; index++) {
+    for (index = 0; index < num_of_columns + num_of_rows + 3; index++) {
         prob_dist[index] /= norm_fac;
         printf("%6d  %10.6f\n", index, prob_dist[index]);
         av_length += prob_dist[index] * index;
@@ -335,12 +337,12 @@ void print_lambda(void)
     double lambda;
 
     for (bnum = 0; bnum < num_blocks; bnum++) {
-        if (block[bnum].type == CLB) {
+        if (blocks[bnum].type == CLB) {
             for (ipin = 0; ipin < pins_per_clb; ipin++) {
                 iclass = clb_pin_class[ipin];
 
                 if (class_inf[iclass].type == RECEIVER) {
-                    inet = block[bnum].nets[ipin];
+                    inet = blocks[bnum].nets[ipin];
 
                     if (inet != OPEN)               /* Pin is connected? */
                         if (is_global[inet] == FALSE) {  /* Not a global clock */

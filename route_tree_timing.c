@@ -13,7 +13,7 @@
  * timing analysis.  The net_delay module does timing analysis in one step   *
  * (not incrementally as pieces of the routing are added).  I could probably *
  * one day remove a lot of net_delay.c and call the corresponding routines   *
- * here, but it's useful to have a from-scratch delay calculator to check    *
+ * here, but it's useful to have a from-scratch Tdel calculator to check    *
  * the results of this one.                                                  */
 
 
@@ -46,7 +46,7 @@ static void load_new_path_R_upstream(t_rt_node* start_of_new_path_rt_node);
 static t_rt_node* update_unbuffered_ancestors_C_downstream(t_rt_node
                                                            *start_of_new_path_rt_node);
 
-static void load_rt_subtree_Tdel(t_rt_node* subtree_rt_root, double Tarrival);
+static void load_rt_subtree_delay(t_rt_node* subtree_rt_root, double Tarrival);
 
 
 
@@ -154,18 +154,18 @@ t_rt_node* init_route_tree_to_source(int inet)
     /* Initializes the routing tree to just the net source, and returns the root *
      * node of the rt_tree (which is just the net source).                       */
     t_rt_node* rt_root;
-    int inode;
+    int ivex;
     rt_root = alloc_rt_node();
     rt_root->u.child_list = NULL;
     rt_root->parent_node = NULL;
     rt_root->parent_switch = OPEN;
     rt_root->re_expand = TRUE;
-    inode = net_rr_terminals[inet][0];  /* Net source */
-    rt_root->inode = inode;
-    rt_root->C_downstream = rr_node[inode].C;
-    rt_root->R_upstream = rr_node[inode].R;
-    rt_root->Tdel = 0.5 * rr_node[inode].R * rr_node[inode].C;
-    rr_node_to_rt_node[inode] = rt_root;
+    ivex = net_rr_terminals[inet][0];  /* Net source */
+    rt_root->ivex = ivex;
+    rt_root->C_downstream = rr_node[ivex].C;
+    rt_root->R_upstream = rr_node[ivex].R;
+    rt_root->Tdel = 0.5 * rr_node[ivex].R * rr_node[ivex].C;
+    rr_node_to_rt_node[ivex] = rt_root;
     return (rt_root);
 }
 
@@ -178,7 +178,7 @@ t_rt_node* update_route_tree(struct s_heap* hptr)
      * a pointer to the rt_node of the SINK that it adds to the routing.        */
     t_rt_node* start_of_new_path_rt_node, *sink_rt_node;
     t_rt_node* unbuffered_subtree_rt_root, *subtree_parent_rt_node;
-    double Tdel_start;
+    double delay_start;
     short iswitch;
     start_of_new_path_rt_node = add_path_to_route_tree(hptr, &sink_rt_node);
     load_new_path_R_upstream(start_of_new_path_rt_node);
@@ -187,16 +187,16 @@ t_rt_node* update_route_tree(struct s_heap* hptr)
     subtree_parent_rt_node = unbuffered_subtree_rt_root->parent_node;
 
     if (subtree_parent_rt_node != NULL) {  /* Parent exists. */
-        Tdel_start = subtree_parent_rt_node->Tdel;
+        delay_start = subtree_parent_rt_node->Tdel;
         iswitch = unbuffered_subtree_rt_root->parent_switch;
-        Tdel_start += switch_inf[iswitch].R *
+        delay_start += switch_inf[iswitch].R *
                       unbuffered_subtree_rt_root->C_downstream;
-        Tdel_start += switch_inf[iswitch].Tdel;
+        delay_start += switch_inf[iswitch].Tdel;
     } else {                               /* Subtree starts at SOURCE */
-        Tdel_start = 0.;
+        delay_start = 0.;
     }
 
-    load_rt_subtree_Tdel(unbuffered_subtree_rt_root, Tdel_start);
+    load_rt_subtree_delay(unbuffered_subtree_rt_root, delay_start);
     return (sink_rt_node);
 }
 
@@ -207,29 +207,29 @@ static t_rt_node* add_path_to_route_tree(struct s_heap* hptr, t_rt_node
     /* Adds the most recent wire segment, ending at the SINK indicated by hptr, *
      * to the routing tree.  It returns the first (most upstream) new rt_node,  *
      * and (via a pointer) the rt_node of the new SINK.                         */
-    int inode, remaining_connections_to_sink;
+    int ivex, remaining_connections_to_sink;
     short iedge, iswitch;
     double C_downstream;
     t_rt_node* rt_node, *downstream_rt_node, *sink_rt_node;
     t_linked_rt_edge* linked_rt_edge;
-    inode = hptr->index;
+    ivex = hptr->index;
 #ifdef DEBUG
 
-    if (rr_node[inode].type != SINK) {
+    if (rr_node[ivex].type != SINK) {
         printf("Error in add_path_to_route_tree.  Expected type = SINK (%d).\n",
                SINK);
-        printf("Got type = %d.", rr_node[inode].type);
+        printf("Got type = %d.", rr_node[ivex].type);
         exit(1);
     }
 
 #endif
-    remaining_connections_to_sink = rr_node_route_inf[inode].target_flag;
+    remaining_connections_to_sink = rr_node_route_inf[ivex].target_flag;
     sink_rt_node = alloc_rt_node();
     sink_rt_node->u.child_list = NULL;
-    sink_rt_node->inode = inode;
-    C_downstream = rr_node[inode].C;
+    sink_rt_node->ivex = ivex;
+    C_downstream = rr_node[ivex].C;
     sink_rt_node->C_downstream = C_downstream;
-    rr_node_to_rt_node[inode] = sink_rt_node;
+    rr_node_to_rt_node[ivex] = sink_rt_node;
     /* In the code below I'm marking SINKs and IPINs as not to be re-expanded.  *
      * Undefine NO_ROUTE_THROUGHS if you want route-throughs or ipin doglegs.   *
      * It makes the code more efficient (though not vastly) to prune this way   *
@@ -252,13 +252,13 @@ static t_rt_node* add_path_to_route_tree(struct s_heap* hptr, t_rt_node
 #endif
     /* Now do it's predecessor. */
     downstream_rt_node = sink_rt_node;
-    inode = hptr->u.prev_node;
+    ivex = hptr->u.prev_node;
     iedge = hptr->prev_edge;
-    iswitch = rr_node[inode].switches[iedge];
+    iswitch = rr_node[ivex].switches[iedge];
 
     /* For all "new" nodes in the path */
 
-    while (rr_node_route_inf[inode].prev_node != NO_PREVIOUS) {
+    while (rr_node_route_inf[ivex].prev_node != NO_PREVIOUS) {
         linked_rt_edge = alloc_linked_rt_edge();
         linked_rt_edge->child = downstream_rt_node;
         linked_rt_edge->iswitch = iswitch;
@@ -267,19 +267,19 @@ static t_rt_node* add_path_to_route_tree(struct s_heap* hptr, t_rt_node
         downstream_rt_node->parent_node = rt_node;
         downstream_rt_node->parent_switch = iswitch;
         rt_node->u.child_list = linked_rt_edge;
-        rt_node->inode = inode;
+        rt_node->ivex = ivex;
 
         if (switch_inf[iswitch].buffered == FALSE) {
-            C_downstream += rr_node[inode].C;
+            C_downstream += rr_node[ivex].C;
         } else {
-            C_downstream = rr_node[inode].C;
+            C_downstream = rr_node[ivex].C;
         }
 
         rt_node->C_downstream = C_downstream;
-        rr_node_to_rt_node[inode] = rt_node;
+        rr_node_to_rt_node[ivex] = rt_node;
 #ifdef NO_ROUTE_THROUGHS
 
-        if (rr_node[inode].type == IPIN) {
+        if (rr_node[ivex].type == IPIN) {
             rt_node->re_expand = FALSE;
         } else {
             rt_node->re_expand = TRUE;
@@ -297,13 +297,13 @@ static t_rt_node* add_path_to_route_tree(struct s_heap* hptr, t_rt_node
 
 #endif
         downstream_rt_node = rt_node;
-        iedge = rr_node_route_inf[inode].prev_edge;
-        inode = rr_node_route_inf[inode].prev_node;
-        iswitch = rr_node[inode].switches[iedge];
+        iedge = rr_node_route_inf[ivex].prev_edge;
+        ivex = rr_node_route_inf[ivex].prev_node;
+        iswitch = rr_node[ivex].switches[iedge];
     }
 
     /* Inode is the join point to the old routing */
-    rt_node = rr_node_to_rt_node[inode];
+    rt_node = rr_node_to_rt_node[ivex];
     linked_rt_edge = alloc_linked_rt_edge();
     linked_rt_edge->child = downstream_rt_node;
     linked_rt_edge->iswitch = iswitch;
@@ -321,15 +321,15 @@ static void load_new_path_R_upstream(t_rt_node* start_of_new_path_rt_node)
     /* Sets the R_upstream values of all the nodes in the new path to the       *
      * correct value.                                                           */
     double R_upstream;
-    int inode;
+    int ivex;
     short iswitch;
     t_rt_node* rt_node, *parent_rt_node;
     t_linked_rt_edge* linked_rt_edge;
     rt_node = start_of_new_path_rt_node;
     iswitch = rt_node->parent_switch;
-    inode = rt_node->inode;
+    ivex = rt_node->ivex;
     parent_rt_node = rt_node->parent_node;
-    R_upstream = switch_inf[iswitch].R + rr_node[inode].R;
+    R_upstream = switch_inf[iswitch].R + rr_node[ivex].R;
 
     if (switch_inf[iswitch].buffered == FALSE) {
         R_upstream += parent_rt_node->R_upstream;
@@ -352,12 +352,12 @@ static void load_new_path_R_upstream(t_rt_node* start_of_new_path_rt_node)
 #endif
         rt_node = linked_rt_edge->child;
         iswitch = linked_rt_edge->iswitch;
-        inode = rt_node->inode;
+        ivex = rt_node->ivex;
 
         if (switch_inf[iswitch].buffered) {
-            R_upstream = switch_inf[iswitch].R + rr_node[inode].R;
+            R_upstream = switch_inf[iswitch].R + rr_node[ivex].R;
         } else {
-            R_upstream += switch_inf[iswitch].R + rr_node[inode].R;
+            R_upstream += switch_inf[iswitch].R + rr_node[ivex].R;
         }
 
         rt_node->R_upstream = R_upstream;
@@ -392,22 +392,22 @@ static t_rt_node* update_unbuffered_ancestors_C_downstream(t_rt_node
 }
 
 
-static void load_rt_subtree_Tdel(t_rt_node* subtree_rt_root, double Tarrival)
+static void load_rt_subtree_delay(t_rt_node* subtree_rt_root, double Tarrival)
 {
     /* Updates the Tdel values of the subtree rooted at subtree_rt_root by      *
      * by calling itself recursively.  The C_downstream values of all the nodes *
      * must be correct before this routine is called.  Tarrival is the time at  *
      * at which the signal arrives at this node's *input*.                      */
-    int inode;
+    int ivex;
     short iswitch;
     t_rt_node* child_node;
     t_linked_rt_edge* linked_rt_edge;
     double Tdel, Tchild;
-    inode = subtree_rt_root->inode;
+    ivex = subtree_rt_root->ivex;
     /* Assuming the downstream connections are, on average, connected halfway    *
      * along a wire segment's length.  See discussion in net_delay.c if you want *
      * to change this.                                                           */
-    Tdel = Tarrival + 0.5 * subtree_rt_root->C_downstream * rr_node[inode].R;
+    Tdel = Tarrival + 0.5 * subtree_rt_root->C_downstream * rr_node[ivex].R;
     subtree_rt_root->Tdel = Tdel;
     /* Now expand the children of this node to load their Tdel values (depth-   *
      * first pre-order traversal).                                              */
@@ -417,8 +417,8 @@ static void load_rt_subtree_Tdel(t_rt_node* subtree_rt_root, double Tarrival)
         iswitch = linked_rt_edge->iswitch;
         child_node = linked_rt_edge->child;
         Tchild = Tdel + switch_inf[iswitch].R * child_node->C_downstream;
-        Tchild += switch_inf[iswitch].Tdel;     /* Intrinsic switch delay. */
-        load_rt_subtree_Tdel(child_node, Tchild);
+        Tchild += switch_inf[iswitch].Tdel;     /* Intrinsic switch Tdel. */
+        load_rt_subtree_delay(child_node, Tchild);
         linked_rt_edge = linked_rt_edge->next;
     }
 }
@@ -447,7 +447,7 @@ void free_route_tree(t_rt_node* rt_node)
 void update_net_delays_from_route_tree(double* net_delay, t_rt_node
                                        ** rt_node_of_sink, int inet)
 {
-    /* Goes through all the sinks of this net and copies their delay values from *
+    /* Goes through all the sinks of this net and copies their Tdel values from *
      * the route_tree to the net_delay array.                                    */
     int isink;
     t_rt_node* sink_rt_node;

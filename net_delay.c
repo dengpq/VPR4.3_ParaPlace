@@ -30,23 +30,23 @@ struct s_rc_node {
         struct s_rc_node
                 *next;
     } u;
-    int inode;
+    int ivex;
     double C_downstream;
     double Tdel;
 };
 
 typedef struct s_rc_node t_rc_node;
 
-/* Structure describing one node in an RC tree (used to get net delays).     *
+/* Structure describing one node in an RC tree (used to get net Tdels).     *
  * u.child_list:  Pointer to a linked list of linked_rc_edge.  Each one of   *
  *                the linked list entries gives a child of this node.        *
  * u.next:  Used only when this node is on the free list.  Gives the next    *
  *          node on the free list.                                           *
- * inode:  index (ID) of the rr_node that corresponds to this rc_node.       *
+ * ivex:  index (ID) of the rr_node that corresponds to this rc_node.       *
  * C_downstream:  Total downstream capacitance from this rc_node.  That is,  *
  *                the total C of the subtree rooted at the current node,     *
  *                including the C of the current node.                       *
- * Tdel:  Time delay for the signal to get from the net source to this node. *
+ * Tdel:  Time Tdel for the signal to get from the net source to this node. *
  *        Includes the time to go through this node.                         */
 
 
@@ -66,50 +66,56 @@ typedef struct s_linked_rc_ptr t_linked_rc_ptr;
 
 /*********************** Subroutines local to this module ********************/
 
-static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node
-                                         ** rc_node_free_list_ptr, t_linked_rc_edge** rc_edge_free_list_ptr,
+static t_rc_node* alloc_and_load_rc_tree(int inet,
+                                         t_rc_node** rc_node_free_list_ptr,
+                                         t_linked_rc_edge** rc_edge_free_list_ptr,
                                          t_linked_rc_ptr* rr_node_to_rc_node);
 
-static void add_to_rc_tree(t_rc_node* parent_rc, t_rc_node* child_rc, short
-                           iswitch, int inode, t_linked_rc_edge** rc_edge_free_list_ptr);
+static void add_to_rc_tree(t_rc_node* parent_rc,
+                           t_rc_node* child_rc,
+                           short iswitch,
+                           int ivex,
+                           t_linked_rc_edge** rc_edge_free_list_ptr);
 
 static t_rc_node* alloc_rc_node(t_rc_node** rc_node_free_list_ptr);
 
-static void free_rc_node(t_rc_node* rc_node, t_rc_node
-                         ** rc_node_free_list_ptr);
+static void free_rc_node(t_rc_node* rc_node,
+                         t_rc_node** rc_node_free_list_ptr);
 
-static t_linked_rc_edge* alloc_linked_rc_edge(t_linked_rc_edge
-                                              ** rc_edge_free_list_ptr);
+static t_linked_rc_edge* alloc_linked_rc_edge(t_linked_rc_edge** rc_edge_free_list_ptr);
 
-static void free_linked_rc_edge(t_linked_rc_edge* rc_edge, t_linked_rc_edge
-                                ** rc_edge_free_list_ptr);
+static void free_linked_rc_edge(t_linked_rc_edge* rc_edge,
+                                t_linked_rc_edge** rc_edge_free_list_ptr);
 
 static double load_rc_tree_C(t_rc_node* rc_node);
 
-static void load_rc_tree_T(t_rc_node* rc_node, double T_arrival);
+static void load_rc_tree_T(t_rc_node* rc_node,
+                           double T_arrival);
 
-static void load_one_net_delay(double** net_delay, int inet, t_linked_rc_ptr
-                               *rr_node_to_rc_node);
+static void load_one_net_delay(double** net_delay,
+                               int inet,
+                               t_linked_rc_ptr* rr_node_to_rc_node);
 
-static void load_one_constant_net_delay(double** net_delay, int inet, double
-                                        delay_value);
+static void load_one_constant_net_delay(double** net_delay,
+                                        int inet,
+                                        double delay_value);
 
-static void free_rc_tree(t_rc_node* rc_root, t_rc_node
-                         ** rc_node_free_list_ptr, t_linked_rc_edge** rc_edge_free_list_ptr);
+static void free_rc_tree(t_rc_node* rc_root,
+                         t_rc_node** rc_node_free_list_ptr,
+                         t_linked_rc_edge** rc_edge_free_list_ptr);
 
-static void reset_rr_node_to_rc_node(t_linked_rc_ptr* rr_node_to_rc_node, int
-                                     inet);
+static void reserr_node_t_to_rc_node(t_linked_rc_ptr* rr_node_to_rc_node,
+                                     int inet);
 
 static void free_rc_node_free_list(t_rc_node* rc_node_free_list);
 
 static void free_rc_edge_free_list(t_linked_rc_edge* rc_edge_free_list);
 
-
-
-/*************************** Subroutine definitions *************************************
- * double net_delay[0...num_nets-1][1...num_pins-1] was used for NET_TIMING_DRIVEN_PLACE *
- ****************************************************************************************/
-double** alloc_net_delay(struct s_linked_vptr** chunk_list_head_ptr)
+/********************* Subroutine definitions ********************
+ * double net_delay[0...num_nets-1][1...num_pins-1] was used for *
+ * TIMING_DRIVEN_PLACE *
+ ****************************************************************/
+double** alloc_net_delay(linked_vptr_t** chunk_list_head_ptr)
 {
     /* Allocates space for the net_delay data structure                          *
      * [0..num_nets-1][1..num_pins-1].  I chunk the data to save space on large  *
@@ -120,31 +126,31 @@ double** alloc_net_delay(struct s_linked_vptr** chunk_list_head_ptr)
     /* double** net_delay[0..num_nets-1][1..num_pins-1] */
     double** net_delay = (double**)my_malloc(num_nets * sizeof(double*));
 
-    int inet;
+    int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_pins - 1) *
-                                                 sizeof(double), chunk_list_head_ptr,
-                                                 &chunk_bytes_avail, &chunk_next_avail_mem);
+        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_pins-1) * sizeof(double),
+                                                   chunk_list_head_ptr,
+                                                   &chunk_bytes_avail,
+                                                   &chunk_next_avail_mem);
         net_delay[inet] = tmp_ptr - 1; /* it only need [1..num_pins-1] */
     }
 
-    return (net_delay);
+    return net_delay;
 }
 
-
-void free_net_delay(double** net_delay, struct s_linked_vptr** chunk_list_head_ptr)
+void free_net_delay(double** net_delay,
+                    linked_vptr_t** chunk_list_head_ptr)
 {
-    /* Frees the net_delay structure.  Assumes it was chunk allocated.          */
+    /* Frees the net_delay structure.  Assumes it was chunk allocated.*/
     free(net_delay);
     free_chunk_memory(*chunk_list_head_ptr);
     *chunk_list_head_ptr = NULL;
 }
 
-
 void load_net_delay_from_routing(double** net_delay)
 {
     /* This routine loads net_delay[0..num_nets-1][1..num_pins-1].  Each entry   *
-     * is the Elmore delay from the net source to the appropriate sink.  Both    *
+     * is the Elmore Tdel from the net source to the appropriate sink.  Both    *
      * the rr_graph and the routing traceback must be completely constructed     *
      * before this routine is called, and the net_delay array must have been     *
      * allocated.                                                                */
@@ -167,7 +173,7 @@ void load_net_delay_from_routing(double** net_delay)
             load_rc_tree_T(rc_root, 0.);
             load_one_net_delay(net_delay, inet, rr_node_to_rc_node);
             free_rc_tree(rc_root, &rc_node_free_list, &rc_edge_free_list);
-            reset_rr_node_to_rc_node(rr_node_to_rc_node, inet);
+            reserr_node_t_to_rc_node(rr_node_to_rc_node, inet);
         }
     }
 
@@ -180,17 +186,22 @@ void load_net_delay_from_routing(double** net_delay)
 /* Loads the net_delay array with delay_value for every <source, sink> connection *
  * that is not on a global net, and with 0 for every <source, sink> connection on *
  * a global net.(This can be used to allow timing analysis before routing is done *
- * with a constant net delay model).                                              */
-void load_constant_net_delay(double** net_delay, double delay_value)
+ * with a constant net Tdel model).                                              */
+void load_constant_net_delay(double** net_delay,
+                             double delay_value)
 {
-    /* TODO: Why did VPR set all subnets(or connections) had same net delay value *
+    /* TODO: Why did VPR set all subnets(or connections) had same net Tdel value *
      *       in NET_TIMING_DRIVEN_PLACE?                                          */
     int inet;
     for (inet = 0; inet < num_nets; ++inet) {
         if (is_global[inet]) {
-            load_one_constant_net_delay(net_delay, inet, 0.);
+            load_one_constant_net_delay(net_delay,
+                                        inet,
+                                        0.0);
         } else {
-            load_one_constant_net_delay(net_delay, inet, delay_value);
+            load_one_constant_net_delay(net_delay,
+                                        inet,
+                                        delay_value);
         }
     }
 }
@@ -204,7 +215,7 @@ static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node** rc_node_free_list
      * and inserts all the connections in the tree.                              */
     t_rc_node* curr_rc, *prev_rc, *root_rc;
     struct s_trace* tptr;
-    int inode, prev_node;
+    int ivex, prev_node;
     short iswitch;
     t_linked_rc_ptr* linked_rc_ptr;
     root_rc = alloc_rc_node(rc_node_free_list_ptr);
@@ -216,29 +227,29 @@ static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node** rc_node_free_list
         exit(1);
     }
 
-    inode = tptr->index;
+    ivex = tptr->index;
     iswitch = tptr->iswitch;
-    root_rc->inode = inode;
+    root_rc->ivex = ivex;
     root_rc->u.child_list = NULL;
-    rr_node_to_rc_node[inode].rc_node = root_rc;
+    rr_node_to_rc_node[ivex].rc_node = root_rc;
     prev_rc = root_rc;
     tptr = tptr->next;
 
     while (tptr != NULL) {
-        inode = tptr->index;
+        ivex = tptr->index;
 
         /* Is this node a "stitch-in" point to part of the existing routing or a   *
          * new piece of routing along the current routing "arm?"                   */
 
-        if (rr_node_to_rc_node[inode].rc_node == NULL) { /* Part of current "arm" */
+        if (rr_node_to_rc_node[ivex].rc_node == NULL) { /* Part of current "arm" */
             curr_rc = alloc_rc_node(rc_node_free_list_ptr);
-            add_to_rc_tree(prev_rc, curr_rc, iswitch, inode,
+            add_to_rc_tree(prev_rc, curr_rc, iswitch, ivex,
                            rc_edge_free_list_ptr);
-            rr_node_to_rc_node[inode].rc_node = curr_rc;
+            rr_node_to_rc_node[ivex].rc_node = curr_rc;
             prev_rc = curr_rc;
-        } else if (rr_node[inode].type != SINK) { /* Connection to old stuff. */
+        } else if (rr_node[ivex].type != SINK) { /* Connection to old stuff. */
 #ifdef DEBUG
-            prev_node = prev_rc->inode;
+            prev_node = prev_rc->ivex;
 
             if (rr_node[prev_node].type != SINK) {
                 printf("Error in alloc_and_load_rc_tree:  Routing of net %d is "
@@ -247,20 +258,20 @@ static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node** rc_node_free_list
             }
 
 #endif
-            prev_rc = rr_node_to_rc_node[inode].rc_node;
+            prev_rc = rr_node_to_rc_node[ivex].rc_node;
         } else {        /* SINK that this net has connected to more than once. */
             /* I can connect to a SINK node more than once in some weird architectures. *
              * That means the routing isn't really a tree -- there is reconvergent      *
              * fanout from two or more IPINs into one SINK.  I convert this structure   *
              * into a true RC tree on the fly by creating a new rc_node each time I hit *
              * the same sink.  This means I need to keep a linked list of the rc_nodes  *
-             * associated with the rr_node (inode) associated with that SINK.           */
+             * associated with the rr_node (ivex) associated with that SINK.           */
             curr_rc = alloc_rc_node(rc_node_free_list_ptr);
-            add_to_rc_tree(prev_rc, curr_rc, iswitch, inode,
+            add_to_rc_tree(prev_rc, curr_rc, iswitch, ivex,
                            rc_edge_free_list_ptr);
             linked_rc_ptr = (t_linked_rc_ptr*) my_malloc(sizeof(t_linked_rc_ptr));
-            linked_rc_ptr->next = rr_node_to_rc_node[inode].next;
-            rr_node_to_rc_node[inode].next = linked_rc_ptr;
+            linked_rc_ptr->next = rr_node_to_rc_node[ivex].next;
+            rr_node_to_rc_node[ivex].next = linked_rc_ptr;
             linked_rc_ptr->rc_node = curr_rc;
             prev_rc = curr_rc;
         }
@@ -274,11 +285,11 @@ static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node** rc_node_free_list
 
 
 static void add_to_rc_tree(t_rc_node* parent_rc, t_rc_node* child_rc, short
-                           iswitch, int inode, t_linked_rc_edge** rc_edge_free_list_ptr)
+                           iswitch, int ivex, t_linked_rc_edge** rc_edge_free_list_ptr)
 {
     /* Adds child_rc to the child list of parent_rc, and sets the switch between *
      * them to iswitch.  This routine also intitializes the child_rc properly    *
-     * and sets its node value to inode.                                         */
+     * and sets its node value to ivex.                                         */
     t_linked_rc_edge* linked_rc_edge;
     linked_rc_edge = alloc_linked_rc_edge(rc_edge_free_list_ptr);
     linked_rc_edge->next = parent_rc->u.child_list;
@@ -286,7 +297,7 @@ static void add_to_rc_tree(t_rc_node* parent_rc, t_rc_node* child_rc, short
     linked_rc_edge->child = child_rc;
     linked_rc_edge->iswitch = iswitch;
     child_rc->u.child_list = NULL;
-    child_rc->inode = inode;
+    child_rc->ivex = ivex;
 }
 
 
@@ -351,12 +362,12 @@ static double load_rc_tree_C(t_rc_node* rc_node)
      * This routine calls itself recursively to perform the traversal.          */
     t_linked_rc_edge* linked_rc_edge;
     t_rc_node* child_node;
-    int inode;
+    int ivex;
     short iswitch;
     double C, C_downstream;
     linked_rc_edge = rc_node->u.child_list;
-    inode = rc_node->inode;
-    C = rr_node[inode].C;
+    ivex = rc_node->ivex;
+    C = rr_node[ivex].C;
 
     while (linked_rc_edge != NULL) {            /* For all children */
         iswitch = linked_rc_edge->iswitch;
@@ -385,15 +396,15 @@ static void load_rc_tree_T(t_rc_node* rc_node, double T_arrival)
     t_linked_rc_edge* linked_rc_edge;
     t_rc_node* child_node;
     short iswitch;
-    int inode;
+    int ivex;
     Tdel = T_arrival;
-    inode = rc_node->inode;
-    Rmetal = rr_node[inode].R;
-    /* NB:  rr_node[inode].C gives the capacitance of this node, while          *
+    ivex = rc_node->ivex;
+    Rmetal = rr_node[ivex].R;
+    /* NB:  rr_node[ivex].C gives the capacitance of this node, while          *
      * rc_node->C_downstream gives the unbuffered downstream capacitance rooted *
      * at this node, including the C of the node itself.  I want to multiply    *
      * the C of this node by 0.5 Rmetal, since it's a distributed RC line.      *
-     * Hence 0.5 Rmetal * Cnode is a pessimistic estimate of delay (i.e. end to *
+     * Hence 0.5 Rmetal * Cnode is a pessimistic estimate of Tdel (i.e. end to *
      * end).  For the downstream capacitance rooted at this node (not including *
      * the capacitance of the node itself), I assume it is, on average,         *
      * connected halfway along the line, so I also multiply by 0.5 Rmetal.  To  *
@@ -409,7 +420,7 @@ static void load_rc_tree_T(t_rc_node* rc_node, double T_arrival)
         iswitch = linked_rc_edge->iswitch;
         child_node = linked_rc_edge->child;
         Tchild = Tdel + switch_inf[iswitch].R * child_node->C_downstream;
-        Tchild += switch_inf[iswitch].Tdel;   /* Intrinsic switch delay. */
+        Tchild += switch_inf[iswitch].Tdel;   /* Intrinsic switch Tdel. */
         load_rc_tree_T(child_node, Tchild);
         linked_rc_edge = linked_rc_edge->next;
     }
@@ -419,30 +430,30 @@ static void load_rc_tree_T(t_rc_node* rc_node, double T_arrival)
 static void load_one_net_delay(double** net_delay, int inet, t_linked_rc_ptr
                                *rr_node_to_rc_node)
 {
-    /* Loads the net delay array for net inet.  The rc tree for that net must  *
+    /* Loads the net Tdel array for net inet.  The rc tree for that net must  *
      * have already been completely built and loaded.                          */
-    int ipin, inode;
+    int ipin, ivex;
     double Tmax;
     t_rc_node* rc_node;
     t_linked_rc_ptr* linked_rc_ptr, *next_ptr;
 
     for (ipin = 1; ipin < net[inet].num_pins; ipin++) {
-        inode = net_rr_terminals[inet][ipin];
-        linked_rc_ptr = rr_node_to_rc_node[inode].next;
-        rc_node = rr_node_to_rc_node[inode].rc_node;
+        ivex = net_rr_terminals[inet][ipin];
+        linked_rc_ptr = rr_node_to_rc_node[ivex].next;
+        rc_node = rr_node_to_rc_node[ivex].rc_node;
         Tmax = rc_node->Tdel;
 
         /* If below only executes when one net connects several times to the      *
          * same SINK.  In this case, I can't tell which net pin each connection   *
          * to this SINK corresponds to (I can just choose arbitrarily).  To make  *
-         * sure the timing behaviour converges, I pessimistically set the delay   *
+         * sure the timing behaviour converges, I pessimistically set the Tdel   *
          * for all of the connections to this SINK by this net to be the max. of  *
-         * the delays from this net to this SINK.  NB:  This code only occurs     *
+         * the Tdels from this net to this SINK.  NB:  This code only occurs     *
          * when a net connect more than once to the same pin class on the same    *
-         * logic block.  Only a weird architecture would allow this.              */
+         * logic blocks.  Only a weird architecture would allow this.              */
 
         if (linked_rc_ptr != NULL) {
-            /* The first time I hit a multiply-used SINK, I choose the largest delay  *
+            /* The first time I hit a multiply-used SINK, I choose the largest Tdel  *
              * from this net to this SINK and use it for every connection to this     *
              * SINK by this net.                                                      */
             do {
@@ -450,7 +461,7 @@ static void load_one_net_delay(double** net_delay, int inet, t_linked_rc_ptr
 
                 if (rc_node->Tdel > Tmax) {
                     Tmax = rc_node->Tdel;
-                    rr_node_to_rc_node[inode].rc_node = rc_node;
+                    rr_node_to_rc_node[ivex].rc_node = rc_node;
                 }
 
                 next_ptr = linked_rc_ptr->next;
@@ -458,7 +469,7 @@ static void load_one_net_delay(double** net_delay, int inet, t_linked_rc_ptr
                 linked_rc_ptr = next_ptr;
             } while (linked_rc_ptr != NULL);   /* End do while */
 
-            rr_node_to_rc_node[inode].next = NULL;
+            rr_node_to_rc_node[ivex].next = NULL;
         }   /* End of if multiply-used SINK */
 
         net_delay[inet][ipin] = Tmax;
@@ -501,7 +512,7 @@ static void free_rc_tree(t_rc_node* rc_root, t_rc_node** rc_node_free_list_ptr,
 }
 
 
-static void reset_rr_node_to_rc_node(t_linked_rc_ptr* rr_node_to_rc_node, int
+static void reserr_node_t_to_rc_node(t_linked_rc_ptr* rr_node_to_rc_node, int
                                      inet)
 {
     /* Resets the rr_node_to_rc_node mapping entries that were set during       *
@@ -509,12 +520,12 @@ static void reset_rr_node_to_rc_node(t_linked_rc_ptr* rr_node_to_rc_node, int
      * added to deal with a SINK being connected to multiple times have already *
      * been freed by load_one_net_delay.                                        */
     struct s_trace* tptr;
-    int inode;
+    int ivex;
     tptr = trace_head[inet];
 
     while (tptr != NULL) {
-        inode = tptr->index;
-        rr_node_to_rc_node[inode].rc_node = NULL;
+        ivex = tptr->index;
+        rr_node_to_rc_node[ivex].rc_node = NULL;
         tptr = tptr->next;
     }
 }
@@ -549,7 +560,7 @@ static void free_rc_edge_free_list(t_linked_rc_edge* rc_edge_free_list)
 
 void print_net_delay(double** net_delay, char* fname)
 {
-    /* Dumps the net delays into file fname.   */
+    /* Dumps the net Tdels into file fname.   */
     FILE* fp;
     int inet, ipin;
     fp = my_fopen(fname, "w", 0);

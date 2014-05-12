@@ -3,9 +3,9 @@
 
 #include "vpr_types.h"
 
-void check_rr_graph(enum e_route_type route_type, int num_switch);
+void check_rr_graph(router_types_t route_type, int num_switch);
 
-void check_node(int inode, enum e_route_type route_type);
+void check_node(int ivex, router_types_t route_type);
 
 #endif
 

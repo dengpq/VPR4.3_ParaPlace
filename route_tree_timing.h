@@ -17,7 +17,7 @@ struct s_linked_rt_edge {
 typedef struct s_linked_rt_edge t_linked_rt_edge;
 
 
-/* Structure describing one node in a routing tree (used to get net delays   *
+/* Structure describing one node in a routing tree (used to get net Tdels   *
  * incrementally during routing, as pieces are being added).                 *
  * u.child_list:  Pointer to a linked list of linked_rt_edge.  Each one of   *
  *                the linked list entries gives a child of this node.        *
@@ -30,13 +30,13 @@ typedef struct s_linked_rt_edge t_linked_rt_edge;
  *             connections?  TRUE->yes, FALSE-> no.                          *
  * parent_switch:  Index of the switch type driving this node (by its        *
  *                 parent).                                                  *
- * inode:  index (ID) of the rr_node that corresponds to this rt_node.       *
+ * ivex:  index (ID) of the rr_node that corresponds to this rt_node.       *
  * C_downstream:  Total downstream capacitance from this rt_node.  That is,  *
  *                the total C of the subtree rooted at the current node,     *
  *                including the C of the current node.                       *
  * R_upstream:  Total upstream resistance from this rt_node to the net       *
  *              source, including any rr_node[].R of this node.              *
- * Tdel:  Time delay for the signal to get from the net source to this node. *
+ * Tdel:  Time Tdel for the signal to get from the net source to this node. *
  *        Includes the time to go through this node.                         */
 struct s_rt_node {
     union {
@@ -46,7 +46,7 @@ struct s_rt_node {
     struct s_rt_node* parent_node;
     short parent_switch;
     short re_expand;
-    int inode;
+    int ivex;
     double C_downstream;
     double R_upstream;
     double Tdel;

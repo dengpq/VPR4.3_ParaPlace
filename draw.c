@@ -29,7 +29,7 @@ static boolean show_nets = FALSE;  /* Show nets of placement or routing? */
 
 static enum e_draw_rr_toggle draw_rr_toggle = DRAW_NO_RR;
 
-static enum e_route_type draw_route_type;
+static router_types_t draw_route_type;
 
 /* Controls if congestion is shown, when ROUTING is on screen. */
 
@@ -47,9 +47,9 @@ static enum pic_type pic_on_screen = NO_PICTURE;  /* What do I draw? */
 static double* x_clb_left, *y_clb_bottom;
 
 /* The left and bottom coordinates of each clb in the FPGA.               *
- * x_clb_left[0..nx+1] and y_clb_bottom[0..ny+1].                         *
+ * x_clb_left[0..num_of_columns+1] and y_clb_bottom[0..num_of_rows+1].                         *
  * COORDINATE SYSTEM goes from (0,0) at the lower left corner to          *
- * (x_clb_left[nx+1]+clb_width, y_clb_bottom[ny+1]+clb_width) in the      *
+ * (x_clb_left[num_of_columns+1]+clb_width, y_clb_bottom[num_of_rows+1]+clb_width) in the      *
  * upper right corner.                                                    */
 
 
@@ -58,7 +58,7 @@ static double clb_width, pin_size;
  * a clb pin, respectiviely.  Set when init_draw_coords is called.         */
 
 static enum color_types* net_color, *block_color;
-/* Color in which each block and net should be drawn.      *
+/* Color in which each blocks and net should be drawn.      *
  * [0..num_nets-1] and [0..num_blocks-1], respectively.    */
 
 
@@ -82,10 +82,10 @@ static void deselect_all(void);
 
 static void draw_rr(void);
 static void draw_rr_edges(int from_node);
-static void draw_rr_pin(int inode, enum color_types color);
-static void draw_rr_chanx(int inode, int itrack);
-static void draw_rr_chany(int inode, int itrack);
-static void get_rr_pin_draw_coords(int inode, int iside, double* xcen,
+static void draw_rr_pin(int ivex, enum color_types color);
+static void draw_rr_chanx(int ivex, int itrack);
+static void draw_rr_chany(int ivex, int itrack);
+static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,
                                    double* ycen);
 static void draw_pin_to_chan_edge(int pin_node, int chan_node, int itrack,
                                   boolean mark_conn);
@@ -97,7 +97,7 @@ static void draw_chanx_to_chanx_edge(int from_node, int from_track,
 static void draw_chanx_to_chany_edge(int chanx_node,  int chanx_track,
                                      int chany_node, int chany_track, enum e_edge_dir edge_dir,
                                      short switch_type);
-static int get_track_num(int inode, int** chanx_track, int** chany_track);
+static int get_track_num(int ivex, int** chanx_track, int** chany_track);
 static void draw_rr_switch(double from_x, double from_y, double to_x, double to_y,
                            boolean buffered);
 
@@ -107,7 +107,7 @@ static void draw_rr_switch(double from_x, double from_y, double to_x, double to_
 
 
 void set_graphics_state(boolean show_graphics_val, int gr_automode_val,
-                        enum e_route_type route_type)
+                        router_types_t route_type)
 {
     /* Sets the static show_graphics and gr_automode variables to the    *
      * desired values.  They control if graphics are enabled and, if so, *
@@ -236,7 +236,7 @@ static void toggle_congestion(void (*drawscreen_ptr)(void))
 {
     /* Turns the congestion display on and off.   */
     char msg[BUFSIZE];
-    int inode, num_congested;
+    int ivex, num_congested;
     show_nets = FALSE;
     draw_rr_toggle = DRAW_NO_RR;
     show_congestion = !show_congestion;
@@ -246,8 +246,8 @@ static void toggle_congestion(void (*drawscreen_ptr)(void))
     } else {
         num_congested = 0;
 
-        for (inode = 0; inode < num_rr_nodes; inode++) {
-            if (rr_node[inode].occ > rr_node[inode].capacity) {
+        for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+            if (rr_node[ivex].occ > rr_node[ivex].capacity) {
                 num_congested++;
             }
         }
@@ -263,11 +263,9 @@ static void toggle_congestion(void (*drawscreen_ptr)(void))
 static void highlight_crit_path(void (*drawscreen_ptr)(void))
 {
     /* Highlights all the blocks and nets on the critical path.                 */
-    t_linked_int* critical_path_head, *critical_path_node;
-    int inode, iblk, inet, num_nets_seen;
-    static int nets_to_highlight = 1;
-    char msg[BUFSIZE];
+    int ivex, iblk, inet;
 
+    static int nets_to_highlight = 1;
     if (nets_to_highlight == 0) {   /* Clear the display of all highlighting. */
         nets_to_highlight = 1;
         deselect_all();
@@ -276,19 +274,19 @@ static void highlight_crit_path(void (*drawscreen_ptr)(void))
         return;
     }
 
-    critical_path_head = allocate_and_load_critical_path();
-    critical_path_node = critical_path_head;
-    num_nets_seen = 0;
+    t_linked_int* critical_path_head = allocate_and_load_critical_path();
+    t_linked_int* critical_path_node = critical_path_head;
+    int num_nets_seen = 0;
 
     while (critical_path_node != NULL)  {
-        inode = critical_path_node->data;
-        get_tnode_block_and_output_net(inode, &iblk, &inet);
+        ivex = critical_path_node->data;
+        get_tnode_block_and_output_net(ivex, &iblk, &inet);
 
-        if (num_nets_seen == nets_to_highlight) {          /* Last block */
+        if (num_nets_seen == nets_to_highlight) {          /* Last blocks */
             block_color[iblk] = MAGENTA;
-        } else if (num_nets_seen == nets_to_highlight - 1) { /* 2nd last block */
+        } else if (num_nets_seen == nets_to_highlight - 1) { /* 2nd last blocks */
             block_color[iblk] = YELLOW;
-        } else if (num_nets_seen < nets_to_highlight) { /* Earlier block */
+        } else if (num_nets_seen < nets_to_highlight) { /* Earlier blocks */
             block_color[iblk] = DARKGREEN;
         }
 
@@ -305,6 +303,7 @@ static void highlight_crit_path(void (*drawscreen_ptr)(void))
         critical_path_node = critical_path_node->next;
     }
 
+    char msg[BUFSIZE];
     if (nets_to_highlight == num_nets_seen) {
         nets_to_highlight = 0;
         sprintf(msg, "All %d nets on the critical path highlighted.",
@@ -325,8 +324,8 @@ void alloc_draw_structs(void)
 {
     /* Allocate the structures needed to draw the placement and routing.  Set *
      * up the default colors for blocks and nets.                             */
-    x_clb_left = (double*) my_malloc((nx + 2) * sizeof(double));
-    y_clb_bottom = (double*) my_malloc((ny + 2) * sizeof(double));
+    x_clb_left = (double*) my_malloc((num_of_columns + 2) * sizeof(double));
+    y_clb_bottom = (double*) my_malloc((num_of_rows + 2) * sizeof(double));
     net_color = (enum color_types*) my_malloc(num_nets *
                                               sizeof(enum color_types));
     block_color = (enum color_types*) my_malloc(num_blocks *
@@ -352,18 +351,18 @@ void init_draw_coords(double clb_width_val)
     pin_size = min(pin_size, 0.3);
     x_clb_left[0] = 0.;
 
-    for (i = 1; i <= nx + 1; i++) {
+    for (i = 1; i <= num_of_columns + 1; i++) {
         x_clb_left[i] = x_clb_left[i - 1] + clb_width + chan_width_y[i - 1] + 1.;
     }
 
     y_clb_bottom[0] = 0.;
 
-    for (i = 1; i <= ny + 1; i++)
+    for (i = 1; i <= num_of_rows + 1; i++)
         y_clb_bottom[i] = y_clb_bottom[i - 1] + clb_width +
                           chan_width_x[i - 1] + 1.;
 
-    init_world(0., y_clb_bottom[ny + 1] + clb_width,
-               x_clb_left[nx + 1] + clb_width, 0.);
+    init_world(0., y_clb_bottom[num_of_rows + 1] + clb_width,
+               x_clb_left[num_of_columns + 1] + clb_width, 0.);
 }
 
 
@@ -377,8 +376,8 @@ static void drawplace(void)
     /* Draw the IO Pads first. Want each subblock to border on core. */
     setlinewidth(0);
 
-    for (i = 1; i <= nx; i++) {
-        for (j = 0; j <= ny + 1; j += ny + 1) { /* top and bottom */
+    for (i = 1; i <= num_of_columns; i++) {
+        for (j = 0; j <= num_of_rows + 1; j += num_of_rows + 1) { /* top and bottom */
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
             setlinestyle(SOLID);
@@ -393,7 +392,7 @@ static void drawplace(void)
                 drawrect(x1, y1, x2, y2);
                 /* Vertically offset text so these closely spaced names don't overlap. */
                 drawtext((x1 + x2) / 2., y1 + io_step * (k + 0.5),
-                         block[clb[i][j].u.io_blocks[k]].name, clb_width);
+                         blocks[clb[i][j].u.io_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
@@ -407,8 +406,8 @@ static void drawplace(void)
         }
     }
 
-    for (j = 1; j <= ny; j++) {
-        for (i = 0; i <= nx + 1; i += nx + 1) { /* IOs on left and right */
+    for (j = 1; j <= num_of_rows; j++) {
+        for (i = 0; i <= num_of_columns + 1; i += num_of_columns + 1) { /* IOs on left and right */
             x1 = x_clb_left[i];
             x2 = x1 + clb_width;
             setlinestyle(SOLID);
@@ -422,7 +421,7 @@ static void drawplace(void)
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
                 drawtext((x1 + x2) / 2., (y1 + y2) / 2.,
-                         block[clb[i][j].u.io_blocks[k]].name, clb_width);
+                         blocks[clb[i][j].u.io_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
@@ -438,22 +437,22 @@ static void drawplace(void)
 
     /* Now do the CLBs in the middle. */
 
-    for (i = 1; i <= nx; i++) {
+    for (i = 1; i <= num_of_columns; i++) {
         x1 = x_clb_left[i];
         x2 = x1 + clb_width;
 
-        for (j = 1; j <= ny; j++) {
+        for (j = 1; j <= num_of_rows; j++) {
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
 
             if (clb[i][j].occ != 0) {
                 setlinestyle(SOLID);
-                bnum = clb[i][j].u.block;
+                bnum = clb[i][j].u.blocks;
                 setcolor(block_color[bnum]);
                 fillrect(x1, y1, x2, y2);
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
-                drawtext((x1 + x2) / 2., (y1 + y2) / 2., block[clb[i][j].u.block].name,
+                drawtext((x1 + x2) / 2., (y1 + y2) / 2., blocks[clb[i][j].u.blocks].name,
                          clb_width);
             } else {
                 setlinestyle(DASHED);
@@ -500,11 +499,11 @@ static void drawnets(void)
 
 static void get_block_center(int bnum, double* x, double* y)
 {
-    /* This routine finds the center of block bnum in the current placement, *
+    /* This routine finds the center of blocks bnum in the current placement, *
      * and returns it in *x and *y.  This is used in routine shownets.       */
     int i, j, k;
-    i = block[bnum].x;
-    j = block[bnum].y;
+    i = blocks[bnum].x;
+    j = blocks[bnum].y;
 
     if (clb[i][j].type == CLB) {
         *x = x_clb_left[i] + clb_width / 2.;
@@ -515,7 +514,7 @@ static void get_block_center(int bnum, double* x, double* y)
                 break;
             }
 
-        if (i == 0 || i == nx + 1) {   /* clb split vertically */
+        if (i == 0 || i == num_of_columns + 1) {   /* clb split vertically */
             *x = x_clb_left[i] + clb_width / 2.;
             *y = y_clb_bottom[j] + (k + 0.5) * clb_width / (double) io_rat;
         } else {                       /* clb split horizontally */
@@ -529,26 +528,26 @@ static void get_block_center(int bnum, double* x, double* y)
 static void draw_congestion(void)
 {
     /* Draws all the overused routing resources (i.e. congestion) in RED.   */
-    int inode, itrack;
+    int ivex, itrack;
     setcolor(RED);
     setlinewidth(2);
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        if (rr_node[inode].occ > rr_node[inode].capacity) {
-            switch (rr_node[inode].type) {
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        if (rr_node[ivex].occ > rr_node[ivex].capacity) {
+            switch (rr_node[ivex].type) {
                 case CHANX:
-                    itrack = rr_node[inode].ptc_num;
-                    draw_rr_chanx(inode, itrack);
+                    itrack = rr_node[ivex].ptc_num;
+                    draw_rr_chanx(ivex, itrack);
                     break;
 
                 case CHANY:
-                    itrack = rr_node[inode].ptc_num;
-                    draw_rr_chany(inode, itrack);
+                    itrack = rr_node[ivex].ptc_num;
+                    draw_rr_chany(ivex, itrack);
                     break;
 
                 case IPIN:
                 case OPIN:
-                    draw_rr_pin(inode, RED);
+                    draw_rr_pin(ivex, RED);
                     break;
 
                 default:
@@ -563,7 +562,7 @@ static void draw_rr(void)
 {
     /* Draws the routing resources that exist in the FPGA, if the user wants *
      * them drawn.                                                           */
-    int inode, itrack;
+    int ivex, itrack;
 
     if (draw_rr_toggle == DRAW_NO_RR) {
         setlinewidth(3);
@@ -575,39 +574,39 @@ static void draw_rr(void)
     setlinestyle(SOLID);
     setlinewidth(0);
 
-    for (inode = 0; inode < num_rr_nodes; inode++) {
-        switch (rr_node[inode].type) {
+    for (ivex = 0; ivex < num_rr_nodes; ivex++) {
+        switch (rr_node[ivex].type) {
             case SOURCE:
             case SINK:
                 break;         /* Don't draw. */
 
             case CHANX:
                 setcolor(BLACK);
-                itrack = rr_node[inode].ptc_num;
-                draw_rr_chanx(inode, itrack);
-                draw_rr_edges(inode);
+                itrack = rr_node[ivex].ptc_num;
+                draw_rr_chanx(ivex, itrack);
+                draw_rr_edges(ivex);
                 break;
 
             case CHANY:
                 setcolor(BLACK);
-                itrack = rr_node[inode].ptc_num;
-                draw_rr_chany(inode, itrack);
-                draw_rr_edges(inode);
+                itrack = rr_node[ivex].ptc_num;
+                draw_rr_chany(ivex, itrack);
+                draw_rr_edges(ivex);
                 break;
 
             case IPIN:
-                draw_rr_pin(inode, BLUE);
+                draw_rr_pin(ivex, BLUE);
                 break;
 
             case OPIN:
-                draw_rr_pin(inode, RED);
+                draw_rr_pin(ivex, RED);
                 setcolor(RED);
-                draw_rr_edges(inode);
+                draw_rr_edges(ivex);
                 break;
 
             default:
                 printf("Error in draw_rr:  Unexpected rr_node type: %d.\n",
-                       rr_node[inode].type);
+                       rr_node[ivex].type);
                 exit(1);
         }
     }
@@ -618,48 +617,48 @@ static void draw_rr(void)
 }
 
 
-static void draw_rr_chanx(int inode, int itrack)
+static void draw_rr_chanx(int ivex, int itrack)
 {
     /* Draws an x-directed channel segment.                       */
     double x1, x2, y;
     /* Track 0 at bottom edge, closest to "owning" clb. */
-    x1 = x_clb_left[rr_node[inode].xlow];
-    x2 = x_clb_left[rr_node[inode].xhigh] + clb_width;
-    y = y_clb_bottom[rr_node[inode].ylow] + 1. + itrack + clb_width;
+    x1 = x_clb_left[rr_node[ivex].xlow];
+    x2 = x_clb_left[rr_node[ivex].xhigh] + clb_width;
+    y = y_clb_bottom[rr_node[ivex].ylow] + 1. + itrack + clb_width;
     drawline(x1, y, x2, y);
 }
 
 
-static void draw_rr_chany(int inode, int itrack)
+static void draw_rr_chany(int ivex, int itrack)
 {
     /* Draws a y-directed channel segment.                       */
     double x, y1, y2;
     /* Track 0 at left edge, closest to "owning" clb. */
-    x = x_clb_left[rr_node[inode].xlow] + 1. + itrack + clb_width;
-    y1 = y_clb_bottom[rr_node[inode].ylow];
-    y2 = y_clb_bottom[rr_node[inode].yhigh] + clb_width;
+    x = x_clb_left[rr_node[ivex].xlow] + 1. + itrack + clb_width;
+    y1 = y_clb_bottom[rr_node[ivex].ylow];
+    y2 = y_clb_bottom[rr_node[ivex].yhigh] + clb_width;
     drawline(x, y1, x, y2);
 }
 
 
-static void draw_rr_edges(int inode)
+static void draw_rr_edges(int ivex)
 {
-    /* Draws all the edges that the user wants shown between inode and what it *
-     * connects to.  inode is assumed to be a CHANX, CHANY, or OPIN.           */
-    t_rr_type from_type, to_type;
+    /* Draws all the edges that the user wants shown between ivex and what it *
+     * connects to.  ivex is assumed to be a CHANX, CHANY, or OPIN.           */
+    rr_types_t from_type, to_type;
     int iedge, to_node, from_ptc_num, to_ptc_num;
     short switch_type;
-    from_type = rr_node[inode].type;
+    from_type = rr_node[ivex].type;
 
     if (draw_rr_toggle == DRAW_NODES_RR || (draw_rr_toggle ==
                                             DRAW_NODES_AND_SBOX_RR && from_type == OPIN)) {
         return;    /* Nothing to draw. */
     }
 
-    from_ptc_num = rr_node[inode].ptc_num;
+    from_ptc_num = rr_node[ivex].ptc_num;
 
-    for (iedge = 0; iedge < rr_node[inode].num_edges; iedge++) {
-        to_node = rr_node[inode].edges[iedge];
+    for (iedge = 0; iedge < rr_node[ivex].num_edges; iedge++) {
+        to_node = rr_node[ivex].edges[iedge];
         to_type = rr_node[to_node].type;
         to_ptc_num = rr_node[to_node].ptc_num;
 
@@ -669,12 +668,12 @@ static void draw_rr_edges(int inode)
                     case CHANX:
                     case CHANY:
                         setcolor(RED);
-                        draw_pin_to_chan_edge(inode, to_node, to_ptc_num, TRUE);
+                        draw_pin_to_chan_edge(ivex, to_node, to_ptc_num, TRUE);
                         break;
 
                     default:
                         printf("Error in draw_rr_edges:  node %d (type: %d) connects to \n"
-                               "node %d (type: %d).\n", inode, from_type, to_node, to_type);
+                               "node %d (type: %d).\n", ivex, from_type, to_node, to_type);
                         exit(1);
                         break;
                 }
@@ -689,26 +688,26 @@ static void draw_rr_edges(int inode)
                         }
 
                         setcolor(BLUE);
-                        draw_pin_to_chan_edge(to_node, inode, from_ptc_num, TRUE);
+                        draw_pin_to_chan_edge(to_node, ivex, from_ptc_num, TRUE);
                         break;
 
                     case CHANX:
                         setcolor(DARKGREEN);
-                        switch_type = rr_node[inode].switches[iedge];
-                        draw_chanx_to_chanx_edge(inode, from_ptc_num, to_node,
+                        switch_type = rr_node[ivex].switches[iedge];
+                        draw_chanx_to_chanx_edge(ivex, from_ptc_num, to_node,
                                                  to_ptc_num, switch_type);
                         break;
 
                     case CHANY:
                         setcolor(DARKGREEN);
-                        switch_type = rr_node[inode].switches[iedge];
-                        draw_chanx_to_chany_edge(inode, from_ptc_num, to_node,
+                        switch_type = rr_node[ivex].switches[iedge];
+                        draw_chanx_to_chany_edge(ivex, from_ptc_num, to_node,
                                                  to_ptc_num, FROM_X_TO_Y, switch_type);
                         break;
 
                     default:
                         printf("Error in draw_rr_edges:  node %d (type: %d) connects to \n"
-                               "node %d (type: %d).\n", inode, from_type, to_node, to_type);
+                               "node %d (type: %d).\n", ivex, from_type, to_node, to_type);
                         exit(1);
                         break;
                 }
@@ -723,26 +722,26 @@ static void draw_rr_edges(int inode)
                         }
 
                         setcolor(BLUE);
-                        draw_pin_to_chan_edge(to_node, inode, from_ptc_num, TRUE);
+                        draw_pin_to_chan_edge(to_node, ivex, from_ptc_num, TRUE);
                         break;
 
                     case CHANX:
                         setcolor(DARKGREEN);
-                        switch_type = rr_node[inode].switches[iedge];
-                        draw_chanx_to_chany_edge(to_node, to_ptc_num, inode,
+                        switch_type = rr_node[ivex].switches[iedge];
+                        draw_chanx_to_chany_edge(to_node, to_ptc_num, ivex,
                                                  from_ptc_num, FROM_Y_TO_X, switch_type);
                         break;
 
                     case CHANY:
                         setcolor(DARKGREEN);
-                        switch_type = rr_node[inode].switches[iedge];
-                        draw_chany_to_chany_edge(inode, from_ptc_num, to_node,
+                        switch_type = rr_node[ivex].switches[iedge];
+                        draw_chany_to_chany_edge(ivex, from_ptc_num, to_node,
                                                  to_ptc_num, switch_type);
                         break;
 
                     default:
                         printf("Error in draw_rr_edges:  node %d (type: %d) connects to \n"
-                               "node %d (type: %d).\n", inode, from_type, to_node, to_type);
+                               "node %d (type: %d).\n", ivex, from_type, to_node, to_type);
                         exit(1);
                         break;
                 }
@@ -751,7 +750,7 @@ static void draw_rr_edges(int inode)
 
             default:                     /* from_type */
                 printf("Error:  draw_rr_edges called with node %d of type %d.\n",
-                       inode, from_type);
+                       ivex, from_type);
                 exit(1);
                 break;
         }
@@ -768,7 +767,7 @@ static void draw_pin_to_chan_edge(int pin_node, int chan_node, int itrack,
      * routings (where the track number isn't in the rr_graph).  If mark_conn is *
      * TRUE, draw a box where the pin connects to the track (useful for drawing  *
      * the rr graph).                                                            */
-    t_rr_type chan_type;
+    rr_types_t chan_type;
     int pin_x, pin_y, pin_num, chan_xlow, chan_ylow;
     double x1, x2, y1, y2;
     pin_x = rr_node[pin_node].xlow;
@@ -1014,7 +1013,7 @@ static void draw_rr_switch(double from_x, double from_y, double to_x, double to_
 }
 
 
-static void draw_rr_pin(int inode, enum color_types color)
+static void draw_rr_pin(int ivex, enum color_types color)
 {
     /* Draws an IPIN or OPIN rr_node.  Note that the pin can appear on more    *
      * than one side of a clb.  Also note that this routine can change the     *
@@ -1022,9 +1021,9 @@ static void draw_rr_pin(int inode, enum color_types color)
     int ipin, i, j, iside, iclass, iblk;
     double xcen, ycen;
     char str[BUFSIZE];
-    i = rr_node[inode].xlow;
-    j = rr_node[inode].ylow;
-    ipin = rr_node[inode].ptc_num;
+    i = rr_node[ivex].xlow;
+    j = rr_node[ivex].ylow;
+    ipin = rr_node[ivex].ptc_num;
     setcolor(color);
 
     if (clb[i][j].type == CLB) {
@@ -1032,7 +1031,7 @@ static void draw_rr_pin(int inode, enum color_types color)
 
         for (iside = 0; iside <= 3; iside++) {
             if (pinloc[iside][ipin] == 1) {   /* Pin exists on this side. */
-                get_rr_pin_draw_coords(inode, iside, &xcen, &ycen);
+                get_rr_pin_draw_coords(ivex, iside, &xcen, &ycen);
                 fillrect(xcen - pin_size, ycen - pin_size, xcen + pin_size, ycen + pin_size);
                 sprintf(str, "%d", ipin);
                 setcolor(BLACK);
@@ -1047,43 +1046,43 @@ static void draw_rr_pin(int inode, enum color_types color)
             iside = RIGHT;
         } else if (j == 0) {
             iside = TOP;
-        } else if (i == nx + 1) {
+        } else if (i == num_of_columns + 1) {
             iside = LEFT;
         } else {
             iside = BOTTOM;
         }
 
-        get_rr_pin_draw_coords(inode, iside, &xcen, &ycen);
+        get_rr_pin_draw_coords(ivex, iside, &xcen, &ycen);
         fillrect(xcen - pin_size, ycen - pin_size, xcen + pin_size, ycen + pin_size);
     }
 }
 
 
-static void get_rr_pin_draw_coords(int inode, int iside, double* xcen,
+static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,
                                    double* ycen)
 {
     /* Returns the coordinates at which the center of this pin should be drawn. *
-     * inode gives the node number, and iside gives the side of the clb or pad  *
+     * ivex gives the node number, and iside gives the side of the clb or pad  *
      * the physical pin is on.                                                  */
     int i, j, ipin, ipad;
     double step_size, offset, xc, yc;
-    i = rr_node[inode].xlow;
-    j = rr_node[inode].ylow;
+    i = rr_node[ivex].xlow;
+    j = rr_node[ivex].ylow;
     xc = x_clb_left[i];
     yc = y_clb_bottom[j];
 
     if (clb[i][j].type == CLB) {
-        ipin = rr_node[inode].ptc_num;
+        ipin = rr_node[ivex].ptc_num;
         step_size = clb_width / (pins_per_clb + 1.);
         offset = (ipin + 1.) * step_size;
     } else {                                      /* IO pad. */
-        ipad = rr_node[inode].ptc_num;
+        ipad = rr_node[ivex].ptc_num;
         step_size = clb_width / (double) io_rat;
         offset = ipad * step_size + clb_width / (3. * io_rat);
 
         /* Pads have both an IPIN and an OPIN.  Stagger them. */
 
-        if (rr_node[inode].type == IPIN) {
+        if (rr_node[ivex].type == IPIN) {
             offset += clb_width / (3. * io_rat);
         }
     }
@@ -1125,30 +1124,30 @@ static void drawroute(enum e_draw_net_type draw_net_type)
      * ALL_NETS, draw all the nets.  If it is HIGHLIGHTED, draw only the nets    *
      * that are not coloured black (useful for drawing over the rr_graph).       */
     /* Next free track in each channel segment if routing is GLOBAL */
-    static int** chanx_track = NULL;           /* [1..nx][0..ny] */
-    static int** chany_track = NULL;           /* [0..nx][1..ny] */
-    int inet, i, j, inode, prev_node, prev_track, itrack;
+    static int** chanx_track = NULL;           /* [1..num_of_columns][0..num_of_rows] */
+    static int** chany_track = NULL;           /* [0..num_of_columns][1..num_of_rows] */
+    int inet, i, j, ivex, prev_node, prev_track, itrack;
     short switch_type;
     struct s_trace* tptr;
-    t_rr_type rr_type, prev_type;
+    rr_types_t rr_type, prev_type;
 
     if (draw_route_type == GLOBAL) {
         /* Allocate some temporary storage if it's not already available. */
         if (chanx_track == NULL) {
-            chanx_track = (int**) alloc_matrix(1, nx, 0, ny, sizeof(int));
+            chanx_track = (int**) alloc_matrix(1, num_of_columns, 0, num_of_rows, sizeof(int));
         }
 
         if (chany_track == NULL) {
-            chany_track = (int**) alloc_matrix(0, nx, 1, ny, sizeof(int));
+            chany_track = (int**) alloc_matrix(0, num_of_columns, 1, num_of_rows, sizeof(int));
         }
 
-        for (i = 1; i <= nx; i++)
-            for (j = 0; j <= ny; j++) {
+        for (i = 1; i <= num_of_columns; i++)
+            for (j = 0; j <= num_of_rows; j++) {
                 chanx_track[i][j] = -1;
             }
 
-        for (i = 0; i <= nx; i++)
-            for (j = 1; j <= ny; j++) {
+        for (i = 0; i <= num_of_columns; i++)
+            for (j = 1; j <= num_of_rows; j++) {
                 chany_track[i][j] = -1;
             }
     }
@@ -1172,51 +1171,51 @@ static void drawroute(enum e_draw_net_type draw_net_type)
 
         setcolor(net_color[inet]);
         tptr = trace_head[inet];   /* SOURCE to start */
-        inode = tptr->index;
-        rr_type = rr_node[inode].type;
+        ivex = tptr->index;
+        rr_type = rr_node[ivex].type;
 
         while (1) {
-            prev_node = inode;
+            prev_node = ivex;
             prev_type = rr_type;
             switch_type = tptr->iswitch;
             tptr = tptr->next;
-            inode = tptr->index;
-            rr_type = rr_node[inode].type;
+            ivex = tptr->index;
+            rr_type = rr_node[ivex].type;
 
             switch (rr_type) {
                 case OPIN:
-                    draw_rr_pin(inode, net_color[inet]);
+                    draw_rr_pin(ivex, net_color[inet]);
                     break;
 
                 case IPIN:
-                    draw_rr_pin(inode, net_color[inet]);
+                    draw_rr_pin(ivex, net_color[inet]);
                     prev_track = get_track_num(prev_node, chanx_track, chany_track);
-                    draw_pin_to_chan_edge(inode, prev_node, prev_track, FALSE);
+                    draw_pin_to_chan_edge(ivex, prev_node, prev_track, FALSE);
                     break;
 
                 case CHANX:
                     if (draw_route_type == GLOBAL) {
-                        chanx_track[rr_node[inode].xlow][rr_node[inode].ylow]++;
+                        chanx_track[rr_node[ivex].xlow][rr_node[ivex].ylow]++;
                     }
 
-                    itrack = get_track_num(inode, chanx_track, chany_track);
-                    draw_rr_chanx(inode, itrack);
+                    itrack = get_track_num(ivex, chanx_track, chany_track);
+                    draw_rr_chanx(ivex, itrack);
 
                     switch (prev_type) {
                         case CHANX:
                             prev_track = get_track_num(prev_node, chanx_track, chany_track);
-                            draw_chanx_to_chanx_edge(prev_node, prev_track, inode, itrack,
+                            draw_chanx_to_chanx_edge(prev_node, prev_track, ivex, itrack,
                                                      switch_type);
                             break;
 
                         case CHANY:
                             prev_track = get_track_num(prev_node, chanx_track, chany_track);
-                            draw_chanx_to_chany_edge(inode, itrack, prev_node, prev_track,
+                            draw_chanx_to_chany_edge(ivex, itrack, prev_node, prev_track,
                                                      FROM_Y_TO_X, switch_type);
                             break;
 
                         case OPIN:
-                            draw_pin_to_chan_edge(prev_node, inode, itrack, FALSE);
+                            draw_pin_to_chan_edge(prev_node, ivex, itrack, FALSE);
                             break;
 
                         default:
@@ -1229,27 +1228,27 @@ static void drawroute(enum e_draw_net_type draw_net_type)
 
                 case CHANY:
                     if (draw_route_type == GLOBAL) {
-                        chany_track[rr_node[inode].xlow][rr_node[inode].ylow]++;
+                        chany_track[rr_node[ivex].xlow][rr_node[ivex].ylow]++;
                     }
 
-                    itrack = get_track_num(inode, chanx_track, chany_track);
-                    draw_rr_chany(inode, itrack);
+                    itrack = get_track_num(ivex, chanx_track, chany_track);
+                    draw_rr_chany(ivex, itrack);
 
                     switch (prev_type) {
                         case CHANX:
                             prev_track = get_track_num(prev_node, chanx_track, chany_track);
-                            draw_chanx_to_chany_edge(prev_node, prev_track, inode, itrack,
+                            draw_chanx_to_chany_edge(prev_node, prev_track, ivex, itrack,
                                                      FROM_X_TO_Y, switch_type);
                             break;
 
                         case CHANY:
                             prev_track = get_track_num(prev_node, chanx_track, chany_track);
-                            draw_chany_to_chany_edge(prev_node, prev_track, inode, itrack,
+                            draw_chany_to_chany_edge(prev_node, prev_track, ivex, itrack,
                                                      switch_type);
                             break;
 
                         case OPIN:
-                            draw_pin_to_chan_edge(prev_node, inode, itrack, FALSE);
+                            draw_pin_to_chan_edge(prev_node, ivex, itrack, FALSE);
                             break;
 
                         default:
@@ -1271,28 +1270,28 @@ static void drawroute(enum e_draw_net_type draw_net_type)
                     break;
                 }
 
-                inode = tptr->index;
-                rr_type = rr_node[inode].type;
+                ivex = tptr->index;
+                rr_type = rr_node[ivex].type;
             }
         } /* End loop over traceback. */
     } /* End for (each net) */
 }
 
 
-static int get_track_num(int inode, int** chanx_track, int** chany_track)
+static int get_track_num(int ivex, int** chanx_track, int** chany_track)
 {
     /* Returns the track number of this routing resource node.   */
     int i, j;
-    t_rr_type rr_type;
+    rr_types_t rr_type;
 
     if (draw_route_type == DETAILED) {
-        return (rr_node[inode].ptc_num);
+        return (rr_node[ivex].ptc_num);
     }
 
     /* GLOBAL route stuff below. */
-    rr_type = rr_node[inode].type;
-    i = rr_node[inode].xlow;       /* NB: Global rr graphs must have only unit */
-    j = rr_node[inode].ylow;       /* length channel segments.                 */
+    rr_type = rr_node[ivex].type;
+    i = rr_node[ivex].xlow;       /* NB: Global rr graphs must have only unit */
+    j = rr_node[ivex].ylow;       /* length channel segments.                 */
 
     switch (rr_type) {
         case CHANX:
@@ -1303,7 +1302,7 @@ static int get_track_num(int inode, int** chanx_track, int** chany_track)
 
         default:
             printf("Error in get_track_num:  unexpected node type %d for node %d."
-                   "\n", rr_type, inode);
+                   "\n", rr_type, ivex);
             exit(1);
     }
 }
@@ -1317,7 +1316,7 @@ static void highlight_blocks(double x, double y)
      * blue and it's fanout is highlighted in red.  If no clb was        *
      * clicked on (user clicked on white space) any old highlighting is  *
      * removed.  Note that even though global nets are not drawn, their  *
-     * fanins and fanouts are highlighted when you click on a block      *
+     * fanins and fanouts are highlighted when you click on a blocks      *
      * attached to them.                                                 */
     int i, j, k, hit, bnum, ipin, netnum, fanblk;
     int class;
@@ -1327,7 +1326,7 @@ static void highlight_blocks(double x, double y)
     deselect_all();
     hit = 0;
 
-    for (i = 0; i <= nx + 1; i++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
         if (x <= x_clb_left[i] + clb_width) {
             if (x >= x_clb_left[i]) {
                 hit = 1;
@@ -1345,7 +1344,7 @@ static void highlight_blocks(double x, double y)
 
     hit = 0;
 
-    for (j = 0; j <= ny + 1; j++) {
+    for (j = 0; j <= num_of_rows + 1; j++) {
         if (y <= y_clb_bottom[j] + clb_width) {
             if (y >= y_clb_bottom[j]) {
                 hit = 1;
@@ -1369,9 +1368,9 @@ static void highlight_blocks(double x, double y)
             return;
         }
 
-        bnum = clb[i][j].u.block;
-    } else { /* IO block clb */
-        if (i == 0 || i == nx + 1) {  /* Vertical columns of IOs */
+        bnum = clb[i][j].u.blocks;
+    } else { /* IO blocks clb */
+        if (i == 0 || i == num_of_columns + 1) {  /* Vertical columns of IOs */
             k = (int)((y - y_clb_bottom[j]) / io_step);
         } else {
             k = (int)((x - x_clb_left[i]) / io_step);
@@ -1388,13 +1387,13 @@ static void highlight_blocks(double x, double y)
 
     /* Highlight fanin and fanout. */
 
-    if (block[bnum].type == OUTPAD) {
-        netnum = block[bnum].nets[0];    /* Only net. */
+    if (blocks[bnum].type == OUTPAD) {
+        netnum = blocks[bnum].nets[0];    /* Only net. */
         net_color[netnum] = BLUE;        /* Outpad drives nothing */
         fanblk = net[netnum].blocks[0];    /* Net driver */
         block_color[fanblk] = BLUE;
-    } else if (block[bnum].type == INPAD) {
-        netnum = block[bnum].nets[0];    /* Only net. */
+    } else if (blocks[bnum].type == INPAD) {
+        netnum = blocks[bnum].nets[0];    /* Only net. */
         net_color[netnum] = RED;         /* Driven by INPAD */
 
         /* Highlight fanout blocks in RED */
@@ -1403,9 +1402,9 @@ static void highlight_blocks(double x, double y)
             fanblk = net[netnum].blocks[ipin];
             block_color[fanblk] = RED;
         }
-    } else {     /* CLB block. */
+    } else {     /* CLB blocks. */
         for (k = 0; k < pins_per_clb; k++) { /* Each pin on a CLB */
-            netnum = block[bnum].nets[k];
+            netnum = blocks[bnum].nets[k];
 
             if (netnum == OPEN) {
                 continue;
@@ -1420,7 +1419,7 @@ static void highlight_blocks(double x, double y)
                     fanblk = net[netnum].blocks[ipin];
                     block_color[fanblk] = RED;
                 }
-            } else {       /* This net is fanin to the block. */
+            } else {       /* This net is fanin to the blocks. */
                 net_color[netnum] = BLUE;
                 fanblk = net[netnum].blocks[0];
                 block_color[fanblk] = BLUE;
@@ -1428,8 +1427,8 @@ static void highlight_blocks(double x, double y)
         }
     }
 
-    block_color[bnum] = GREEN;   /* Selected block. */
-    sprintf(msg, "Block %d (%s) at (%d, %d) selected.", bnum, block[bnum].name,
+    block_color[bnum] = GREEN;   /* Selected blocks. */
+    sprintf(msg, "Block %d (%s) at (%d, %d) selected.", bnum, blocks[bnum].name,
             i, j);
     update_message(msg);
     drawscreen();       /* Need to erase screen. */

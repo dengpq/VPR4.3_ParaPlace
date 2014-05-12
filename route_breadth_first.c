@@ -14,7 +14,7 @@ static boolean breadth_first_route_net(int inet, double bend_cost);
 static void breadth_first_expand_trace_segment(struct s_trace* start_ptr,
                                                int remaining_connections_to_sink);
 
-static void breadth_first_expand_neighbours(int inode, double pcost, int inet,
+static void breadth_first_expand_neighbours(int ivex, double pcost, int inet,
                                             double bend_cost);
 
 static void breadth_first_add_source_to_heap(int inet);
@@ -22,8 +22,8 @@ static void breadth_first_add_source_to_heap(int inet);
 
 /************************ Subroutine definitions ****************************/
 /* FIXME: Wirelength-Driven Router */
-boolean try_breadth_first_route(struct s_router_opts router_opts,
-                                t_ivec** clb_opins_used_locally)
+boolean try_breadth_first_route(router_opts_t router_opts,
+                                vector_t** clb_opins_used_locally)
 {
     /* Iterated maze router ala Pathfinder Negotiated Congestion algorithm,  *
      * (FPGA 95 p. 111).  Returns TRUE if it can route this FPGA, FALSE if   *
@@ -115,22 +115,22 @@ static boolean breadth_first_route_net(int inet, double bend_cost)
             return (FALSE);
         }
 
-        int inode = current->index;
-        while (rr_node_route_inf[inode].target_flag == 0) {
-            double pcost = rr_node_route_inf[inode].path_cost; /* path_cost */
+        int ivex = current->index;
+        while (rr_node_route_inf[ivex].target_flag == 0) {
+            double pcost = rr_node_route_inf[ivex].path_cost; /* path_cost */
             double new_pcost = current->cost;
 
             if (pcost > new_pcost) { /* New path is lowest cost. */
-                rr_node_route_inf[inode].path_cost = new_pcost;
+                rr_node_route_inf[ivex].path_cost = new_pcost;
                 int prev_node = current->u.prev_node;
-                rr_node_route_inf[inode].prev_node = prev_node;
-                rr_node_route_inf[inode].prev_edge = current->prev_edge;
+                rr_node_route_inf[ivex].prev_node = prev_node;
+                rr_node_route_inf[ivex].prev_edge = current->prev_edge;
 
                 if (pcost > 0.99 * HUGE_FLOAT) { /* First time touched. */
-                    add_to_mod_list(&rr_node_route_inf[inode].path_cost);
+                    add_to_mod_list(&rr_node_route_inf[ivex].path_cost);
                 }
 
-                breadth_first_expand_neighbours(inode, new_pcost, inet, bend_cost);
+                breadth_first_expand_neighbours(ivex, new_pcost, inet, bend_cost);
             }
 
             free_heap_data(current);
@@ -140,11 +140,11 @@ static boolean breadth_first_route_net(int inet, double bend_cost)
                 return (FALSE);
             }
 
-            inode = current->index;
-        } /* end of while(rr_node_route_inf[inode].target_flag == 0) */
+            ivex = current->index;
+        } /* end of while(rr_node_route_inf[ivex].target_flag == 0) */
 
-        rr_node_route_inf[inode].target_flag--;    /* Connected to this SINK. */
-        remaining_connections_to_sink = rr_node_route_inf[inode].target_flag;
+        rr_node_route_inf[ivex].target_flag--;    /* Connected to this SINK. */
+        remaining_connections_to_sink = rr_node_route_inf[ivex].target_flag;
         trace_node = update_traceback(current, inet);
         free_heap_data(current);
     } /* end of for(int i = 1; i < net[inet].num_pins; ++i) */
@@ -169,9 +169,9 @@ static void breadth_first_expand_trace_segment(struct s_trace* start_ptr,
      * router would always put all the connections from this net to this SINK   *
      * through the same IPIN.  With LUTs or cluster-based logic blocks, you     *
      * should never have a net connecting to two logically-equivalent pins on   *
-     * the same logic block, so the hack will never execute.  If your logic     *
-     * block is an and-gate, however, nets might connect to two and-inputs on   *
-     * the same logic block, and since the and-inputs are logically-equivalent, *
+     * the same logic blocks, so the hack will never execute.  If your logic     *
+     * blocks is an and-gate, however, nets might connect to two and-inputs on   *
+     * the same logic blocks, and since the and-inputs are logically-equivalent, *
      * this means two connections to the same SINK.                             */
 
     struct s_trace* tptr = start_ptr;
@@ -197,11 +197,11 @@ static void breadth_first_expand_trace_segment(struct s_trace* start_ptr,
          * us reach it again.  Instead, leave the last traceback element (SINK) off *
          * the heap.                                                                */
         while (next_ptr != NULL) {
-            int inode = tptr->index;
-            node_to_heap(inode, 0.0, NO_PREVIOUS, NO_PREVIOUS, OPEN, OPEN);
+            int ivex = tptr->index;
+            node_to_heap(ivex, 0.0, NO_PREVIOUS, NO_PREVIOUS, OPEN, OPEN);
 
-            if (rr_node[inode].type == IPIN) {
-                last_ipin_node = inode;
+            if (rr_node[ivex].type == IPIN) {
+                last_ipin_node = ivex;
             }
 
             tptr = next_ptr;
@@ -226,19 +226,19 @@ static void breadth_first_expand_trace_segment(struct s_trace* start_ptr,
 } /* end of static void breadth_first_expand_trace_segment() */
 
 
-static void breadth_first_expand_neighbours(int inode, double pcost, int inet,
+static void breadth_first_expand_neighbours(int ivex, double pcost, int inet,
                                             double bend_cost)
 {
-    /* Puts all the rr_nodes adjacent to inode on the heap.  rr_nodes outside   *
+    /* Puts all the rr_nodes adjacent to ivex on the heap.  rr_nodes outside   *
      * the expanded bounding box specified in route_bb are not added to the     *
-     * heap.  pcost is the path_cost to get to inode.                           */
+     * heap.  pcost is the path_cost to get to ivex.                           */
     int iconn, to_node, num_edges;
-    t_rr_type from_type, to_type;
+    rr_types_t from_type, to_type;
     double tot_cost;
-    num_edges = rr_node[inode].num_edges;
+    num_edges = rr_node[ivex].num_edges;
 
     for (iconn = 0; iconn < num_edges; iconn++) {
-        to_node = rr_node[inode].edges[iconn];
+        to_node = rr_node[ivex].edges[iconn];
 
         if (rr_node[to_node].xhigh < route_bb[inet].xmin ||
                 rr_node[to_node].xlow > route_bb[inet].xmax  ||
@@ -250,7 +250,7 @@ static void breadth_first_expand_neighbours(int inode, double pcost, int inet,
         tot_cost = pcost + get_rr_cong_cost(to_node);
 
         if (bend_cost != 0.) {
-            from_type = rr_node[inode].type;
+            from_type = rr_node[ivex].type;
             to_type = rr_node[to_node].type;
 
             if ((from_type == CHANX && to_type == CHANY) ||
@@ -259,7 +259,7 @@ static void breadth_first_expand_neighbours(int inode, double pcost, int inet,
             }
         }
 
-        node_to_heap(to_node, tot_cost, inode, iconn, OPEN, OPEN);
+        node_to_heap(to_node, tot_cost, ivex, iconn, OPEN, OPEN);
     }
 }
 
@@ -267,7 +267,7 @@ static void breadth_first_expand_neighbours(int inode, double pcost, int inet,
 static void breadth_first_add_source_to_heap(int inet)
 {
     /* Adds the SOURCE of this net to the heap.  Used to start a net's routing. */
-    int  inode = net_rr_terminals[inet][0]; /* SOURCE */
-    double cost = get_rr_cong_cost(inode);
-    node_to_heap(inode, cost, NO_PREVIOUS, NO_PREVIOUS, OPEN, OPEN);
+    int  ivex = net_rr_terminals[inet][0]; /* SOURCE */
+    double cost = get_rr_cong_cost(ivex);
+    node_to_heap(ivex, cost, NO_PREVIOUS, NO_PREVIOUS, OPEN, OPEN);
 }
