@@ -17,7 +17,7 @@ static void check_for_multiple_sink_connections(void);
 
 static int check_for_duplicate_block_names(void);
 
-static int get_num_conn(int bnum);
+static int get_num_conn(int block_num);
 
 static int check_subblocks(int iblk, subblock_data_t* subblock_data_ptr,
                            int* num_uses_of_clb_pin, int* num_uses_of_sblk_opin);
@@ -72,14 +72,14 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
     for (block_index = 0; block_index < num_blocks; ++block_index) {
         num_connections = get_num_conn(block_index);
 
-        if (blocks[block_index].type == CLB) {
+        if (blocks[block_index].type == CLB_TYPE) {
             error += check_clb_conn(block_index,
                                     num_connections);
             error += check_subblocks(block_index,
                                      subblock_data_ptr,
                                      num_uses_of_clb_pin,
                                      num_uses_of_sblk_opin);
-        } else {  /* IO blocks */
+        } else {  /* IO_TYPE blocks */
         /* This error check is a redundant double check.*/
             if (num_connections != 1) {
                 printf("Error:  io blocks #%d (%s) of type %d"
@@ -88,9 +88,9 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
                 error++;
             }
 
-            /* IO blocks must have no subblock information. */
+            /* IO_TYPE blocks must have no subblock information. */
             if (num_subblocks_per_block[block_index] != 0) {
-                printf("Error:  IO blocks #%d (%s) contains %d subblocks.\n"
+                printf("Error:  IO_TYPE blocks #%d (%s) contains %d subblocks.\n"
                        "Expected 0.\n", block_index, blocks[block_index].name, num_subblocks_per_block[block_index]);
                 error++;
             }
@@ -108,14 +108,14 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
     }
 } /* end of check_netlist() */
 
-/* Checks that a global net(inet) connects only to global CLB input pins  *
- * and that non-global nets never connects to a global CLB pin.  Either    *
+/* Checks that a global net(inet) connects only to global CLB_TYPE input pins  *
+ * and that non-global nets never connects to a global CLB_TYPE pin.  Either    *
  * global or non-global nets are allowed to connect to pads.               */
 static int check_connections_to_global_clb_pins(int inet)
 {
     int error = 0;
-    /* For now global signals can be driven by an I/O pad or any CLB output  *
-     * although a CLB output generates a warning. I could make a global CLB  *
+    /* For now global signals can be driven by an I/O pad or any CLB_TYPE output  *
+     * although a CLB_TYPE output generates a warning. I could make a global CLB_TYPE  *
      * output pin type to allow people to make architectures that didn't have *
      * this warning.                                                          */
     int ipin = -1;
@@ -123,19 +123,19 @@ static int check_connections_to_global_clb_pins(int inet)
     for (ipin = 0; ipin < num_pins; ++ipin) {
         int iblk = net[inet].blocks[ipin];
 
-        if (blocks[iblk].type == CLB) {  /* I/O pads are exempt. */
+        if (blocks[iblk].type == CLB_TYPE) {  /* I/O pads are exempt. */
             int blk_pin = net[inet].blk_pin[ipin];
 
             if (is_global_clb_pin[blk_pin] != is_global[inet]) {
-                /* Allow a CLB output pin to drive a global net (warning only). */
+                /* Allow a CLB_TYPE output pin to drive a global net (warning only). */
                 if (ipin == 0 && is_global[inet]) {
                     printf("Warning in check_connections_to_global_clb_pins:\n"
-                           "\tnet #%d (%s) is driven by CLB output pin (#%d)\n"
+                           "\tnet #%d (%s) is driven by CLB_TYPE output pin (#%d)\n"
                            "\ton blocks #%d (%s).\n", inet, net[inet].name,
                            blk_pin, iblk, blocks[iblk].name);
                 } else {    /* Otherwise -> Error */
                     printf("Error in check_connections_to_global_clb_pins:\n"
-                           "\tpin %d on net #%d (%s) connects to CLB input pin (#%d)\n"
+                           "\tpin %d on net #%d (%s) connects to CLB_TYPE input pin (#%d)\n"
                            "\ton blocks #%d (%s).\n",
                            ipin,
                            inet,
@@ -147,12 +147,12 @@ static int check_connections_to_global_clb_pins(int inet)
                 }
 
                 if (is_global[inet]) {
-                    printf("\tNet is global, but CLB pin is not.\n\n");
+                    printf("\tNet is global, but CLB_TYPE pin is not.\n\n");
                 } else {
                     printf("\tCLB pin is global, but net is not.\n\n");
                 }
             }
-        } /* end of if(blocks[iblk].type == CLB) */
+        } /* end of if(blocks[iblk].type == CLB_TYPE) */
     }   /* End for all pins */
 
     return error;
@@ -237,7 +237,7 @@ static int check_for_duplicate_block_names(void)
 }
 
 
-/* This routine checks the subblocks of iblk (which must be a CLB). *
+/* This routine checks the subblocks of iblk (which must be a CLB_TYPE). *
  * It returns the number of errors found.                           */
 static int check_subblocks(int iblk,
                            subblock_data_t* subblock_data_ptr,
@@ -256,7 +256,7 @@ static int check_subblocks(int iblk,
         ++error;
     }
 
-    /* Check that all pins connect to the proper type of CLB pin and are in the *
+    /* Check that all pins connect to the proper type of CLB_TYPE pin and are in the *
      * correct range.                                                           */
     int isub, ipin, i;
     for (isub = 0; isub < num_subblocks; ++isub) {
@@ -408,13 +408,13 @@ static void check_for_multiple_sink_connections(void)
 }
 
 
-static int get_num_conn(int bnum)
+static int get_num_conn(int block_num)
 {
     /* This routine returns the number of connections to a blocks. */
     int i = -1;
     int num_connections = 0;
     for (i = 0; i < pins_per_clb; i++) {
-        if (blocks[bnum].nets[i] != OPEN) {
+        if (blocks[block_num].nets[i] != OPEN) {
             ++num_connections;
         }
     }
@@ -497,7 +497,7 @@ static int check_clb_to_subblock_connections(int iblk, subblock_t
      * subblock inputs, and that each non-OPEN clb output pin is driven by      *
      * exactly one subblock output. It returns the number of errors found.      *
      * Note that num_uses_of_clb_pin is used to store the number of out-edges   *
-     * (fanout) for a CLB ipin, and the number of in-edges (fanin) for a CLB    *
+     * (fanout) for a CLB_TYPE ipin, and the number of in-edges (fanin) for a CLB_TYPE    *
      * opin.                                                                    */
     int ipin, isub, clb_pin, error;
     error = 0;
@@ -514,7 +514,7 @@ static int check_clb_to_subblock_connections(int iblk, subblock_t
 
     for (ipin = 0; ipin < pins_per_clb; ipin++) {
         if (blocks[iblk].nets[ipin] != OPEN) {
-            if (is_opin(ipin)) {   /* CLB output */
+            if (is_opin(ipin)) {   /* CLB_TYPE output */
                 if (num_uses_of_clb_pin[ipin] == 0) {  /* No driver? */
                     printf("Error:  output pin %d on blocks #%d (%s) is not driven "
                            "by any subblock.\n", ipin, iblk, blocks[iblk].name);
@@ -525,7 +525,7 @@ static int check_clb_to_subblock_connections(int iblk, subblock_t
                            num_uses_of_clb_pin[ipin]);
                     error++;
                 }
-            } else { /* CLB ipin */
+            } else { /* CLB_TYPE ipin */
                 if (num_uses_of_clb_pin[ipin] <= 0) {    /* Fans out? */
                     printf("Error:  pin %d on blocks #%d (%s) does not fanout to any "
                            "subblocks.\n", ipin, iblk, blocks[iblk].name);
@@ -533,7 +533,7 @@ static int check_clb_to_subblock_connections(int iblk, subblock_t
                 }
             }
         }   /* End if not OPEN */
-        else if (is_opin(ipin)) {   /* OPEN CLB output pin */
+        else if (is_opin(ipin)) {   /* OPEN CLB_TYPE output pin */
             if (num_uses_of_clb_pin[ipin] > 1) {
                 printf("Error:  pin %d on blocks #%d (%s) is driven by %d "
                        "subblocks.\n", ipin, iblk, blocks[iblk].name,

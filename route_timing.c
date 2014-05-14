@@ -92,7 +92,7 @@ boolean try_timing_driven_route(router_opts_t router_opts,
             }
         }
 
-        /* Make sure any CLB OPINs used up by subblocks being hooked directly     *
+        /* Make sure any CLB_TYPE OPINs used up by subblocks being hooked directly     *
          * to them are reserved for that purpose.                                 */
         boolean rip_up_local_opins;
         if (itry == 1) {
@@ -501,11 +501,11 @@ static int get_expected_segs_to_target(int ivex, int target_node, int *
             *num_segs_ortho_dir_ptr = ROUND_UP((ylow - target_y + 1.) *
                                                ortho_inv_length);
             no_need_to_pass_by_clb = 1;
-        } else if (ylow < target_y - 1) { /* Below the CLB bottom? */
+        } else if (ylow < target_y - 1) { /* Below the CLB_TYPE bottom? */
             *num_segs_ortho_dir_ptr = ROUND_UP((target_y - ylow) *
                                                ortho_inv_length);
             no_need_to_pass_by_clb = 1;
-        } else {            /* In a row that passes by target CLB */
+        } else {            /* In a row that passes by target CLB_TYPE */
             *num_segs_ortho_dir_ptr = 0;
             no_need_to_pass_by_clb = 0;
         }
@@ -532,11 +532,11 @@ static int get_expected_segs_to_target(int ivex, int target_node, int *
             *num_segs_ortho_dir_ptr = ROUND_UP((xlow - target_x + 1.) *
                                                ortho_inv_length);
             no_need_to_pass_by_clb = 1;
-        } else if (xlow < target_x - 1) { /* Left of and not adjacent to the CLB? */
+        } else if (xlow < target_x - 1) { /* Left of and not adjacent to the CLB_TYPE? */
             *num_segs_ortho_dir_ptr = ROUND_UP((target_x - xlow) *
                                                ortho_inv_length);
             no_need_to_pass_by_clb = 1;
-        } else {            /* In a column that passes by target CLB */
+        } else {            /* In a column that passes by target CLB_TYPE */
             *num_segs_ortho_dir_ptr = 0;
             no_need_to_pass_by_clb = 0;
         }

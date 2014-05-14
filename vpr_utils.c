@@ -29,16 +29,16 @@ void load_one_clb_fanout_count(int subblock_lut_size,
 {
     int isub = -1;
     for (isub = 0; isub < num_subblocks; ++isub) {
-    /* Is the subblock output connected to a CLB opin that actually goes *
-     * somewhere?  Necessary to check that the CLB opin connects to      *
+    /* Is the subblock output connected to a CLB_TYPE opin that actually goes *
+     * somewhere?  Necessary to check that the CLB_TYPE opin connects to      *
      * something because some logic blocks result in netlists where      *
-     * subblock outputs being automatically hooked to a CLB opin under   *
+     * subblock outputs being automatically hooked to a CLB_TYPE opin under   *
      * all conditions.                                                   */
 
         /* First deal with the subblock OUTPUT pin */
         int output_pin = subblock_inf[isub].output;
         if (output_pin != OPEN) { /* OPEN, DRIVER, RECEIVER */
-            if (blocks[iclb].nets[output_pin] != OPEN) { /* CLB output is used */
+            if (blocks[iclb].nets[output_pin] != OPEN) { /* CLB_TYPE output is used */
                 ++num_uses_of_sblk_opin[isub];
             }
         }
@@ -47,7 +47,7 @@ void load_one_clb_fanout_count(int subblock_lut_size,
         int ipin = -1;
         for (ipin = 0; ipin < subblock_lut_size; ++ipin) {
             int input_pin = subblock_inf[isub].inputs[ipin];
-            if (input_pin != OPEN && input_pin < pins_per_clb) { /* Driven by CLB ipin */
+            if (input_pin != OPEN && input_pin < pins_per_clb) { /* Driven by CLB_TYPE ipin */
                 ++num_uses_of_clb_ipin[input_pin];
             } else if (input_pin != OPEN && input_pin >= pins_per_clb) {
                 /* Driven by sblk output in same clb(sharing signals) *
@@ -60,7 +60,7 @@ void load_one_clb_fanout_count(int subblock_lut_size,
 
         /* Last deal with the subblocks' CLOCK input pin */
         int clock_pin = subblock_inf[isub].clock;
-        if (clock_pin != OPEN && clock_pin < pins_per_clb) { /* Driven by CLB ipin */
+        if (clock_pin != OPEN && clock_pin < pins_per_clb) { /* Driven by CLB_TYPE ipin */
             ++num_uses_of_clb_ipin[clock_pin];
         } else if (clock_pin != OPEN && clock_pin >= pins_per_clb) {
             /* Driven by sblk output in same clb(sharing signals) *

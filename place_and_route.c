@@ -15,14 +15,20 @@
 
 
 /******************* Subroutines local to this module ************************/
-
-static int binary_search_place_and_route(placer_opts_t
-                                         placer_opts, char* place_file, char* netlist_file, char* arch_file,
-                                         char* route_file, boolean full_stats, boolean verify_binary_search,
-                                         annealing_sched_t annealing_sched, router_opts_t
-                                         router_opts, detail_routing_arch_t det_routing_arch,
-                                         segment_info_t* segment_inf, timing_info_t timing_inf, subblock_data_t
-                                         *subblock_data_ptr, chan_width_distr_t chan_width_dist);
+static int binary_search_place_and_route(placer_opts_t placer_opts,
+                                         char* place_file,
+                                         char* netlist_file,
+                                         char* arch_file,
+                                         char* route_file,
+                                         boolean full_stats,
+                                         boolean verify_binary_search,
+                                         annealing_sched_t annealing_sched,
+                                         router_opts_t router_opts,
+                                         detail_routing_arch_t det_routing_arch,
+                                         segment_info_t* segment_inf,
+                                         timing_info_t timing_inf,
+                                         subblock_data_t *subblock_data_ptr,
+                                         chan_width_distr_t chan_width_dist);
 
 static double comp_width(channel_t* chan, double x, double separation);
 
@@ -233,7 +239,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
 
     /* Only needed to build timing graph */
     free_subblock_data(subblock_data_ptr);
-    int current = 2 * pins_per_clb;     /* Binary search part */
+    int current = 2 * pins_per_clb; /* Binary search part */
     int low = -1;
     int high = -1;
     int final = -1;
@@ -424,7 +430,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
 
 
 /* Assigns widths to channels(in tracks). The minimum value was one track per    *
- * channel. IO channels are io_rat * maximum in interior tracks wide. The channel*
+ * channel. IO_TYPE channels are io_rat * maximum in interior tracks wide. The channel*
  * tracks wide. The channel distributions read from the architecture file are    *
  * are scaled by cfactor.                                                        *
  * Initial channel_width_x and channel_width_y.                                  */

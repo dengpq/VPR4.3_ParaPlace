@@ -97,7 +97,7 @@ static linked_vptr_t* ch_subblock_head_ptr;
 
 static int add_net(char* ptr,
                    pin_types_t type,
-                   int bnum,
+                   int block_num,
                    int blk_pnum,
                    int doall);
 
@@ -111,10 +111,10 @@ static void parse_name_and_pinlist(int doall, FILE* fp_net, char* buf);
 static int get_pin_number(char* ptr);
 
 static void load_subblock_array(int doall, FILE* fp_net, char* temp_buf,
-                                int num_subblocks, int bnum);
+                                int num_subblocks, int block_num);
 
-static void set_subblock_count(int bnum, int num_subblocks);
-static char* parse_subblocks(int doall, FILE* fp_net, char* buf, int bnum);
+static void set_subblock_count(int block_num, int num_subblocks);
+static char* parse_subblocks(int doall, FILE* fp_net, char* buf, int block_num);
 
 
 
@@ -283,12 +283,12 @@ static char* get_token(char* buf,
         return ptr;
     } 
     if (strcmp(ptr, ".input") == 0) {
-        add_io(doall, INPAD, fp_net, buf);
+        add_io(doall, INPAD_TYPE, fp_net, buf);
         ptr = my_fgets(buf, BUFSIZE, fp_net);
         return ptr;
     } 
     if (strcmp(ptr, ".output") == 0) {
-        add_io(doall, OUTPAD, fp_net, buf);
+        add_io(doall, OUTPAD_TYPE, fp_net, buf);
         ptr = my_fgets(buf, BUFSIZE, fp_net);
         return ptr;
     } 
@@ -347,7 +347,7 @@ static int get_pin_number(char* ptr)
 
 
 static void load_subblock_array(int doall, FILE* fp_net,
-                                char* temp_buf, int num_subblocks, int bnum)
+                                char* temp_buf, int num_subblocks, int block_num)
 {
     /* Parses one subblock line and, if doall is 1, loads the proper   *
      * arrays.  Each subblock line is of the format:                   *
@@ -368,10 +368,10 @@ static void load_subblock_array(int doall, FILE* fp_net,
     /* Load subblock name if this is the load pass. */
     if (doall == 1) {
         len = strlen(ptr);
-        subblock_inf[bnum][num_subblocks - 1].name = my_chunk_malloc((len + 1) *
+        subblock_inf[block_num][num_subblocks - 1].name = my_chunk_malloc((len + 1) *
                                                                      sizeof(char), &ch_subblock_head_ptr, &ch_subblock_bytes_avail,
                                                                      &ch_subblock_next_avail_mem);
-        strcpy(subblock_inf[bnum][num_subblocks - 1].name, ptr);
+        strcpy(subblock_inf[block_num][num_subblocks - 1].name, ptr);
     }
 
     ptr = my_strtok(NULL, TOKENS, fp_net, temp_buf);
@@ -381,11 +381,11 @@ static void load_subblock_array(int doall, FILE* fp_net,
             connect_to = get_pin_number(ptr);
 
             if (ipin < subblock_lut_size) {      /* LUT input. */
-                subblock_inf[bnum][num_subblocks - 1].inputs[ipin] = connect_to;
+                subblock_inf[block_num][num_subblocks - 1].inputs[ipin] = connect_to;
             } else if (ipin == subblock_lut_size) { /* LUT output. */
-                subblock_inf[bnum][num_subblocks - 1].output = connect_to;
+                subblock_inf[block_num][num_subblocks - 1].output = connect_to;
             } else if (ipin == subblock_lut_size + 1) { /* Clock input. */
-                subblock_inf[bnum][num_subblocks - 1].clock = connect_to;
+                subblock_inf[block_num][num_subblocks - 1].clock = connect_to;
             }
         }
 
@@ -404,22 +404,22 @@ static void load_subblock_array(int doall, FILE* fp_net,
 }
 
 
-static void set_subblock_count(int bnum, int num_subblocks)
+static void set_subblock_count(int block_num, int num_subblocks)
 {
-    /* Sets the temporary subblock count for blocks bnum to num_subblocks. *
+    /* Sets the temporary subblock count for blocks block_num to num_subblocks. *
      * Properly allocates whatever temporary storage is needed.           */
-    if (bnum >= temp_block_storage) {
+    if (block_num >= temp_block_storage) {
         temp_block_storage *= 2;
         num_subblocks_per_block = (int*) my_realloc
                                   (num_subblocks_per_block, temp_block_storage * sizeof(int));
     }
 
-    num_subblocks_per_block[bnum] = num_subblocks;
+    num_subblocks_per_block[block_num] = num_subblocks;
 }
 
 
 static char* parse_subblocks(int doall, FILE* fp_net, char* buf,
-                             int bnum)
+                             int block_num)
 {
     /* Loads the subblock arrays with the proper values. */
     char temp_buf[BUFSIZE], *ptr;
@@ -444,7 +444,7 @@ static char* parse_subblocks(int doall, FILE* fp_net, char* buf,
         if (strcmp("subblock:", ptr) == 0) {
             num_subblocks++;
             load_subblock_array(doall, fp_net, temp_buf, num_subblocks,
-                                bnum);
+                                block_num);
         } else {
             break;  /* Subblock list has ended.  Buf contains next line. */
         }
@@ -454,15 +454,15 @@ static char* parse_subblocks(int doall, FILE* fp_net, char* buf,
         printf("Error in parse_subblocks on line %d of netlist file.\n",
                linenum);
         printf("Block #%d has %d subblocks.  Out of range.\n",
-               bnum, num_subblocks);
+               block_num, num_subblocks);
         printf("Aborting.\n\n");
         exit(1);
     }
 
     if (doall == 0) {
-        set_subblock_count(bnum, num_subblocks);
+        set_subblock_count(block_num, num_subblocks);
     } else {
-        assert(num_subblocks == num_subblocks_per_block[bnum]);
+        assert(num_subblocks == num_subblocks_per_block[block_num]);
     }
 
     return (ptr);
@@ -481,7 +481,7 @@ static char* add_clb(int doall, FILE* fp_net, char* buf)
                            buf);
     ++num_clbs;
     if (doall) {
-        blocks[num_blocks - 1].type = CLB;
+        blocks[num_blocks - 1].type = CLB_TYPE;
     }
 
     /* then resolve the pinlist */
@@ -530,7 +530,7 @@ static char* add_clb(int doall, FILE* fp_net, char* buf)
     return (ptr);
 }
 
-/* Adds the INPAD or OUTPAD (specified by block_type)  currently being  *
+/* Adds the INPAD_TYPE or OUTPAD_TYPE (specified by block_type)  currently being  *
  * parsed to the blocks array.  Adds its pin to the nets data structure  *
  * by calling add_net.  If doall is zero this is a counting pass; if it *
  * is 1 this is the final (loading) pass.                               */
@@ -544,12 +544,12 @@ static void add_io(int doall,
     pin_types_t type;
 
     if (doall == 0) {
-        set_subblock_count(num_blocks - 1, 0); /* No subblocks for IO */
+        set_subblock_count(num_blocks - 1, 0); /* No subblocks for IO_TYPE */
     }
 
     parse_name_and_pinlist(doall, fp_net, buf);
 
-    if (block_type == INPAD) {
+    if (block_type == INPAD_TYPE) {
         ++num_primary_inputs;
         type = DRIVER;
     } else {
@@ -558,7 +558,7 @@ static void add_io(int doall,
     }
 
     if (doall) {
-        blocks[num_blocks - 1].type = block_type; /* INPAD or OUTPAD */
+        blocks[num_blocks - 1].type = block_type; /* INPAD_TYPE or OUTPAD_TYPE */
     }
 
     int   pin_index = -1;
@@ -577,7 +577,7 @@ static void add_io(int doall,
             exit(1);
         }
 
-        /* Note the dummy pin number for IO pins.  Change this if necessary. I set *
+        /* Note the dummy pin number for IO_TYPE pins.  Change this if necessary. I set *
          * them to OPEN because I want the code to crash if I try to look up the   *
          * class of an I/O pin (since I/O pins don't have classes).                */
         inet = add_net(ptr,
@@ -702,7 +702,7 @@ static void add_global(int doall, FILE* fp_net, char* buf)
     }
 }
 
-/* bnum is blk_num, blk_pnum is blk_pin_num */
+/* block_num is blk_num, blk_pnum is blk_pin_num */
 static int add_net(char* ptr,
                    pin_types_t type,
                    int block_num,

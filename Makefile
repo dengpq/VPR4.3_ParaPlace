@@ -45,10 +45,8 @@ LIB = -lX11 -lm
 
 WARN_FLAGS = -Wall -Wpointer-arith -Wcast-qual -Wstrict-prototypes -O -D__USE_FIXED_PROTOTYPES__ -ansi -pedantic -Wmissing-prototypes -Wshadow -Wcast-align -D_POSIX_SOURCE
 DEBUG_FLAGS = -g -pg
-OPT_FLAGS = -fPIC -O3
+OPT_FLAGS = -Wall -fPIC -O3
 
-#FLAGS = $(WARN_FLAGS)
-#FLAGS = $(DEBUG_FLAGS)
 #I found that in Ubuntu12.04-x86_64 and gcc4,6, the P&R result was same whether or not added -std=c99,
 #but they were different in Fedora17-i386 system, gcc4.7.3
 #FLAGS = $(OPT_FLAGS)

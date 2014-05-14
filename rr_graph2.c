@@ -359,7 +359,7 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
         chan_type = CHANY;
         seg_details = seg_details_y;
     } else {
-        printf("Error in get_pad_opin_connections:  requested IO blocks at "
+        printf("Error in get_pad_opin_connections:  requested IO_TYPE blocks at "
                "(%d,%d) does not exist.\n", i, j);
         exit(1);
     }
@@ -386,7 +386,7 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
     }
 
     if (num_conn == 0) {
-        printf("Error:  INPAD %d at (%d,%d) does not connect to any "
+        printf("Error:  INPAD_TYPE %d at (%d,%d) does not connect to any "
                "tracks.\n", ipad, i, j);
         exit(1);
     }
@@ -431,15 +431,14 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
         for (j = 0; j <= num_of_rows + 1; j++) {
             rr_node_indices[i][j] = index;
 
-            if (clb[i][j].type == CLB) {
+            if (clb_grids[i][j].type == CLB_TYPE) {
                 index += nodes_per_clb;
                 index = load_chanx_rr_indices(seg_details_x, nodes_per_chan, index,
                                               i, j);
                 index = load_chany_rr_indices(seg_details_y, nodes_per_chan, index,
                                               i, j);
-            } else if (clb[i][j].type == IO) {
+            } else if (clb_grids[i][j].type == IO_TYPE) {
                 index += nodes_per_pad;
-
                 if (j == 0)    /* Bottom row */
                     index = load_chanx_rr_indices(seg_details_x, nodes_per_chan,
                                                   index, i, j);
@@ -447,7 +446,7 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
                 if (i == 0)    /* Leftmost column */
                     index = load_chany_rr_indices(seg_details_y, nodes_per_chan,
                                                   index, i, j);
-            } else if (clb[i][j].type != ILLEGAL) {
+            } else if (clb_grids[i][j].type != ILLEGAL_TYPE) {
                 printf("Error in alloc_and_load_rr_node_indices.  Unexpected clb"
                        " type.\n");
                 exit(1);
@@ -530,36 +529,35 @@ static int load_chany_rr_indices(segment_details_t* seg_details_y, int
     return (rr_index);
 }
 
-
+/* Returns the index of the specified routing resource node.  (i,j) are     *
+ * the location within the FPGA, rr_type specifies the type of resource,    *
+ * and ioff gives the number of this resource.  ioff is the class number,   *
+ * pin number or track number, depending on what type of resource this      *
+ * is.  All ioffs start at 0 and go up to pins_per_clb-1 or the equivalent. *
+ * The order within a clb is:  SOURCEs + SINKs (num_pin_class of them); IPINs,  *
+ * and OPINs (pins_per_clb of them); CHANX; and CHANY (nodes_per_chan of    *
+ * each).  For (i,j) locations that point at pads the order is:  io_rat     *
+ * occurances of SOURCE, SINK, OPIN, IPIN (one for each pad), then one      *
+ * associated channel (if there is a channel at (i,j)).  All IO_TYPE pads are    *
+ * bidirectional, so while each will be used only as an INPAD_TYPE or as an      *
+ * OUTPAD_TYPE, all the switches necessary to do both must be in each pad.       *
+ *                                                                          *
+ * Note that for segments (CHANX and CHANY) of length > 1, the segment is   *
+ * given an rr_index based on the (i,j) location at which it starts (i.e.   *
+ * lowest (i,j) location at which this segment exists).                     *
+ * This routine also performs error checking to make sure the node in       *
+ * question exists.                                                         */
 int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
                       int nodes_per_chan, int** rr_node_indices)
-{
-    /* Returns the index of the specified routing resource node.  (i,j) are     *
-     * the location within the FPGA, rr_type specifies the type of resource,    *
-     * and ioff gives the number of this resource.  ioff is the class number,   *
-     * pin number or track number, depending on what type of resource this      *
-     * is.  All ioffs start at 0 and go up to pins_per_clb-1 or the equivalent. *
-     * The order within a clb is:  SOURCEs + SINKs (num_pin_class of them); IPINs,  *
-     * and OPINs (pins_per_clb of them); CHANX; and CHANY (nodes_per_chan of    *
-     * each).  For (i,j) locations that point at pads the order is:  io_rat     *
-     * occurances of SOURCE, SINK, OPIN, IPIN (one for each pad), then one      *
-     * associated channel (if there is a channel at (i,j)).  All IO pads are    *
-     * bidirectional, so while each will be used only as an INPAD or as an      *
-     * OUTPAD, all the switches necessary to do both must be in each pad.       *
-     *                                                                          *
-     * Note that for segments (CHANX and CHANY) of length > 1, the segment is   *
-     * given an rr_index based on the (i,j) location at which it starts (i.e.   *
-     * lowest (i,j) location at which this segment exists).                     *
-     * This routine also performs error checking to make sure the node in       *
-     * question exists.                                                         */
-    int index, iclass;
+{   
     assert(ioff >= 0);
     assert(i >= 0 && i < num_of_columns + 2);
     assert(j >= 0 && j < num_of_rows + 2);
-    index = rr_node_indices[i][j];  /* Start of that blocks */
+    int  index = rr_node_indices[i][j];  /* Start of that blocks */
 
-    switch (clb[i][j].type) {
-        case CLB:
+    int iclass = 0;
+    switch (clb_grids[i][j].type) {
+        case CLB_TYPE:
             switch (rr_type) {
                 case SOURCE:
                     assert(ioff < num_pin_class);
@@ -606,7 +604,7 @@ int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
 
             break;
 
-        case IO:
+        case IO_TYPE:
             switch (rr_type) {
                 case SOURCE:
                     assert(ioff < io_rat);
@@ -651,7 +649,7 @@ int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
 
         default:
             printf("Error in gerr_node_t_index:  unexpected blocks type (%d) at "
-                   "(%d, %d).\nrr_type: %d.\n", clb[i][j].type, i, j, rr_type);
+                   "(%d, %d).\nrr_type: %d.\n", clb_grids[i][j].type, i, j, rr_type);
             exit(1);
     }
 }
@@ -899,7 +897,8 @@ int get_xtrack_to_ytracks(int from_istart, int from_iend, int from_j, int
             to_track = conn_tracks.list[iconn];
             is_y_sbox = is_sbox(to_j, i - 1, to_track, seg_details_y, yconn_to_above);
             to_node_switch = seg_details_y[to_track].wire_switch;
-            get_switch_type(is_x_sbox, is_y_sbox, from_node_switch, to_node_switch,                         switch_types);
+            get_switch_type(is_x_sbox, is_y_sbox, from_node_switch, to_node_switch,
+                            switch_types);
 
             if (switch_types[0] != OPEN) {
                 to_node = gerr_node_t_index(i - 1, to_j, CHANY, to_track,

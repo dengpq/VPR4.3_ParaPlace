@@ -338,9 +338,9 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
     wire_to_ipin_switch = det_routing_arch.wire_to_ipin_switch;
     num_segment = det_routing_arch.num_segment;
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
-            if (clb[i][j].type == CLB) {
+    for (i = 0; i <= num_of_columns + 1; ++i) {
+        for (j = 0; j <= num_of_rows + 1; ++j) {
+            if (clb_grids[i][j].type == CLB_TYPE) {
                 build_rr_clb(rr_node_indices, Fc_output, clb_opin_to_tracks,
                              nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
                              seg_details_y);
@@ -352,7 +352,7 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
                                wire_to_ipin_switch, seg_details_x, seg_details_y,
                                CHANX_COST_INDEX_START + num_segment);
-            } else if (clb[i][j].type == IO) {
+            } else if (clb_grids[i][j].type == IO_TYPE) {
                 build_rr_pads(rr_node_indices, Fc_pad, pads_to_tracks,
                               nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
                               seg_details_y);
@@ -368,10 +368,10 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                    tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
                                    wire_to_ipin_switch, seg_details_x, seg_details_y,
                                    CHANX_COST_INDEX_START + num_segment);
-            } else if (clb[i][j].type != ILLEGAL) {
+            } else if (clb_grids[i][j].type != ILLEGAL_TYPE) {
                 printf("Error in alloc_and_load_rr_graph.\n"
                        "Block at (%d, %d) has unknown type (%d).\n", i, j,
-                       clb[i][j].type);
+                       clb_grids[i][j].type);
                 exit(1);
             }
         }
@@ -439,7 +439,7 @@ void load_net_rr_terminals(int** rr_node_indices,
             i = blocks[iblk].x;
             j = blocks[iblk].y;
 
-            if (clb[i][j].type == CLB) {
+            if (clb_grids[i][j].type == CLB_TYPE) {
                 blk_pin = net[inet].blk_pin[ipin];
                 iclass = clb_pin_class[blk_pin];
             } else {
@@ -457,7 +457,7 @@ void load_net_rr_terminals(int** rr_node_indices,
 static void alloc_and_load_rr_clb_source(int** rr_node_indices,
                                          int nodes_per_chan)
 {
-    /* Saves the rr_node corresponding to each SOURCE and SINK in each CLB      *
+    /* Saves the rr_node corresponding to each SOURCE and SINK in each CLB_TYPE      *
      * in the FPGA.  Currently only the SOURCE rr_node values are used, and     *
      * they are used only to reserve pins for locally used OPINs in the router. *
      * [0..num_blocks-1][0..num_pin_class-1].  The values for blocks that are pads  *
@@ -469,7 +469,7 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
         for (iclass = 0; iclass < num_pin_class; iclass++) {
-            if (blocks[iblk].type == CLB) {
+            if (blocks[iblk].type == CLB_TYPE) {
                 i = blocks[iblk].x;
                 j = blocks[iblk].y;
 
@@ -482,7 +482,7 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
                 ivex = gerr_node_t_index(i, j, rr_type, iclass, nodes_per_chan,
                                           rr_node_indices);
                 rr_clb_source[iblk][iclass] = ivex;
-            } else { /* IO Pad; don't need any data so set to OPEN (invalid) */
+            } else { /* IO_TYPE Pad; don't need any data so set to OPEN (invalid) */
                 rr_clb_source[iblk][iclass] = OPEN;
             }
         }
@@ -494,19 +494,19 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
 static int which_io_block(int iblk)
 {
     /* Returns the subblock (pad) number at which this blocks was placed.  iblk *
-     * must be an IO blocks.                                                    */
-    int i, j, ipad, ifound, test_blk;
-    ifound = -1;
-    i = blocks[iblk].x;
-    j = blocks[iblk].y;
+     * must be an IO_TYPE blocks.                                               */
+    int ipad, test_blk;
+    int ifound = -1;
+    int i = blocks[iblk].x;
+    int j = blocks[iblk].y;
 
-    if (blocks[iblk].type != INPAD && blocks[iblk].type != OUTPAD) {
-        printf("Error in which_io_block:  blocks %d is not an IO blocks.\n", iblk);
+    if (blocks[iblk].type != INPAD_TYPE && blocks[iblk].type != OUTPAD_TYPE) {
+        printf("Error in which_io_block:  blocks %d is not an IO_TYPE blocks.\n", iblk);
         exit(1);
     }
 
-    for (ipad = 0; ipad < clb[i][j].occ; ipad++) {
-        test_blk = clb[i][j].u.io_blocks[ipad];
+    for (ipad = 0; ipad < clb_grids[i][j].occ; ipad++) {
+        test_blk = clb_grids[i][j].u.io_blocks[ipad];
 
         if (test_blk == iblk) {
             ifound = ipad;
@@ -1189,7 +1189,7 @@ static void check_all_tracks_reach_pins(int** *tracks_connected_to_pin,
     for (itrack = 0; itrack < nodes_per_chan; itrack++) {
         if (num_conns_to_track[itrack] <= 0) {
             printf("Warning (check_all_tracks_reach_pins):  track %d does not \n"
-                   "\tconnect to any CLB ", itrack);
+                   "\tconnect to any CLB_TYPE ", itrack);
 
             if (ipin_or_opin == DRIVER) {
                 printf("OPINs.\n");
@@ -1344,7 +1344,7 @@ static int** alloc_and_load_pads_to_tracks(int nodes_per_chan, int Fc_pad)
 static vector_t* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
                                                     int nodes_per_chan, int Fc_pad) {
 
-    /* Converts the list of tracks each IO pad connects to into a list of  *
+    /* Converts the list of tracks each IO_TYPE pad connects to into a list of  *
      * pads each track should connect to.  Allocates and fills in an array *
      * of vectors [0..nodes_per_chan-1].  Each vector specifies the number *
      * of pads to which that track connects and gives a list of the pads.  */

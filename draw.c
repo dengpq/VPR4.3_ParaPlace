@@ -77,7 +77,7 @@ static void drawroute(enum e_draw_net_type draw_net_type);
 static void draw_congestion(void);
 
 static void highlight_blocks(double x, double y);
-static void get_block_center(int bnum, double* x, double* y);
+static void get_block_center(int block_num, double* x, double* y);
 static void deselect_all(void);
 
 static void draw_rr(void);
@@ -372,8 +372,8 @@ static void drawplace(void)
      * grey, while empty ones are left white and have a dashed border.      */
     double io_step = clb_width / io_rat;
     double x1, y1, x2, y2;
-    int i, j, k, bnum;
-    /* Draw the IO Pads first. Want each subblock to border on core. */
+    int i, j, k, block_num;
+    /* Draw the IO_TYPE Pads first. Want each subblock to border on core. */
     setlinewidth(0);
 
     for (i = 1; i <= num_of_columns; i++) {
@@ -382,9 +382,9 @@ static void drawplace(void)
             y2 = y1 + clb_width;
             setlinestyle(SOLID);
 
-            for (k = 0; k < clb[i][j].occ; k++) {
-                bnum = clb[i][j].u.io_blocks[k];
-                setcolor(block_color[bnum]);
+            for (k = 0; k < clb_grids[i][j].occ; k++) {
+                block_num = clb_grids[i][j].u.io_blocks[k];
+                setcolor(block_color[block_num]);
                 x1 = x_clb_left[i] + k * io_step;
                 x2 = x1 + io_step;
                 fillrect(x1, y1, x2, y2);
@@ -392,13 +392,13 @@ static void drawplace(void)
                 drawrect(x1, y1, x2, y2);
                 /* Vertically offset text so these closely spaced names don't overlap. */
                 drawtext((x1 + x2) / 2., y1 + io_step * (k + 0.5),
-                         blocks[clb[i][j].u.io_blocks[k]].name, clb_width);
+                         blocks[clb_grids[i][j].u.io_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb[i][j].occ; k < io_rat; k++) {
+            for (k = clb_grids[i][j].occ; k < io_rat; k++) {
                 x1 = x_clb_left[i] + k * io_step;
                 x2 = x1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -412,22 +412,22 @@ static void drawplace(void)
             x2 = x1 + clb_width;
             setlinestyle(SOLID);
 
-            for (k = 0; k < clb[i][j].occ; k++) {
-                bnum = clb[i][j].u.io_blocks[k];
-                setcolor(block_color[bnum]);
+            for (k = 0; k < clb_grids[i][j].occ; k++) {
+                block_num = clb_grids[i][j].u.io_blocks[k];
+                setcolor(block_color[block_num]);
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
                 fillrect(x1, y1, x2, y2);
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
                 drawtext((x1 + x2) / 2., (y1 + y2) / 2.,
-                         blocks[clb[i][j].u.io_blocks[k]].name, clb_width);
+                         blocks[clb_grids[i][j].u.io_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb[i][j].occ; k < io_rat; k++) {
+            for (k = clb_grids[i][j].occ; k < io_rat; k++) {
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -445,14 +445,15 @@ static void drawplace(void)
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
 
-            if (clb[i][j].occ != 0) {
+            if (clb_grids[i][j].occ != 0) {
                 setlinestyle(SOLID);
-                bnum = clb[i][j].u.blocks;
-                setcolor(block_color[bnum]);
+                block_num = clb_grids[i][j].u.blocks;
+                setcolor(block_color[block_num]);
                 fillrect(x1, y1, x2, y2);
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
-                drawtext((x1 + x2) / 2., (y1 + y2) / 2., blocks[clb[i][j].u.blocks].name,
+                drawtext((x1 + x2) / 2., (y1 + y2) / 2.,
+                         blocks[clb_grids[i][j].u.blocks].name,
                          clb_width);
             } else {
                 setlinestyle(DASHED);
@@ -497,20 +498,20 @@ static void drawnets(void)
 }
 
 
-static void get_block_center(int bnum, double* x, double* y)
+static void get_block_center(int block_num, double* x, double* y)
 {
-    /* This routine finds the center of blocks bnum in the current placement, *
+    /* This routine finds the center of blocks block_num in the current placement, *
      * and returns it in *x and *y.  This is used in routine shownets.       */
-    int i, j, k;
-    i = blocks[bnum].x;
-    j = blocks[bnum].y;
+    int i = blocks[block_num].x;
+    int j = blocks[block_num].y;
 
-    if (clb[i][j].type == CLB) {
+    if (clb_grids[i][j].type == CLB_TYPE) {
         *x = x_clb_left[i] + clb_width / 2.;
         *y = y_clb_bottom[j] + clb_width / 2.;
-    } else {  /* IO clb.  Have to figure out which subblock it is. */
-        for (k = 0; k < clb[i][j].occ; k++)
-            if (clb[i][j].u.io_blocks[k] == bnum) {
+    } else {  /* IO_TYPE clb.  Have to figure out which subblock it is. */
+        int k = -1;
+        for (k = 0; k < clb_grids[i][j].occ; k++)
+            if (clb_grids[i][j].u.io_blocks[k] == block_num) {
                 break;
             }
 
@@ -768,11 +769,10 @@ static void draw_pin_to_chan_edge(int pin_node, int chan_node, int itrack,
      * TRUE, draw a box where the pin connects to the track (useful for drawing  *
      * the rr graph).                                                            */
     rr_types_t chan_type;
-    int pin_x, pin_y, pin_num, chan_xlow, chan_ylow;
+    int pin_x, pin_y, chan_xlow, chan_ylow;
     double x1, x2, y1, y2;
     pin_x = rr_node[pin_node].xlow;
     pin_y = rr_node[pin_node].ylow;
-    pin_num = rr_node[pin_node].ptc_num;
     chan_type = rr_node[chan_node].type;
 
     switch (chan_type) {
@@ -1018,7 +1018,7 @@ static void draw_rr_pin(int ivex, enum color_types color)
     /* Draws an IPIN or OPIN rr_node.  Note that the pin can appear on more    *
      * than one side of a clb.  Also note that this routine can change the     *
      * current color to BLACK.                                                 */
-    int ipin, i, j, iside, iclass, iblk;
+    int ipin, i, j, iside;
     double xcen, ycen;
     char str[BUFSIZE];
     i = rr_node[ivex].xlow;
@@ -1026,8 +1026,7 @@ static void draw_rr_pin(int ivex, enum color_types color)
     ipin = rr_node[ivex].ptc_num;
     setcolor(color);
 
-    if (clb[i][j].type == CLB) {
-        iclass = clb_pin_class[ipin];
+    if (clb_grids[i][j].type == CLB_TYPE) {
 
         for (iside = 0; iside <= 3; iside++) {
             if (pinloc[iside][ipin] == 1) {   /* Pin exists on this side. */
@@ -1039,9 +1038,7 @@ static void draw_rr_pin(int ivex, enum color_types color)
                 setcolor(color);
             }
         }
-    } else {             /* IO pad. */
-        iblk = clb[i][j].u.io_blocks[ipin];
-
+    } else {  /* IO_TYPE pad. */
         if (i == 0) {
             iside = RIGHT;
         } else if (j == 0) {
@@ -1071,11 +1068,11 @@ static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,
     xc = x_clb_left[i];
     yc = y_clb_bottom[j];
 
-    if (clb[i][j].type == CLB) {
+    if (clb_grids[i][j].type == CLB_TYPE) {
         ipin = rr_node[ivex].ptc_num;
         step_size = clb_width / (pins_per_clb + 1.);
         offset = (ipin + 1.) * step_size;
-    } else {                                      /* IO pad. */
+    } else {                                      /* IO_TYPE pad. */
         ipad = rr_node[ivex].ptc_num;
         step_size = clb_width / (double) io_rat;
         offset = ipad * step_size + clb_width / (3. * io_rat);
@@ -1318,7 +1315,7 @@ static void highlight_blocks(double x, double y)
      * removed.  Note that even though global nets are not drawn, their  *
      * fanins and fanouts are highlighted when you click on a blocks      *
      * attached to them.                                                 */
-    int i, j, k, hit, bnum, ipin, netnum, fanblk;
+    int i, j, k, hit, block_num, ipin, netnum, fanblk;
     int class;
     double io_step;
     char msg[BUFSIZE];
@@ -1361,40 +1358,40 @@ static void highlight_blocks(double x, double y)
     }
 
     /* The user selected the clb at location (i,j). */
-    if (clb[i][j].type == CLB) {
-        if (clb[i][j].occ == 0) {
+    if (clb_grids[i][j].type == CLB_TYPE) {
+        if (clb_grids[i][j].occ == 0) {
             update_message(default_message);
             drawscreen();
             return;
         }
 
-        bnum = clb[i][j].u.blocks;
-    } else { /* IO blocks clb */
+        block_num = clb_grids[i][j].u.blocks;
+    } else { /* IO_TYPE blocks clb */
         if (i == 0 || i == num_of_columns + 1) {  /* Vertical columns of IOs */
             k = (int)((y - y_clb_bottom[j]) / io_step);
         } else {
             k = (int)((x - x_clb_left[i]) / io_step);
         }
 
-        if (k >= clb[i][j].occ) {   /* Empty spot */
+        if (k >= clb_grids[i][j].occ) {   /* Empty spot */
             update_message(default_message);
             drawscreen();
             return;
         }
 
-        bnum = clb[i][j].u.io_blocks[k];
+        block_num = clb_grids[i][j].u.io_blocks[k];
     }
 
     /* Highlight fanin and fanout. */
 
-    if (blocks[bnum].type == OUTPAD) {
-        netnum = blocks[bnum].nets[0];    /* Only net. */
+    if (blocks[block_num].type == OUTPAD_TYPE) {
+        netnum = blocks[block_num].nets[0];    /* Only net. */
         net_color[netnum] = BLUE;        /* Outpad drives nothing */
         fanblk = net[netnum].blocks[0];    /* Net driver */
         block_color[fanblk] = BLUE;
-    } else if (blocks[bnum].type == INPAD) {
-        netnum = blocks[bnum].nets[0];    /* Only net. */
-        net_color[netnum] = RED;         /* Driven by INPAD */
+    } else if (blocks[block_num].type == INPAD_TYPE) {
+        netnum = blocks[block_num].nets[0];    /* Only net. */
+        net_color[netnum] = RED;         /* Driven by INPAD_TYPE */
 
         /* Highlight fanout blocks in RED */
 
@@ -1402,9 +1399,9 @@ static void highlight_blocks(double x, double y)
             fanblk = net[netnum].blocks[ipin];
             block_color[fanblk] = RED;
         }
-    } else {     /* CLB blocks. */
-        for (k = 0; k < pins_per_clb; k++) { /* Each pin on a CLB */
-            netnum = blocks[bnum].nets[k];
+    } else {     /* CLB_TYPE blocks. */
+        for (k = 0; k < pins_per_clb; k++) { /* Each pin on a CLB_TYPE */
+            netnum = blocks[block_num].nets[k];
 
             if (netnum == OPEN) {
                 continue;
@@ -1427,8 +1424,8 @@ static void highlight_blocks(double x, double y)
         }
     }
 
-    block_color[bnum] = GREEN;   /* Selected blocks. */
-    sprintf(msg, "Block %d (%s) at (%d, %d) selected.", bnum, blocks[bnum].name,
+    block_color[block_num] = GREEN;   /* Selected blocks. */
+    sprintf(msg, "Block %d (%s) at (%d, %d) selected.", block_num, blocks[block_num].name,
             i, j);
     update_message(msg);
     drawscreen();       /* Need to erase screen. */

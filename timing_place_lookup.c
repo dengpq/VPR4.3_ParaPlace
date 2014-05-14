@@ -139,24 +139,16 @@ static void generic_compute_matrix(double** *matrix_ptr,
                                    timing_info_t timing_inf);
 
 static void compute_delta_clb_to_clb(router_opts_t router_opts,
-                                     detail_routing_arch_t det_routing_arch,
-                                     segment_info_t* segment_inf,
-                                     timing_info_t timing_inf, int longest_length);
+                                     int longest_length);
 
 static void compute_delta_inpad_to_clb(router_opts_t router_opts,
                                        detail_routing_arch_t det_routing_arch,
                                        segment_info_t* segment_inf,
                                        timing_info_t timing_inf);
 
-static void compute_delta_clb_to_outpad(router_opts_t router_opts,
-                                        detail_routing_arch_t det_routing_arch,
-                                        segment_info_t* segment_inf,
-                                        timing_info_t timing_inf);
+static void compute_delta_clb_to_outpad(router_opts_t router_opts);
 
-static void compute_delta_inpad_to_outpad(router_opts_t router_opts,
-                                          detail_routing_arch_t det_routing_arch,
-                                          segment_info_t* segment_inf,
-                                          timing_info_t timing_inf);
+static void compute_delta_inpad_to_outpad(router_opts_t router_opts);
 
 static void compute_delta_arrays(router_opts_t router_opts,
                                  detail_routing_arch_t det_routing_arch,
@@ -251,7 +243,7 @@ static void init_occ(void)
     int i, j;
     for (i = 0; i <= num_of_columns + 1; i++) {
         for (j = 0; j <= num_of_rows + 1; j++) {
-            clb[i][j].occ = 0;
+            clb_grids[i][j].occ = 0;
         }
     }
 }
@@ -347,7 +339,7 @@ static void alloc_routing_structs(router_opts_t router_opts,
 {
     /*calls routines that set up routing resource graph and associated structures*/
     /*must set up dummy blocks for the first pass through*/
-    assign_locations(CLB, 1, 1, CLB, num_of_columns, num_of_rows);
+    assign_locations(CLB_TYPE, 1, 1, CLB_TYPE, num_of_columns, num_of_rows);
 
     clb_opins_used_locally = alloc_route_structs(subblock_data);
     free_rr_graph();
@@ -385,7 +377,6 @@ static void assign_locations(block_types_t source_type,
                              int sink_x_loc, int sink_y_loc)
 {
     /*all routing occurs between blocks 0 (source) and blocks 1 (sink)*/
-    int isubblk;
     blocks[SOURCE_BLOCK].type = source_type;
     blocks[SINK_BLOCK].type = sink_type;
     blocks[SOURCE_BLOCK].x = source_x_loc;
@@ -393,26 +384,27 @@ static void assign_locations(block_types_t source_type,
     blocks[SINK_BLOCK].x = sink_x_loc;
     blocks[SINK_BLOCK].y = sink_y_loc;
 
-    if (source_type == CLB) {
+    int isubblk = 0;
+    if (source_type == CLB_TYPE) {
         net[NET_USED].blk_pin[NET_USED_SOURCE_BLOCK] = get_first_pin(DRIVER);
-        clb[source_x_loc][source_y_loc].u.blocks = SOURCE_BLOCK;
-        clb[source_x_loc][source_y_loc].occ += 1;
+        clb_grids[source_x_loc][source_y_loc].u.blocks = SOURCE_BLOCK;
+        clb_grids[source_x_loc][source_y_loc].occ += 1;
     } else {
         net[NET_USED].blk_pin[NET_USED_SOURCE_BLOCK] = OPEN;
-        isubblk = clb[source_x_loc][source_y_loc].occ;
-        clb[source_x_loc][source_y_loc].u.io_blocks[isubblk] = SOURCE_BLOCK;
-        clb[source_x_loc][source_y_loc].occ += 1;
+        isubblk = clb_grids[source_x_loc][source_y_loc].occ;
+        clb_grids[source_x_loc][source_y_loc].u.io_blocks[isubblk] = SOURCE_BLOCK;
+        clb_grids[source_x_loc][source_y_loc].occ += 1;
     }
 
-    if (sink_type == CLB) {
+    if (sink_type == CLB_TYPE) {
         net[NET_USED].blk_pin[NET_USED_SINK_BLOCK] = get_first_pin(RECEIVER);
-        clb[sink_x_loc][sink_y_loc].u.blocks = SINK_BLOCK;
-        clb[sink_x_loc][sink_y_loc].occ += 1;
+        clb_grids[sink_x_loc][sink_y_loc].u.blocks = SINK_BLOCK;
+        clb_grids[sink_x_loc][sink_y_loc].occ += 1;
     } else {
         net[NET_USED].blk_pin[NET_USED_SINK_BLOCK] = OPEN;
-        isubblk = clb[sink_x_loc][sink_y_loc].occ;
-        clb[sink_x_loc][sink_y_loc].u.io_blocks[isubblk] = SINK_BLOCK;
-        clb[sink_x_loc][sink_y_loc].occ += 1;
+        isubblk = clb_grids[sink_x_loc][sink_y_loc].occ;
+        clb_grids[sink_x_loc][sink_y_loc].u.io_blocks[isubblk] = SINK_BLOCK;
+        clb_grids[sink_x_loc][sink_y_loc].occ += 1;
     }
 }
 
@@ -456,8 +448,8 @@ static double assign_blocks_and_route_net(block_types_t source_type,
                                                    T_crit,
                                                    net_delay[NET_USED]);
     net_delay_value = net_delay[NET_USED][NET_USED_SINK_BLOCK];
-    clb[source_x_loc][source_y_loc].occ = 0;
-    clb[sink_x_loc][sink_y_loc].occ = 0;
+    clb_grids[source_x_loc][source_y_loc].occ = 0;
+    clb_grids[sink_x_loc][sink_y_loc].occ = 0;
     return net_delay_value;
 }
 
@@ -584,15 +576,12 @@ static void generic_compute_matrix(double*** matrix_ptr,
  *would give gradually increasing Tdel values. To avoid this from happening *
  *a clb that is at least longest_length away from an edge should be chosen   *
  *as a source , if longest_length is more than 0.5 of the total size then    *
- *choose a CLB at the center as the source CLB */
+ *choose a CLB_TYPE at the center as the source CLB_TYPE */
 static void compute_delta_clb_to_clb(router_opts_t router_opts,
-                                     detail_routing_arch_t det_routing_arch,
-                                     segment_info_t* segment_inf,
-                                     timing_info_t timing_inf,
                                      int longest_length)
 {
-    block_types_t source_type = CLB;
-    block_types_t sink_type = CLB;
+    block_types_t source_type = CLB_TYPE;
+    block_types_t sink_type = CLB_TYPE;
 
     int start_x = 0;
     if (longest_length < 0.5 * (num_of_columns)) {
@@ -709,8 +698,8 @@ static void compute_delta_inpad_to_clb(router_opts_t router_opts,
                                        segment_info_t* segment_inf,
                                        timing_info_t timing_inf)
 {
-    block_types_t source_type = INPAD;
-    block_types_t sink_type = CLB;
+    block_types_t source_type = INPAD_TYPE;
+    block_types_t sink_type = CLB_TYPE;
     delta_inpad_to_clb[0][0] = IMPOSSIBLE;
     delta_inpad_to_clb[num_of_columns][num_of_rows] = IMPOSSIBLE;
     int source_x = 0;
@@ -771,13 +760,10 @@ static void compute_delta_inpad_to_clb(router_opts_t router_opts,
 } /* end of static void compute_delta_inpad_to_clb() */
 
 /**************************************/
-static void compute_delta_clb_to_outpad(router_opts_t router_opts,
-                                        detail_routing_arch_t det_routing_arch,
-                                        segment_info_t* segment_inf,
-                                        timing_info_t timing_inf)
+static void compute_delta_clb_to_outpad(router_opts_t router_opts)
 {
-    block_types_t source_type = CLB;
-    block_types_t sink_type = OUTPAD;
+    block_types_t source_type = CLB_TYPE;
+    block_types_t sink_type = OUTPAD_TYPE;
     delta_clb_to_outpad[0][0] = IMPOSSIBLE;
     delta_clb_to_outpad[num_of_columns][num_of_rows] = IMPOSSIBLE;
 
@@ -836,13 +822,10 @@ static void compute_delta_clb_to_outpad(router_opts_t router_opts,
 } /* end of static void compute_delta_clb_to_outpad() */
 
 /**************************************/
-static void compute_delta_inpad_to_outpad(router_opts_t router_opts,
-                                          detail_routing_arch_t det_routing_arch,
-                                          segment_info_t* segment_inf,
-                                          timing_info_t timing_inf)
+static void compute_delta_inpad_to_outpad(router_opts_t router_opts)
 {
-    block_types_t source_type = INPAD;
-    block_types_t sink_type = OUTPAD;
+    block_types_t source_type = INPAD_TYPE;
+    block_types_t sink_type = OUTPAD_TYPE;
 
     delta_inpad_to_outpad[0][0] = 0; /*Tdel to itself is 0 (this can happen)*/
     delta_inpad_to_outpad[num_of_columns + 1][num_of_rows + 1] = IMPOSSIBLE;
@@ -964,9 +947,6 @@ static void compute_delta_arrays(router_opts_t router_opts,   /* FIXME */
                                  timing_info_t timing_inf, int longest_length)
 {
     compute_delta_clb_to_clb(router_opts,
-                             det_routing_arch,
-                             segment_inf,
-                             timing_inf,
                              longest_length);
     printf("Computing delta_clb_to_clb lookup matrix OK!\n");
 
@@ -976,16 +956,10 @@ static void compute_delta_arrays(router_opts_t router_opts,   /* FIXME */
                                timing_inf);
     printf("Computing delta_inpad_to_clb lookup matrix OK!\n");
 
-    compute_delta_clb_to_outpad(router_opts,
-                                det_routing_arch,
-                                segment_inf,
-                                timing_inf);
+    compute_delta_clb_to_outpad(router_opts);
     printf("Computing delta_clb_to_outpad lookup matrix OK!\n");
 
-    compute_delta_inpad_to_outpad(router_opts,
-                                  det_routing_arch,
-                                  segment_inf,
-                                  timing_inf);
+    compute_delta_inpad_to_outpad(router_opts);
     printf("Computing delta_inpad_to_outpad lookup matrix OK!\n");
 
 #ifdef PRINT_ARRAYS

@@ -19,12 +19,12 @@
  * represented by two tnodes -- an input pin and an output pin.  For an input *
  * pad the input pin comes from off chip and has no fanin, while the output   *
  * pin drives outpads and/or CLBs.  For output pads, the input node is driven *
- * by a CLB or input pad, and the output node goes off chip and has no        *
+ * by a CLB_TYPE or input pad, and the output node goes off chip and has no        *
  * fanout (out-edges).  I need two nodes to respresent things like pads       *
  * because I mark all Tdel on tedges, not on tnodes.                         *
  *                                                                            *
- * Every used (not OPEN) CLB pin becomes a timing node.  As well, every used  *
- * subblock pin within a CLB also becomes a timing node.  Unused (OPEN) pins  *
+ * Every used (not OPEN) CLB_TYPE pin becomes a timing node.  As well, every used  *
+ * subblock pin within a CLB_TYPE also becomes a timing node.  Unused (OPEN) pins  *
  * don't create any timing nodes. If a subblock is used in combinational mode *
  * (i.e. its clock pin is open), I just hook the subblock input tnodes to the *
  * subblock output vertexes.  If the subblock is used in sequential mode, I      *
@@ -186,7 +186,7 @@ void free_subblock_data(subblock_data_t* subblock_data_ptr)
 }
 
 
-/* FIXME:This routine builds the graph used for Timing-Analysis. Every CLB *
+/* FIXME:This routine builds the graph used for Timing-Analysis. Every CLB_TYPE *
  *       or subblock pin is a timing node(vertexes). The connectivity between *
  *       pins is represented by timing edges(tedges). All Tdel is marked  *
  *       on edges, not on nodes. This routine returns an array that will   *
@@ -267,8 +267,8 @@ void alloc_and_load_timing_graph(placer_opts_t   placer_opts,
     free_fanout_counts(num_uses_of_clb_ipin,
                        num_uses_of_sblk_opin);
     /* free_pin_mappings(block_pin_to_tnode,
-                      sblk_pin_to_tnode,
-                      subblock_data.num_subblocks_per_block); */
+                         sblk_pin_to_tnode,
+                         subblock_data.num_subblocks_per_block); */
 } /* end of double** alloc_and_load_timing_graph() */
 
 /* First, front_crit_path_through_pin[all_vertexs] = 0.0, *
@@ -446,10 +446,10 @@ int find_sink_vertex_index_by_net_and_pin_index(const int net_index,
 {
     assert(net != NULL && block_pin_to_tnode != NULL && (net_index >= 0
             && net_index <= num_nets - 1));
-    /* first, according to net_index, locate the connected CLB */
+    /* first, according to net_index, locate the connected CLB_TYPE */
     const int block_index = net[net_index].blocks[sink_pin_index];
 
-    /* according to sink_pin_index, locate the accurate CLB's input_pin */
+    /* according to sink_pin_index, locate the accurate CLB_TYPE's input_pin */
     const int block_pin_index = net[net_index].blk_pin[sink_pin_index];
 
     /* Last, according to block_pin_to_tnode, get sink_vertex_idx. */
@@ -548,8 +548,8 @@ static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,
     int ipin = -1;
     int curr_tnode = 0;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].type == CLB) {
-            /* First deal with CLB's pin mapping */
+        if (blocks[iblk].type == CLB_TYPE) {
+            /* First deal with CLB_TYPE's pin mapping */
             for (ipin = 0; ipin < pins_per_clb; ++ipin) {
                 if (blocks[iblk].nets[ipin] == OPEN) {
                     block_pin_to_tnode[iblk][ipin] = OPEN;
@@ -603,7 +603,7 @@ static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,
                     sblk_pin_to_tnode[iblk][isub][clk_pin] = OPEN;
                 }
             } /* end of for (isub = 0; isub < num_subblocks; ++isub) */
-        } else { /* distinguish INPAD and OUTPAD */
+        } else { /* distinguish INPAD_TYPE and OUTPAD_TYPE */
             block_pin_to_tnode[iblk][0] = curr_tnode;     /* Pad input  */
             block_pin_to_tnode[iblk][1] = curr_tnode + 1; /* Pad output */
             curr_tnode += 2;
@@ -611,7 +611,7 @@ static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,
             for (ipin = 2; ipin < pins_per_clb; ++ipin) {
                 block_pin_to_tnode[iblk][ipin] = OPEN;
             }
-            /* There was no subblocks in IO pads. */
+            /* There was no subblocks in IO_TYPE pads. */
             sblk_pin_to_tnode[iblk] = NULL;  /* No subblock pins */
         }
     }  /* End for all blocks */
@@ -636,7 +636,7 @@ static void free_pin_mappings(int** block_pin_to_tnode,
 
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].type == CLB) {
+        if (blocks[iblk].type == CLB_TYPE) {
             free_matrix(sblk_pin_to_tnode[iblk],
                         0,
                         num_subblocks_per_block[iblk] - 1,
@@ -655,7 +655,7 @@ static void alloc_and_load_fanout_counts(int*** num_uses_of_clb_ipin_ptr,
                                          int*** num_uses_of_sblk_opin_ptr,
                                          subblock_data_t subblock_data)
 {
-    /* number of subblocks in each blocks. for io pads, it was 0. For a CLB, it *
+    /* number of subblocks in each blocks. for io pads, it was 0. For a CLB_TYPE, it *
      * was from 1 to max_subblocks_per_block.                                  *
      * int num_subblocks_per_block[0...num_blocks-1].                         */
     int* num_subblocks_per_block = subblock_data.num_subblocks_per_block;
@@ -670,10 +670,10 @@ static void alloc_and_load_fanout_counts(int*** num_uses_of_clb_ipin_ptr,
 
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].type != CLB) {
+        if (blocks[iblk].type != CLB_TYPE) {
             num_uses_of_clb_ipin[iblk] = NULL;
             num_uses_of_sblk_opin[iblk] = NULL;
-        } else { /* CLB */
+        } else { /* CLB_TYPE */
             num_uses_of_clb_ipin[iblk] = (int*)my_calloc(pins_per_clb,
                                                          sizeof(int));
             num_uses_of_sblk_opin[iblk] = (int*)my_calloc(num_subblocks_per_block[iblk],
@@ -685,7 +685,7 @@ static void alloc_and_load_fanout_counts(int*** num_uses_of_clb_ipin_ptr,
                                       num_uses_of_clb_ipin[iblk],
                                       num_uses_of_sblk_opin[iblk],
                                       iblk);
-        }  /* End if CLB */
+        }  /* End if CLB_TYPE */
     }  /* End for all blocks */
 
     *num_uses_of_clb_ipin_ptr = num_uses_of_clb_ipin;
@@ -698,7 +698,7 @@ static void free_fanout_counts(int** num_uses_of_clb_ipin,
     /* Frees the fanout count arrays. */
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        if (blocks[iblk].type == CLB) {
+        if (blocks[iblk].type == CLB_TYPE) {
             free(num_uses_of_clb_ipin[iblk]);
             free(num_uses_of_sblk_opin[iblk]);
         }
@@ -736,8 +736,8 @@ static void alloc_and_load_tnodes_and_net_mapping(int** num_uses_of_clb_ipin,
 
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        switch (blocks[iblk].type) { /* netlist blocks type: CLB, INPAD, OUTPAD */
-            case CLB:
+        switch (blocks[iblk].type) { /* netlist blocks type: CLB_TYPE, INPAD_TYPE, OUTPAD_TYPE */
+            case CLB_TYPE:
                 build_clb_tnodes(iblk,
                                  num_uses_of_clb_ipin[iblk],
                                  block_pin_to_tnode,
@@ -761,7 +761,7 @@ static void alloc_and_load_tnodes_and_net_mapping(int** num_uses_of_clb_ipin,
                                       iblk);
                 break;
 
-            case INPAD:
+            case INPAD_TYPE:
                 build_ipad_tnodes(iblk,
                                   block_pin_to_tnode,
                                   timing_inf.T_ipad,
@@ -769,7 +769,7 @@ static void alloc_and_load_tnodes_and_net_mapping(int** num_uses_of_clb_ipin,
                                   subblock_inf);
                 break;
 
-            case OUTPAD:
+            case OUTPAD_TYPE:
                 build_opad_tnodes(block_pin_to_tnode[iblk],
                                   timing_inf.T_opad,
                                   iblk);
@@ -790,7 +790,7 @@ static void alloc_and_load_tnodes_and_net_mapping(int** num_uses_of_clb_ipin,
 } /* end of static void alloc_and_load_tnodes_and_net_mapping() */
 
 
-/* This routine builds the tnodes corresponding to the CLB pins and all  *
+/* This routine builds the tnodes corresponding to the CLB_TYPE pins and all  *
  * subblocks of this BLOCK, and properly hooks them up to the rest of the*
  * graph. Note that only the sblk_pin_to_tnode, etc. element for this    *
  * blocks is passed in.                                                   */
@@ -812,15 +812,15 @@ static void build_clb_tnodes(int   iblk,
     for (ipin = 0; ipin < pins_per_clb; ++ipin) {
         from_node = block_pin_to_tnode[iblk][ipin];
         if (from_node != OPEN) { /* Pin is used -> put in graph */
-            if (is_opin(ipin)) { /* CLB output pin */
+            if (is_opin(ipin)) { /* CLB_TYPE output pin */
                 build_block_output_tnode(from_node,
                                          iblk,
                                          ipin,
                                          block_pin_to_tnode);
                 tnode_descript[from_node].type = CLB_OPIN;
-            } else { /* CLB input_pin */
+            } else { /* CLB_TYPE input_pin */
                 next_clb_ipin_edge[ipin] = 0; /* Reset */
-                /* When the number of this CLB's input pin connect to, the edges *
+                /* When the number of this CLB_TYPE's input pin connect to, the edges *
                  * it should create and connect.   */
                 num_edges = num_uses_of_clb_ipin[ipin];
                 vertexes[from_node].num_edges = num_edges;
@@ -837,7 +837,7 @@ static void build_clb_tnodes(int   iblk,
         } /* end of if (from_node != OPEN) */
     } /* end of for(ipin = 0; ipin < pins_per_clb; ++ipin) */
 
-    /* Then load the edge arrays for the CLB input_pins to SUBBLOCK input_pins.
+    /* Then load the edge arrays for the CLB_TYPE input_pins to SUBBLOCK input_pins.
      Do this by looking at where the SUBBLOCK input and clock pins are driven
      from.               */
     int  from_pin = -1;
@@ -906,9 +906,9 @@ static void build_block_output_tnode(int ivex,
         int to_blk = net[inet].blocks[iedge + 1];
 
         int to_pin = -1;
-        if (blocks[to_blk].type == CLB) {
+        if (blocks[to_blk].type == CLB_TYPE) {
             to_pin = net[inet].blk_pin[iedge + 1];
-        } else { /* OUTPAD */
+        } else { /* OUTPAD_TYPE */
             to_pin = 0;
         }
 
@@ -918,7 +918,7 @@ static void build_block_output_tnode(int ivex,
     }
 } /* end of static void build_block_output_tnode() */
 
-/* This routine builds the tnodes of the subblock pins within one CLB. Note *
+/* This routine builds the tnodes of the subblock pins within one CLB_TYPE. Note *
  * that only the block_pin_to_tnode, etc. data for *this* blocks are passed  *
  * in.                                                                      */
 static void build_subblock_tnodes(int* num_uses_of_sblk_opin,
@@ -1000,8 +1000,8 @@ static void build_subblock_tnodes(int* num_uses_of_sblk_opin,
 
         to_pin = sub_inf[isub].output;
         if (to_pin != OPEN) {  /* sblk opin goes to clb opin? */
-            /* Check that CLB pin connects to something ->     *
-             * not just a mandatory BLE to CLB opin connection */
+            /* Check that CLB_TYPE pin connects to something ->     *
+             * not just a mandatory BLE to CLB_TYPE opin connection */
             if (blocks[iblk].nets[to_pin] != OPEN) {
                 to_node = blk_pin_to_tnode[to_pin];
                 from_node = sub_pin_to_tnode[isub][out_pin];
@@ -1013,7 +1013,7 @@ static void build_subblock_tnodes(int* num_uses_of_sblk_opin,
                 tedge[iedge].Tdel = T_sblk_opin_to_clb_opin;
             }
         }
-    } /* end of traverse all subblocks in this CLB */
+    } /* end of traverse all subblocks in this CLB_TYPE */
 
     /*==============   then deal with tnode_descript  ===================*/
     /* Now build the subblock input pins and, if the subblock is used in  *
@@ -1109,7 +1109,7 @@ static void build_ipad_tnodes(int iblk,
                               subblock_t** subblock_inf)
 {
     /* First node: input node to the pad -> nothing comes into this. Second *
-     * node is the output node of the pad, that has edges to CLB ipins.     */
+     * node is the output node of the pad, that has edges to CLB_TYPE ipins.     */
     int from_node = block_pin_to_tnode[iblk][0]; /* from_node */
     int to_node = block_pin_to_tnode[iblk][1];
     vertexes[from_node].num_edges = 1;
@@ -1153,7 +1153,7 @@ static boolean is_global_clock(int iblk,
                                int* num_subblocks_per_block,
                                subblock_t** subblock_inf)
 {
-    /* Returns TRUE if the net driven by this blocks (which must be an INPAD) is  *
+    /* Returns TRUE if the net driven by this blocks (which must be an INPAD_TYPE) is  *
      * (1) a global signal, and (2) used as a clock input to at least one blocks. */
     int inet = blocks[iblk].nets[0];
     if (!is_global[inet]) {
@@ -1209,7 +1209,7 @@ static void build_opad_tnodes(int* blk_pin_to_tnode,
 } /* end of static void build_opad_tnodes() */
 
 /* Initialize all tedges's Tdel in Timing_Analyze_Graph using double** net_delay. */
-/* Sets the Tdels of the inter-CLB nets to the values specified by (double**)     *
+/* Sets the Tdels of the inter-CLB_TYPE nets to the values specified by (double**)     *
  * net_delay[0..num_nets-1][1..num_pins-1]. These net Tdels should have been      *
  * allocated and loaded with the net_delay routines. This routine marks the corres-*
  * ponding edges in the timing graph with the proper Tdel.                        */
@@ -1221,7 +1221,7 @@ void load_timing_graph_net_delays(double** net_delay) /* FIXME */
         const int from_node = driver_node_index_of_net[inet];
         edge_t* tedge = vertexes[from_node].out_edges;
 
-        /* Note that the edges of a vertexes corresponding to a CLB or INPAD opin must*
+        /* Note that the edges of a vertexes corresponding to a CLB_TYPE or INPAD_TYPE opin must*
          * be in the same order as the pins of the net driven by the vertexes.        */
         int ipin = 0;
         for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {

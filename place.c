@@ -15,64 +15,9 @@
 #include "timing_place.h"
 #include "path_delay2.h"
 
-/************** Types and defines local to place.c ***************************/
-/* New added data structures for parallel placement */
-/* the grid in architecture will be partition into x_partition(columns) X  *
- * y_partition(rows). For 8-threads, I'd like to set 4x2 regions. */ 
-int x_partition[64] = {
-    1, 1, 1, 2, 1,   /* 1-5   */
-    3, 0, 4, 3, 5,   /* 6-10  */
-    0, 4, 0, 7, 5,   /* 11-15 */
-    4, 0, 6, 0, 5,   /* 16-20 */
-    7, 11, 0, 6, 5,  /* 21-25 */
-    13, 9, 7, 0, 6,  /* 29-30 */
-    7, 6, 0, 19, 7,  /* 35-40 */
-    0, 7, 0, 11, 9,  /* 41-45 */
-    23, 0, 8, 7, 10, /* 46-50 */
-    0, 0, 0, 9, 11,  /* 51-55 */
-    8, 0, 0, 0, 10,  /* 56-60 */
-    0, 0, 9, 8       /* 61-64 */
-};
 
-int y_partition[64] = {
-    1, 1, 1, 2, 1,   /* 1-5   */
-    2, 0, 2, 3, 2,   /* 6-10  */
-    0, 3, 0, 2, 3,   /* 11-15 */
-    4, 0, 3, 0, 4,   /* 19-20 */ 
-    3, 2, 0, 4, 5,   /* 21-25 */
-    2, 3, 4, 0, 5,   /* 29-30 */
-    0, 4, 3, 0, 5,   /* 31-35 */
-    6, 0, 0, 0, 5,   /* 39-40 */
-    0, 6, 0, 4, 5,   /* 41-45 */
-    2, 0, 6, 7, 5,   /* 49-50 */
-    0, 0, 0, 6, 5,   /* 51-55 */
-    7, 0, 0, 0, 6,   /* 59-60 */
-    0, 0, 7, 8       /* 61-64 */
-};
-
-static void update_from_global_to_local_hori(local_block_t*  local_block_ptr,
-                                             grid_tile_t**  local_grid_ptr,
-                                             int x_start,
-                                             int x_end,
-                                             int y_start,
-                                             int y_end);
-
-static void update_from_global_to_local_vert(local_block_t* local_block_ptr,
-                                             grid_tile_t**  local_grid_ptr,
-                                             int x_start,
-                                             int x_end,
-                                             int y_start,
-                                             int y_end);
-
-static void update_from_local_to_global(local_block_t* local_block,
-                                        grid_tile_t**  local_grid,
-                                        int x_start,
-                                        int x_end,
-                                        int y_start,
-                                        int y_end);
 #define SMALL_NET 4    /* Cut off for incremental bounding box updates. */
 /* 4 is fastest -- I checked. */
-
 
 /* For comp_cost.  NORMAL means use the method that generates updateable  *
  * bounding boxes for speed.  CHECK means compute all bounding boxes from *
@@ -403,10 +348,10 @@ void try_place(const char*         netlist_file,
 
     /* Storing the number of pins on each type of blocks makes the swap routine *
      * slightly more efficient.                                                */
-    int pins_on_block[3];  /* 0: CLB, 1: OUTPAD, 2: INPAD */
-    pins_on_block[CLB] = pins_per_clb;
-    pins_on_block[OUTPAD] = 1;
-    pins_on_block[INPAD] = 1;
+    int pins_on_block[3];  /* 0: CLB_TYPE, 1: OUTPAD_TYPE, 2: INPAD_TYPE */
+    pins_on_block[CLB_TYPE] = pins_per_clb;
+    pins_on_block[OUTPAD_TYPE] = 1;
+    pins_on_block[INPAD_TYPE] = 1;
 
     /* Gets initial cost and loads bounding boxes. */
     double total_cost = 0.0;
@@ -1191,7 +1136,7 @@ void update_place_costs_by_success_sum(const int success_sum,
     }
 }
 
-/* It only count the inter-CLB net connections */
+/* It only count the inter-CLB_TYPE net connections */
 static int count_connections()
 {
     /*only count non-global connections*/
@@ -1231,10 +1176,10 @@ static void compute_net_pin_index_values()  /* FIXME */
         for (netpin = 0; netpin < net[inet].num_pins; ++netpin) {
             int blk = net[inet].blocks[netpin]; /* blk_num */
             /* there is only one blocks pin, so it is 0, and it is driving the *
-             * net since this is an INPAD.                                    */
-            if (blocks[blk].type == INPAD) {
+             * net since this is an INPAD_TYPE.                                    */
+            if (blocks[blk].type == INPAD_TYPE) {
                 net_pin_index[blk][0] = 0;
-            } else if (blocks[blk].type == OUTPAD) {
+            } else if (blocks[blk].type == OUTPAD_TYPE) {
               /*there is only one blocks pin, it is 0 */
                 net_pin_index[blk][0] = netpin;
             } else {
@@ -1457,7 +1402,7 @@ static int try_swap(const double  t,
      * the parser so that the pins aren't necessarily at the start of the  *
      * blocks list.                                                         */
     if (fixed_pins == TRUE) {
-        while (blocks[from_block].type != CLB) {
+        while (blocks[from_block].type != CLB_TYPE) {
             from_block = my_irand(num_blocks - 1);
         }
     }
@@ -1478,10 +1423,10 @@ static int try_swap(const double  t,
      * increase is too high, switch them back.(blocks data structures switched,  *
      * clb not switched until success of move is determinded.)                 */
     int io_num = 0;
-    if (blocks[from_block].type == CLB) {
-        if (clb[x_to][y_to].occ == 1) { /* target clb location had occupied -- do a switch */
+    if (blocks[from_block].type == CLB_TYPE) {
+        if (clb_grids[x_to][y_to].occ == 1) { /* target clb location had occupied -- do a switch */
             /* then swap (x_from, y_from) and (x_to, y_to) coordinate. */
-            to_block = clb[x_to][y_to].u.blocks;
+            to_block = clb_grids[x_to][y_to].u.blocks;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
             blocks[to_block].x = x_from;
@@ -1493,12 +1438,12 @@ static int try_swap(const double  t,
         }
     } else { /* io pads was selected for moving */
         io_num = my_irand(io_rat - 1);
-        if (io_num >= clb[x_to][y_to].occ) { /* Moving to an empty location, why? TODO:*/
+        if (io_num >= clb_grids[x_to][y_to].occ) { /* Moving to an empty location, why? TODO:*/
             to_block = EMPTY;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
         } else { /* Swapping two blocks */
-            to_block = *(clb[x_to][y_to].u.io_blocks + io_num);
+            to_block = *(clb_grids[x_to][y_to].u.io_blocks + io_num);
             blocks[to_block].x = x_from;
             blocks[to_block].y = y_from;
             blocks[from_block].x = x_to;
@@ -1660,36 +1605,36 @@ static int try_swap(const double  t,
         }
 
         /* Update Clb data structures since we kept the move. */
-        if (blocks[from_block].type == CLB) {
+        if (blocks[from_block].type == CLB_TYPE) {
             if (to_block != EMPTY) {
-                clb[x_from][y_from].u.blocks = to_block;
-                clb[x_to][y_to].u.blocks = from_block;
+                clb_grids[x_from][y_from].u.blocks = to_block;
+                clb_grids[x_to][y_to].u.blocks = from_block;
             } else {
-                clb[x_to][y_to].u.blocks = from_block;
-                clb[x_to][y_to].occ = 1;
-                clb[x_from][y_from].occ = 0;
+                clb_grids[x_to][y_to].u.blocks = from_block;
+                clb_grids[x_to][y_to].occ = 1;
+                clb_grids[x_from][y_from].occ = 0;
             }
         } else {   /* io blocks was selected for moving */
             /* Get the "sub_block" number of the from_block blocks. */
             for (off_from = 0;; ++off_from) {
-                if (clb[x_from][y_from].u.io_blocks[off_from] == from_block) {
+                if (clb_grids[x_from][y_from].u.io_blocks[off_from] == from_block) {
                     break;
                 }
             }
 
             if (to_block != EMPTY) { /* Swapped two blocks. */
-                clb[x_to][y_to].u.io_blocks[io_num] = from_block;
-                clb[x_from][y_from].u.io_blocks[off_from] = to_block;
+                clb_grids[x_to][y_to].u.io_blocks[io_num] = from_block;
+                clb_grids[x_from][y_from].u.io_blocks[off_from] = to_block;
             } else {             /* Moved to an empty location */
-                clb[x_to][y_to].u.io_blocks[clb[x_to][y_to].occ] = from_block;
-                ++(clb[x_to][y_to].occ);
+                clb_grids[x_to][y_to].u.io_blocks[clb_grids[x_to][y_to].occ] = from_block;
+                ++(clb_grids[x_to][y_to].occ);
 
-                for (k = off_from; k < clb[x_from][y_from].occ-1; ++k) { /* prevent gap  */
-                    clb[x_from][y_from].u.io_blocks[k] =   /* in io_blocks */
-                        clb[x_from][y_from].u.io_blocks[k + 1];
+                for (k = off_from; k < clb_grids[x_from][y_from].occ-1; ++k) { /* prevent gap  */
+                    clb_grids[x_from][y_from].u.io_blocks[k] =   /* in io_blocks */
+                        clb_grids[x_from][y_from].u.io_blocks[k + 1];
                 }
 
-                --(clb[x_from][y_from].occ);
+                --(clb_grids[x_from][y_from].occ);
             }
         } /* end of selecting move io_block */
     } else {  /* Move was rejected.  */
@@ -1838,7 +1783,7 @@ static void find_to(int x_from, int y_from, int type, double rlim,
     do {   /* Until (x_to, y_to) different from (x_from, y_from) */
         int x_rel = 0;
         int y_rel = 0;
-        if (type == CLB) {
+        if (type == CLB_TYPE) {
             x_rel = my_irand(2 * rlx); /* x_rel >= 0 && x_rel <= 2 * rlx */
             y_rel = my_irand(2 * rly);
             /* why? Now I see. */
@@ -1860,7 +1805,7 @@ static void find_to(int x_from, int y_from, int type, double rlim,
             if (*y_to < 1) {
                 *y_to = *y_to + num_of_rows;
             }
-        } else { /* IO blocks will be moved. */
+        } else { /* IO_TYPE blocks will be moved. */
             int iside = 0;
             int iplace = 0;
             if (rlx >= num_of_columns) { /* x_range_limit >= num_columns */
@@ -1964,15 +1909,15 @@ static void find_to(int x_from, int y_from, int type, double rlim,
         exit(1);
     }
 
-    if (type == CLB) {
-        if (clb[*x_to][*y_to].type != CLB) {
-            printf("Error: Moving CLB to illegal type blocks at (%d,%d)\n",
+    if (type == CLB_TYPE) {
+        if (clb_grids[*x_to][*y_to].type != CLB_TYPE) {
+            printf("Error: Moving CLB_TYPE to illegal type blocks at (%d,%d)\n",
                    *x_to, *y_to);
             exit(1);
         }
     } else {
-        if (clb[*x_to][*y_to].type != IO) {
-            printf("Error: Moving IO blocks to illegal type location at "
+        if (clb_grids[*x_to][*y_to].type != IO_TYPE) {
+            printf("Error: Moving IO_TYPE blocks to illegal type location at "
                    "(%d,%d)\n", *x_to, *y_to);
             exit(1);
         }
@@ -2071,10 +2016,10 @@ static double compute_point_to_point_delay(int inet,
 
     /* from clb_outpin_to_clb_inpin, delta_clb_to_clb[delta_x][delta_y]. */
     double delay_source_to_sink = 0.0;
-    if (source_type == CLB) {
-        if (sink_type == CLB) { /* from clb_outpin to clb input_pin */
+    if (source_type == CLB_TYPE) {
+        if (sink_type == CLB_TYPE) { /* from clb_outpin to clb input_pin */
             delay_source_to_sink = delta_clb_to_clb[delta_x][delta_y];
-        } else if (sink_type == OUTPAD) { /* from clb_outpin to output pad */
+        } else if (sink_type == OUTPAD_TYPE) { /* from clb_outpin to output pad */
         /* from clb_outpin_to_outpad, delta_clb_to_outpad[delta_x][delta_y] */
             delay_source_to_sink = delta_clb_to_outpad[delta_x][delta_y];
         } else {  /* NO clb_to_inpad */
@@ -2082,10 +2027,10 @@ static double compute_point_to_point_delay(int inet,
                     cannot from clb output pin to input pad\n");
             exit(1);
         }
-    } else if (source_type == INPAD) {
-        if (sink_type == CLB) { /* from input pad to clb input pin */
+    } else if (source_type == INPAD_TYPE) {
+        if (sink_type == CLB_TYPE) { /* from input pad to clb input pin */
             delay_source_to_sink = delta_inpad_to_clb[delta_x][delta_y];
-        } else if (sink_type == OUTPAD) { /* from input pad to output pad */
+        } else if (sink_type == OUTPAD_TYPE) { /* from input pad to output pad */
             delay_source_to_sink = delta_inpad_to_outpad[delta_x][delta_y];
         } else { /* NO inpad_to_inpad */
             printf("Error in compute_point_to_point_delay in place.c, \
@@ -2994,13 +2939,13 @@ static void get_bb_from_scratch(int inet, bbox_t* coords,
 
     int ipin = 0;
     for (ipin = 1; ipin < n_pins; ++ipin) {
-        int bnum = plist[ipin];
-        x = blocks[bnum].x;
-        y = blocks[bnum].y;
-        /* Code below counts IO blocks as being within the (1..num_of_columns, 1..num_of_rows clb) array. *
+        int block_num = plist[ipin];
+        x = blocks[block_num].x;
+        y = blocks[block_num].y;
+        /* Code below counts IO_TYPE blocks as being within the (1..num_of_columns, 1..num_of_rows clb) array. *
          * This is because channels do not go out of the 0..num_of_columns, 0..num_of_rows range, and I   *
          * always take all channels impinging on the bounding box to be within that  *
-         * bounding box. Hence, this "movement" of IO blocks does not affect the     *
+         * bounding box. Hence, this "movement" of IO_TYPE blocks does not affect the     *
          * which channels are included within the bounding box, and it simplifies the*
          * the code a lot.                                                           */
         x = max(min(x, num_of_columns), 1);
@@ -3132,7 +3077,7 @@ static void update_bb(int inet, bbox_t* bb_coord_new, bbox_t
      * Currently assumes channels on both sides of the CLBs forming the   *
      * edges of the bounding box can be used.  Essentially, I am assuming *
      * the pins always lie on the outside of the bounding box.            */
-    /* IO blocks are considered to be one cell in for simplicity. */
+    /* IO_TYPE blocks are considered to be one cell in for simplicity. */
     xnew = max(min(xnew, num_of_columns), 1);
     ynew = max(min(ynew, num_of_rows), 1);
     xold = max(min(xold, num_of_columns), 1);
@@ -3293,7 +3238,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int j = -1;
     for (i = 0; i <= num_of_columns + 1; i++) {
         for (j = 0; j <= num_of_rows + 1; j++) {
-            clb[i][j].occ = 0;
+            clb_grids[i][j].occ = 0;
         } /* clb[rows][columns] described FPGA Architecture */
     }  /* clb[0~(1-num_of_columns)~num_of_columns+1][0~(1-num_of_rows)~num_of_rows+1] */
 
@@ -3310,10 +3255,10 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int iblk = -1;
     int choice = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) { /* num_blocks = plbs + io_blocks */
-        if (blocks[iblk].type == CLB) { /* only place CLBs in center */
+        if (blocks[iblk].type == CLB_TYPE) { /* only place CLBs in center */
             choice = my_irand(count - 1); /* choice >= 1 && choice <= count-1*/
-            clb[pos[choice].x][pos[choice].y].u.blocks = iblk;
-            clb[pos[choice].x][pos[choice].y].occ = 1;
+            clb_grids[pos[choice].x][pos[choice].y].u.blocks = iblk;
+            clb_grids[pos[choice].x][pos[choice].y].occ = 1;
 
             /* Ensure randomizer doesn't pick this blocks again */
             pos[choice] = pos[count - 1]; /* overwrite used blocks position */
@@ -3348,16 +3293,16 @@ static void initial_placement(pad_loc_t pad_loc_type,
         }
         /* current time, the count == num_of_io_pads */
         for (iblk = 0; iblk < num_blocks; ++iblk) {
-            if (blocks[iblk].type == INPAD || blocks[iblk].type == OUTPAD) {
+            if (blocks[iblk].type == INPAD_TYPE || blocks[iblk].type == OUTPAD_TYPE) {
                 choice = my_irand(count - 1);
 
-                int isubblk = clb[pos[choice].x][pos[choice].y].occ;
+                int isubblk = clb_grids[pos[choice].x][pos[choice].y].occ;
 
-                clb[pos[choice].x][pos[choice].y].u.io_blocks[isubblk] = iblk;
-                ++(clb[pos[choice].x][pos[choice].y].occ);
+                clb_grids[pos[choice].x][pos[choice].y].u.io_blocks[isubblk] = iblk;
+                ++(clb_grids[pos[choice].x][pos[choice].y].occ);
                 /* In an I/O pad location of FPGA chip, it may accommodate more
                  * than 1 I/O pad. */
-                if (clb[pos[choice].x][pos[choice].y].occ == io_rat) {
+                if (clb_grids[pos[choice].x][pos[choice].y].occ == io_rat) {
                     /* Ensure randomizer doesn't pick this blocks again */
                     pos[choice] = pos[count - 1]; /* overwrite used blocks position */
                     /* the "choice" location had used, so don't choose it again */
@@ -3365,19 +3310,19 @@ static void initial_placement(pad_loc_t pad_loc_type,
                 }
             }
         }
-    }    /* End randomly place IO blocks branch of if */
+    }    /* End randomly place IO_TYPE blocks branch of if */
 
     /* All the blocks are placed now. Make the blocks array agree with the *
      * clb array.                                                         */
     for (i = 0; i <= num_of_columns + 1; ++i) {
         for (j = 0; j <= num_of_rows + 1; ++j) {
-            if (clb[i][j].type == CLB && clb[i][j].occ == 1) {
-                blocks[clb[i][j].u.blocks].x = i;
-                blocks[clb[i][j].u.blocks].y = j;
-            } else if (clb[i][j].type == IO) {
-                for (k = 0; k < clb[i][j].occ; ++k) {
-                    blocks[clb[i][j].u.io_blocks[k]].x = i;
-                    blocks[clb[i][j].u.io_blocks[k]].y = j;
+            if (clb_grids[i][j].type == CLB_TYPE && clb_grids[i][j].occ == 1) {
+                blocks[clb_grids[i][j].u.blocks].x = i;
+                blocks[clb_grids[i][j].u.blocks].y = j;
+            } else if (clb_grids[i][j].type == IO_TYPE) {
+                for (k = 0; k < clb_grids[i][j].occ; ++k) {
+                    blocks[clb_grids[i][j].u.io_blocks[k]].x = i;
+                    blocks[clb_grids[i][j].u.io_blocks[k]].y = j;
                 }
             }
         }
@@ -3505,7 +3450,7 @@ static void check_place(double bb_cost,
      * every blocks, blocks are in legal spots, etc.  Also recomputes   *
      * the final placement cost from scratch and makes sure it is      *
      * within roundoff of what we think the cost is.                   */
-    int i, j, k, bnum;
+    int i, j, k, block_num;
     double bb_cost_check = comp_bb_cost(CHECK,
                                         place_cost_type,
                                         num_regions);
@@ -3563,55 +3508,55 @@ static void check_place(double bb_cost,
     /* Step through clb array. Check it against blocks array. */
     for (i = 0; i <= num_of_columns + 1; i++)
         for (j = 0; j <= num_of_rows + 1; j++) {
-            if (clb[i][j].occ == 0) {
+            if (clb_grids[i][j].occ == 0) {
                 continue;
             }
 
-            if (clb[i][j].type == CLB) {
-                bnum = clb[i][j].u.blocks;
+            if (clb_grids[i][j].type == CLB_TYPE) {
+                block_num = clb_grids[i][j].u.blocks;
 
-                if (blocks[bnum].type != CLB) {
+                if (blocks[block_num].type != CLB_TYPE) {
                     printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
-                           bnum, i, j);
+                           block_num, i, j);
                     error++;
                 }
 
-                if ((blocks[bnum].x != i) || (blocks[bnum].y != j)) {
+                if ((blocks[block_num].x != i) || (blocks[block_num].y != j)) {
                     printf("Error:  blocks %d location conflicts with clb(%d,%d)"
-                           "data.\n", bnum, i, j);
+                           "data.\n", block_num, i, j);
                     error++;
                 }
 
-                if (clb[i][j].occ > 1) {
+                if (clb_grids[i][j].occ > 1) {
                     printf("Error: clb(%d,%d) has occupancy of %d\n",
-                           i, j, clb[i][j].occ);
+                           i, j, clb_grids[i][j].occ);
                     error++;
                 }
 
-                bdone[bnum]++;
-            } else { /* IO blocks */
-                if (clb[i][j].occ > io_rat) {
+                bdone[block_num]++;
+            } else { /* IO_TYPE blocks */
+                if (clb_grids[i][j].occ > io_rat) {
                     printf("Error:  clb(%d,%d) has occupancy of %d\n", i, j,
-                           clb[i][j].occ);
+                           clb_grids[i][j].occ);
                     error++;
                 }
 
-                for (k = 0; k < clb[i][j].occ; k++) {
-                    bnum = clb[i][j].u.io_blocks[k];
+                for (k = 0; k < clb_grids[i][j].occ; k++) {
+                    block_num = clb_grids[i][j].u.io_blocks[k];
 
-                    if ((blocks[bnum].type != INPAD) && blocks[bnum].type != OUTPAD) {
+                    if ((blocks[block_num].type != INPAD_TYPE) && blocks[block_num].type != OUTPAD_TYPE) {
                         printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
-                               bnum, i, j);
+                               block_num, i, j);
                         error++;
                     }
 
-                    if ((blocks[bnum].x != i) || (blocks[bnum].y != j)) {
+                    if ((blocks[block_num].x != i) || (blocks[block_num].y != j)) {
                         printf("Error:  blocks %d location conflicts with clb(%d,%d)"
-                               "data.\n", bnum, i, j);
+                               "data.\n", block_num, i, j);
                         error++;
                     }
 
-                    bdone[bnum]++;
+                    bdone[block_num]++;
                 }
             }
         }
@@ -3635,7 +3580,6 @@ static void check_place(double bb_cost,
         exit(1);
     }
 }
-
 
 void read_place(char* place_file,
                 char* net_file,
@@ -3759,5 +3703,37 @@ void read_place(char* place_file,
     sprintf(msg, "Placement from file %s.  bb_cost %g.", place_file,
             bb_cost);
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
+}
+
+placer_paras_t*  init_placer_paras(placer_costs_t*  placer_costs_ptr)
+{
+    placer_paras_t* placer_paras = (placer_paras_t*)malloc(sizeof(placer_paras_t));
+
+    placer_paras->m_fixed_pins = FALSE;
+    placer_paras->m_place_costs_ptr = placer_costs_ptr;
+    placer_paras->m_sum_of_squares = placer_paras->m_place_delay_value = 0.0;
+    placer_paras->m_width_factor = placer_paras->m_num_connections = 0;
+
+    placer_paras->m_max_delay = placer_paras->m_crit_exponent = 0.0;
+
+    placer_paras->m_inner_crit_iter_count = placer_paras->m_outer_crit_iter_count = 0;
+    placer_paras->m_move_limit = placer_paras->m_inner_recompute_limit = 0;
+
+    placer_paras->m_temper = placer_paras->m_old_temper = 0.0;
+    placer_paras->m_range_limit = placer_paras->m_final_rlim = placer_paras->m_inverse_delta_rlim = 1.0;
+
+    placer_paras->m_total_iter = placer_paras->m_success_sum = 0;
+    placer_paras->m_success_ratio = placer_paras->m_std_dev = 0.0;
+
+    return placer_paras;
+}
+
+void  free_placer_paras(placer_paras_t*  placer_paras)
+{
+    free(placer_paras->m_place_costs_ptr);
+    placer_paras->m_place_costs_ptr = NULL;
+
+    free(placer_paras);
+    placer_paras = NULL;
 }
 

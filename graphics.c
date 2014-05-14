@@ -34,7 +34,7 @@
  *                                                                          *
  * Sept. 11, 1997:  Added the create_button and delete_button interface to  *
  * make it easy to add and destroy buttons from user code.  Removed the     *
- * bnum parameter to the button functions, since it wasn't really needed.   *
+ * block_num parameter to the button functions, since it wasn't really needed.   *
  *                                                                          *
  * June 28, 1997:  Added filled arc drawing primitive.  Minor modifications *
  * to PostScript driver to make the PostScript output slightly smaller.     *
@@ -173,8 +173,8 @@ static void quit(void (*drawscreen)(void));
 
 static Bool test_if_exposed(Display* disp, XEvent* event_ptr,
                             XPointer dummy);
-static void map_button(int bnum);
-static void unmap_button(int bnum);
+static void map_button(int block_num);
+static void unmap_button(int block_num);
 
 
 
@@ -364,16 +364,16 @@ static void build_textarea(void)
 }
 
 
-static void setpoly(int bnum, int xc, int yc, int r, double theta)
+static void setpoly(int block_num, int xc, int yc, int r, double theta)
 {
-    /* Puts a triangle in the poly array for button[bnum] */
+    /* Puts a triangle in the poly array for button[block_num] */
     int i;
-    button[bnum].istext = 0;
-    button[bnum].ispoly = 1;
+    button[block_num].istext = 0;
+    button[block_num].ispoly = 1;
 
     for (i = 0; i < 3; i++) {
-        button[bnum].poly[i][0] = (int)(xc + r * cos(theta) + 0.5);
-        button[bnum].poly[i][1] = (int)(yc + r * sin(theta) + 0.5);
+        button[block_num].poly[i][0] = (int)(xc + r * cos(theta) + 0.5);
+        button[block_num].poly[i][1] = (int)(yc + r * sin(theta) + 0.5);
         theta += 2 * PI / 3;
     }
 }
@@ -469,22 +469,22 @@ static void build_default_menu(void)
 }
 
 
-static void map_button(int bnum)
+static void map_button(int block_num)
 {
     /* Maps a button onto the screen and set it up for input, etc.        */
-    button[bnum].win = XCreateSimpleWindow(display, menu,
-                                           button[bnum].xleft, button[bnum].ytop, button[bnum].width,
-                                           button[bnum].height, 0, colors[WHITE], colors[LIGHTGREY]);
-    XMapWindow(display, button[bnum].win);
-    XSelectInput(display, button[bnum].win, ButtonPressMask);
-    button[bnum].ispressed = 1;
+    button[block_num].win = XCreateSimpleWindow(display, menu,
+                                           button[block_num].xleft, button[block_num].ytop, button[block_num].width,
+                                           button[block_num].height, 0, colors[WHITE], colors[LIGHTGREY]);
+    XMapWindow(display, button[block_num].win);
+    XSelectInput(display, button[block_num].win, ButtonPressMask);
+    button[block_num].ispressed = 1;
 }
 
 
-static void unmap_button(int bnum)
+static void unmap_button(int block_num)
 {
     /* Unmaps a button from the screen.        */
-    XUnmapWindow(display, button[bnum].win);
+    XUnmapWindow(display, button[block_num].win);
 }
 
 
@@ -494,20 +494,20 @@ void create_button(char* prev_button_text , char* button_text,
     /* Creates a new button below the button containing prev_button_text.       *
      * The text and button function are set according to button_text and        *
      * button_func, respectively.                                               */
-    int i, bnum, space;
+    int i, block_num, space;
     space = 8;
     /* Only allow new buttons that are text (not poly) types.                   */
-    bnum = -1;
+    block_num = -1;
 
     for (i = 4; i < num_buttons; i++) {
         if (button[i].istext == 1 &&
                 strcmp(button[i].text, prev_button_text) == 0) {
-            bnum = i + 1;
+            block_num = i + 1;
             break;
         }
     }
 
-    if (bnum == -1) {
+    if (block_num == -1) {
         printf("Error in create_button:  button with text %s not found.\n",
                prev_button_text);
         exit(1);
@@ -524,7 +524,7 @@ void create_button(char* prev_button_text , char* button_text,
     button[num_buttons - 1].width = button[num_buttons - 2].width;
     map_button(num_buttons - 1);
 
-    for (i = num_buttons - 1; i > bnum; i--) {
+    for (i = num_buttons - 1; i > block_num; i--) {
         button[i].ispoly = button[i - 1].ispoly;
         /* No poly copy for now, as I'm only providing the ability to create text *
          * buttons.                                                               */
@@ -534,35 +534,35 @@ void create_button(char* prev_button_text , char* button_text,
         button[i].ispressed = button[i - 1].ispressed;
     }
 
-    button[bnum].istext = 1;
-    button[bnum].ispoly = 0;
-    strncpy(button[bnum].text, button_text, BUTTON_TEXT_LEN);
-    button[bnum].fcn = button_func;
-    button[bnum].ispressed = 1;
+    button[block_num].istext = 1;
+    button[block_num].ispoly = 0;
+    strncpy(button[block_num].text, button_text, BUTTON_TEXT_LEN);
+    button[block_num].fcn = button_func;
+    button[block_num].ispressed = 1;
 }
 
 
 void destroy_button(char* button_text)
 {
     /* Destroys the button with text button_text. */
-    int i, bnum;
-    bnum = -1;
+    int i, block_num;
+    block_num = -1;
 
     for (i = 4; i < num_buttons; i++) {
         if (button[i].istext == 1 &&
                 strcmp(button[i].text, button_text) == 0) {
-            bnum = i;
+            block_num = i;
             break;
         }
     }
 
-    if (bnum == -1) {
+    if (block_num == -1) {
         printf("Error in destroy_button:  button with text %s not found.\n",
                button_text);
         exit(1);
     }
 
-    for (i = bnum + 1; i < num_buttons; i++) {
+    for (i = block_num + 1; i < num_buttons; i++) {
         button[i - 1].ispoly = button[i].ispoly;
         /* No poly copy for now, as I'm only providing the ability to create text *
          * buttons.                                                               */
@@ -727,15 +727,15 @@ static void menutext(Window win, int xc, int yc, char* text)
 }
 
 
-static void drawbut(int bnum)
+static void drawbut(int block_num)
 {
-    /* Draws button bnum in either its pressed or unpressed state.    */
+    /* Draws button block_num in either its pressed or unpressed state.    */
     int width, height, thick, i, ispressed;
     XPoint mypoly[6];
-    ispressed = button[bnum].ispressed;
+    ispressed = button[block_num].ispressed;
     thick = 2;
-    width = button[bnum].width;
-    height = button[bnum].height;
+    width = button[block_num].width;
+    height = button[block_num].height;
 
     /* Draw top and left edges of 3D box. */
     if (ispressed) {
@@ -759,7 +759,7 @@ static void drawbut(int bnum)
     mypoly[4].y = thick;
     mypoly[5].x = thick;
     mypoly[5].y = height - thick;
-    XFillPolygon(display, button[bnum].win, gc_menus, mypoly, 6, Convex,
+    XFillPolygon(display, button[block_num].win, gc_menus, mypoly, 6, Convex,
                  CoordModeOrigin);
 
     /* Draw bottom and right edges of 3D box. */
@@ -781,7 +781,7 @@ static void drawbut(int bnum)
     mypoly[4].y = height - thick;
     mypoly[5].x = thick;
     mypoly[5].y = height - thick;
-    XFillPolygon(display, button[bnum].win, gc_menus, mypoly, 6, Convex,
+    XFillPolygon(display, button[block_num].win, gc_menus, mypoly, 6, Convex,
                  CoordModeOrigin);
 
     /* Draw background */
@@ -792,26 +792,26 @@ static void drawbut(int bnum)
     }
 
     /* Give x,y of top corner and width and height */
-    XFillRectangle(display, button[bnum].win, gc_menus, thick, thick,
+    XFillRectangle(display, button[block_num].win, gc_menus, thick, thick,
                    width - 2 * thick, height - 2 * thick);
 
     /* Draw polygon, if there is one */
-    if (button[bnum].ispoly) {
+    if (button[block_num].ispoly) {
         for (i = 0; i < 3; i++) {
-            mypoly[i].x = button[bnum].poly[i][0];
-            mypoly[i].y = button[bnum].poly[i][1];
+            mypoly[i].x = button[block_num].poly[i][0];
+            mypoly[i].y = button[block_num].poly[i][1];
         }
 
         XSetForeground(display, gc_menus, colors[BLACK]);
-        XFillPolygon(display, button[bnum].win, gc_menus, mypoly, 3, Convex,
+        XFillPolygon(display, button[block_num].win, gc_menus, mypoly, 3, Convex,
                      CoordModeOrigin);
     }
 
     /* Draw text, if there is any */
-    if (button[bnum].istext) {
+    if (button[block_num].istext) {
         XSetForeground(display, gc_menus, colors[BLACK]);
-        menutext(button[bnum].win, button[bnum].width / 2,
-                 button[bnum].height / 2, button[bnum].text);
+        menutext(button[block_num].win, button[block_num].width / 2,
+                 button[block_num].height / 2, button[block_num].text);
     }
 }
 
@@ -925,7 +925,7 @@ void event_loop(void (*act_on_button)(double x, double y),
      * zooming etc. itself.  If the user clicks a button in the graphics    *
      * (toplevel) area, the act_on_button routine passed in is called.      */
     XEvent report;
-    int bnum;
+    int block_num;
     double x, y;
 #define OFF 1
 #define ON 0
@@ -977,18 +977,18 @@ void event_loop(void (*act_on_button)(double x, double y),
                     y = YTOWORLD(report.xbutton.y);
                     act_on_button(x, y);
                 } else { /* A menu button was pressed. */
-                    bnum = which_button(report.xbutton.window);
+                    block_num = which_button(report.xbutton.window);
 #ifdef VERBOSE
-                    printf("Button number is %d\n", bnum);
+                    printf("Button number is %d\n", block_num);
 #endif
-                    button[bnum].ispressed = 1;
-                    drawbut(bnum);
+                    button[block_num].ispressed = 1;
+                    drawbut(block_num);
                     XFlush(display);  /* Flash the button */
-                    button[bnum].fcn(drawscreen);
-                    button[bnum].ispressed = 0;
-                    drawbut(bnum);
+                    button[block_num].fcn(drawscreen);
+                    button[block_num].ispressed = 0;
+                    drawbut(block_num);
 
-                    if (button[bnum].fcn == proceed) {
+                    if (button[block_num].fcn == proceed) {
                         turn_on_off(OFF);
                         flushinput();
                         return;  /* Rather clumsy way of returning *

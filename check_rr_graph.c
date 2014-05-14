@@ -112,7 +112,7 @@ void check_rr_graph(router_types_t route_type, int num_switch)
         if (rr_type != SOURCE) {
             if (total_edges_to_node[ivex] < 1 &&
                     !rr_node_is_global_clb_ipin(ivex)) {
-                /* A global CLB input pin will not have any edges, and neither will  *
+                /* A global CLB_TYPE input pin will not have any edges, and neither will  *
                  * a SOURCE.  Anything else is an error.                             */
                 printf("Error in check_rr_graph:  node %d has no fanin.\n", ivex);
                 exit(1);
@@ -134,7 +134,7 @@ void check_rr_graph(router_types_t route_type, int num_switch)
 
 static boolean rr_node_is_global_clb_ipin(int ivex)
 {
-    /* Returns TRUE if ivex refers to a global CLB input pin node.   */
+    /* Returns TRUE if ivex refers to a global CLB_TYPE input pin node.   */
     int ipin;
 
     if (rr_node[ivex].type != IPIN) {
@@ -198,9 +198,10 @@ void check_node(int ivex, router_types_t route_type)
                 exit(1);
             }
 
-            if (clb[xlow][ylow].type != CLB && clb[xlow][ylow].type != IO) {
+            if (clb_grids[xlow][ylow].type != CLB_TYPE
+                  && clb_grids[xlow][ylow].type != IO_TYPE) {
                 printf("Error in check_node:  Node %d (type %d) is at an illegal\n"
-                       " clb location (%d, %d).\n", ivex, rr_type, xlow, ylow);
+                       " clb[%d][%d]).\n", ivex, rr_type, xlow, ylow);
                 exit(1);
             }
 
@@ -243,7 +244,7 @@ void check_node(int ivex, router_types_t route_type)
 
     switch (rr_type) {
         case SOURCE:
-            if (clb[xlow][ylow].type == CLB) {
+            if (clb_grids[xlow][ylow].type == CLB_TYPE) {
                 if (ptc_num >= num_pin_class || class_inf[ptc_num].type != DRIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
@@ -255,7 +256,7 @@ void check_node(int ivex, router_types_t route_type)
                            "of %d.\n", ivex, rr_type, capacity);
                     exit(1);
                 }
-            } else { /* IO blocks */
+            } else { /* IO_TYPE blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
@@ -272,7 +273,7 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case SINK:
-            if (clb[xlow][ylow].type == CLB) {
+            if (clb_grids[xlow][ylow].type == CLB_TYPE) {
                 if (ptc_num >= num_pin_class || class_inf[ptc_num].type != RECEIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
@@ -284,7 +285,7 @@ void check_node(int ivex, router_types_t route_type)
                            "of %d.\n", ivex, rr_type, capacity);
                     exit(1);
                 }
-            } else { /* IO blocks */
+            } else { /* IO_TYPE blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
@@ -301,14 +302,14 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case OPIN:
-            if (clb[xlow][ylow].type == CLB) {
+            if (clb_grids[xlow][ylow].type == CLB_TYPE) {
                 if (ptc_num >= pins_per_clb || class_inf[clb_pin_class[ptc_num]].type
                         != DRIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
-            } else { /* IO blocks */
+            } else { /* IO_TYPE blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
@@ -325,14 +326,14 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case IPIN:
-            if (clb[xlow][ylow].type == CLB) {
+            if (clb_grids[xlow][ylow].type == CLB_TYPE) {
                 if (ptc_num >= pins_per_clb || class_inf[clb_pin_class[ptc_num]].type
                         != RECEIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
                 }
-            } else { /* IO blocks */
+            } else { /* IO_TYPE blocks */
                 if (ptc_num >= io_rat) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);

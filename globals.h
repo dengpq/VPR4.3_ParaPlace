@@ -25,7 +25,7 @@ extern int num_pin_class;
 /* chan_width_x is the x-directed channel; i.e. between rows */
 extern int* chan_width_x;
 extern int* chan_width_y; /* numerical form */
-extern clb_t** clb;
+extern clb_t** clb_grids;
 
 /* [0..num_nets-1] of linked list start pointers.  Defines the routing.  */
 extern struct s_trace** trace_head;

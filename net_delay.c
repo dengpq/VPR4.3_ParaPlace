@@ -213,22 +213,19 @@ static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node** rc_node_free_list
 {
     /* Builds a tree describing the routing of net inet.  Allocates all the data *
      * and inserts all the connections in the tree.                              */
-    t_rc_node* curr_rc, *prev_rc, *root_rc;
-    struct s_trace* tptr;
-    int ivex, prev_node;
-    short iswitch;
+    t_rc_node* curr_rc, *prev_rc;
     t_linked_rc_ptr* linked_rc_ptr;
-    root_rc = alloc_rc_node(rc_node_free_list_ptr);
-    tptr = trace_head[inet];
+    t_rc_node* root_rc = alloc_rc_node(rc_node_free_list_ptr);
 
+    struct s_trace* tptr = trace_head[inet];
     if (tptr == NULL) {
         printf("Error in alloc_and_load_rc_tree:  Traceback for net %d doesn't "
                "exist.\n", inet);
         exit(1);
     }
 
-    ivex = tptr->index;
-    iswitch = tptr->iswitch;
+    int ivex = tptr->index;
+    short iswitch = tptr->iswitch;
     root_rc->ivex = ivex;
     root_rc->u.child_list = NULL;
     rr_node_to_rc_node[ivex].rc_node = root_rc;
@@ -249,8 +246,7 @@ static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node** rc_node_free_list
             prev_rc = curr_rc;
         } else if (rr_node[ivex].type != SINK) { /* Connection to old stuff. */
 #ifdef DEBUG
-            prev_node = prev_rc->ivex;
-
+            int prev_node = prev_rc->ivex;
             if (rr_node[prev_node].type != SINK) {
                 printf("Error in alloc_and_load_rc_tree:  Routing of net %d is "
                        "not a tree.\n", inet);

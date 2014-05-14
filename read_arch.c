@@ -14,7 +14,7 @@
  * The keywords and their arguments are:                                     *
  *                                                                           *
  *   io_rat integer (sets the number of io pads which fit into the           *
- *                  space one CLB would use).                                *
+ *                  space one CLB_TYPE would use).                                *
  *   chan_width_io double   (Width of the channels between the pads and       *
  *                          core relative to the widest core channel.)       *
  *   chan_width_x [gaussian|uniform|pulse] peak <width> <xpeak> <dc>.        *
@@ -136,14 +136,15 @@
 static int isread[NUMINP];
 static const char* names[NUMINP] = {"io_rat",
                                     "chan_width_x", "chan_width_y",
-                                    "chan_width_io",
-                                    "outpin", "inpin", "subblocks_per_clb",
-                                    "subblock_lut_size", "Fc_output", "Fc_input", "Fc_pad", "Fc_type",
-                                    "switch_block_type", "segment", "switch", "R_minW_nmos", "R_minW_pmos",
-                                    "C_ipin_cblock", "T_ipin_cblock", "T_sblk_opin_to_sblk_ipin",
-                                    "T_clb_ipin_to_sblk_ipin", "T_sblk_opin_to_clb_opin", "T_ipad", "T_opad",
-                                    "T_subblock"
-                                   };
+                                    "chan_width_io", "outpin", "inpin",
+                                    "subblocks_per_clb", "subblock_lut_size",
+                                    "Fc_output", "Fc_input", "Fc_pad", "Fc_type",
+                                    "switch_block_type",
+                                    "segment", "switch", "R_minW_nmos",
+                                    "R_minW_pmos", "C_ipin_cblock",
+                                    "T_ipin_cblock", "T_sblk_opin_to_sblk_ipin",
+                                    "T_clb_ipin_to_sblk_ipin", "T_sblk_opin_to_clb_opin",
+                                    "T_ipad", "T_opad", "T_subblock" };
 
 
 /********************** Subroutines local to this module. ******************/
@@ -162,14 +163,16 @@ static char* get_last_token(FILE* fp, char* buf);
 static void check_keyword(FILE* fp, char* buf, const char* keyword);
 
 static void check_arch(char* arch_file, router_types_t route_type,
-                       detail_routing_arch_t det_routing_arch, segment_info_t
-                       *segment_inf, timing_info_t timing_inf, int
-                       max_subblocks_per_block, chan_width_distr_t chan_width_dist);
+                       detail_routing_arch_t det_routing_arch,
+                       segment_info_t*  segment_inf,
+                       timing_info_t timing_inf,
+                       int max_subblocks_per_block,
+                       chan_width_distr_t chan_width_dist);
 
 static void fill_arch(void);
 
 static void gechannel_t(char* ptr, channel_t* chan, int inp_num, FILE* fp_arch,
-                     char* buf);
+                        char* buf);
 
 static void get_pin(char* ptr, int pinnum, pin_types_t type,
                     FILE* fp_arch, char* buf);
@@ -211,23 +214,22 @@ void read_arch(char* arch_file, router_types_t route_type,
                ** segment_inf_ptr, timing_info_t* timing_inf_ptr, subblock_data_t
                *subblock_data_ptr, chan_width_distr_t* chan_width_dist_ptr)
 {
-    int i, j, pinnum, next_segment;
     char* ptr, buf[BUFSIZE];
-    FILE* fp_arch;
     T_subblock_t* next_T_subblock_ptr;
-    fp_arch = my_fopen(arch_file, "r", 0);
+    FILE* fp_arch = my_fopen(arch_file, "r", 0);
     countpass(fp_arch, route_type, segment_inf_ptr, det_routing_arch,
               timing_inf_ptr);
     rewind(fp_arch);
     linenum = 0;
-    pinnum = 0;
-    next_segment = 0;
+    int pinnum = 0;
+    int next_segment = 0;
 
+    int i, j;
     for (i = 0; i < NUMINP; i++) {
         isread[i] = 0;
     }
 
-    pinloc = (int**) alloc_matrix(0, 3, 0, pins_per_clb - 1, sizeof(int));
+    pinloc = (int**)alloc_matrix(0, 3, 0, pins_per_clb - 1, sizeof(int));
 
     for (i = 0; i <= 3; i++)
         for (j = 0; j < pins_per_clb; j++) {
@@ -1420,18 +1422,14 @@ void print_arch(char* arch_file, router_types_t route_type,
      * file "arch.echo."  The name of the architecture file is passed   *
      * in and is printed out as well.                                   */
     int i, j;
-    FILE* fp;
-    T_subblock_t T_subblock;
-    channel_t chan_x_dist, chan_y_dist;
-    double chan_width_io;
-    fp = my_fopen("arch.echo", "w", 0);
-    chan_width_io = chan_width_dist.chan_width_io;
-    chan_x_dist = chan_width_dist.chan_x_dist;
-    chan_y_dist = chan_width_dist.chan_y_dist;
+    FILE* fp = my_fopen("arch.echo", "w", 0);
+    double chan_width_io = chan_width_dist.chan_width_io;
+    channel_t chan_x_dist = chan_width_dist.chan_x_dist;
+    channel_t chan_y_dist = chan_width_dist.chan_y_dist;
     fprintf(fp, "Input netlist file: %s\n\n", arch_file);
     fprintf(fp, "io_rat: %d.\n", io_rat);
-    fprintf(fp, "chan_width_io: %g  pins_per_clb (pins per clb): %d\n",
-            chan_width_dist.chan_width_io, pins_per_clb);
+    fprintf(fp, "chan_width_io: %g  pins_per_clb(pins per clb): %d\n",
+            chan_width_io, pins_per_clb);
     fprintf(fp, "\n\nChannel Types:  UNIFORM = %d; GAUSSIAN = %d; PULSE = %d;"
             " DELTA = %d\n\n", UNIFORM, GAUSSIAN, PULSE, DELTA);
     fprintf(fp, "\nchan_width_x:\n");
@@ -1524,6 +1522,7 @@ void print_arch(char* arch_file, router_types_t route_type,
     fprintf(fp, "\n\nR_minW_nmos: %g  R_minW_pmos: %g\n",
             det_routing_arch.R_minW_nmos, det_routing_arch.R_minW_pmos);
 
+    T_subblock_t T_subblock;
     if (timing_inf.timing_analysis_enabled) {
         fprintf(fp, "\n\nTiming information:\n");
         fprintf(fp, "---------------------------------------------------------\n");
@@ -1550,42 +1549,37 @@ void print_arch(char* arch_file, router_types_t route_type,
 }
 
 
+/* Allocates various data structures that depend on the FPGA         *
+ * architecture.  Aspect_ratio specifies how many columns there are  *
+ * relative to the number of rows -- i.e. width/height.  Used-sized  *
+ * is TRUE if the user specified num_of_columns and num_of_rows already;
+ * in that case use the user's values and don't recompute them.      */
 void init_arch(double aspect_ratio, boolean user_sized)
 {
-    /* Allocates various data structures that depend on the FPGA         *
-     * architecture.  Aspect_ratio specifies how many columns there are  *
-     * relative to the number of rows -- i.e. width/height.  Used-sized  *
-     * is TRUE if the user specified num_of_columns and num_of_rows already; in that case     *
-     * use the user's values and don't recompute them.                   */
-    int io_lim;
-
     /* User specified the dimensions on the command line.  Check if they *
      * will fit the circuit.                                             */
-
     if (user_sized == TRUE) {
         if (num_clbs > num_of_columns * num_of_rows || num_primary_inputs + num_primary_outputs >
                 2 * io_rat * (num_of_columns + num_of_rows)) {
             printf("Error:  User-specified size is too small for circuit.\n");
             exit(1);
         }
-    }
-    /* Size the FPGA automatically to be smallest that will fit circuit */
-    else {
+    } else {
+        /* Size the FPGA automatically to be smallest that will fit circuit */
         /* Area = num_of_columns * num_of_rows = num_of_rows * num_of_rows * aspect_ratio                  *
          * Perimeter = 2 * (num_of_columns + num_of_rows) = 2 * num_of_rows * (1. + aspect_ratio)  */
-        num_of_rows = (int) ceil(sqrt((double)(num_clbs / aspect_ratio)));
-        io_lim = (int) ceil((num_primary_inputs + num_primary_outputs) / (2 * io_rat *
-                                                              (1. + aspect_ratio)));
+        num_of_rows = (int)ceil(sqrt((double)(num_clbs / aspect_ratio)));
+        int io_lim = (int)ceil((num_primary_inputs + num_primary_outputs) /
+                                       (2 * io_rat * (1.0 + aspect_ratio)));
         num_of_rows = max(num_of_rows, io_lim);
-        num_of_columns = (int) ceil(num_of_rows * aspect_ratio);
+        num_of_columns = (int)ceil(num_of_rows * aspect_ratio);
     }
 
-    /* If both num_of_columns and num_of_rows are 1, we only have one valid location for a clb. *
-     * That's a major problem, as won't be able to move the clb and the    *
-     * find_to routine that tries moves in the placer will go into an      *
-     * infinite loop trying to move it.  Exit with an error message        *
+    /* If both num_of_columns and num_of_rows are 1, we only have one valid *
+     * location for a clb. That's a major problem, as won't be able to move *
+     * the clb and the find_to routine that tries moves in the placer will  *
+     * go into an infinite loop trying to move it.  Exit with an error message*
      * instead.                                                            */
-
     if (num_of_columns == 1  && num_of_rows == 1 && num_clbs != 0) {
         printf("Error:\n");
         printf("Sorry, can't place a circuit with only one valid location\n");
@@ -1596,7 +1590,6 @@ void init_arch(double aspect_ratio, boolean user_sized)
 
     /* To remove this limitation, change ylow etc. in rr_node_t to        *
      * be ints instead.  Used shorts to save memory.                      */
-
     if (num_of_columns > 32766 || num_of_rows > 32766) {
         printf("Error:  num_of_columns and num_of_rows must be less than 32767, since the \n");
         printf("router uses shorts (16-bit) to store coordinates.\n");
@@ -1604,55 +1597,57 @@ void init_arch(double aspect_ratio, boolean user_sized)
         exit(1);
     }
 
-    clb = (clb_t**) alloc_matrix(0, num_of_columns + 1, 0, num_of_rows + 1,
-                                        sizeof(clb_t));
-    chan_width_x = (int*) my_malloc((num_of_rows + 1) * sizeof(int));
-    chan_width_y = (int*) my_malloc((num_of_columns + 1) * sizeof(int));
+    clb_grids = (clb_t**)alloc_matrix(0, num_of_columns + 1,
+                                      0, num_of_rows + 1,
+                                      sizeof(clb_t));
+    chan_width_x = (int*)my_malloc((num_of_rows + 1) * sizeof(int));
+    chan_width_y = (int*)my_malloc((num_of_columns + 1) * sizeof(int));
+
     fill_arch();
-}
+}  /* end of void init_arch(double aspect_ratio, boolean user_sized) */
 
-
+/* Fill some of the FPGA architecture data structures.         */
 static void fill_arch(void)
 {
-    /* Fill some of the FPGA architecture data structures.         */
-    int i, j, *index;
     /* allocate io_blocks arrays. Done this way to save storage */
-    i = 2 * io_rat * (num_of_columns + num_of_rows);
-    index = (int*) my_malloc(i * sizeof(int));
+    int  i = 2 * io_rat * (num_of_columns + num_of_rows);
+    int* index = (int*) my_malloc(i * sizeof(int));
 
-    for (i = 1; i <= num_of_columns; i++) {
-        clb[i][0].u.io_blocks = index;
+    for (i = 1; i <= num_of_columns; ++i) {
+        clb_grids[i][0].u.io_blocks = index;
         index += io_rat;
-        clb[i][num_of_rows + 1].u.io_blocks = index;
+        clb_grids[i][num_of_rows + 1].u.io_blocks = index;
         index += io_rat;
     }
 
-    for (i = 1; i <= num_of_rows; i++) {
-        clb[0][i].u.io_blocks = index;
+    for (i = 1; i <= num_of_rows; ++i) {
+        clb_grids[0][i].u.io_blocks = index;
         index += io_rat;
-        clb[num_of_columns + 1][i].u.io_blocks = index;
+        clb_grids[num_of_columns + 1][i].u.io_blocks = index;
         index += io_rat;
     }
 
     /* Initialize type, and occupancy. */
-
-    for (i = 1; i <= num_of_columns; i++) {
-        clb[i][0].type = IO;
-        clb[i][num_of_rows + 1].type = IO; /* perimeter (IO) cells */
+    for (i = 1; i <= num_of_columns; ++i) {
+        clb_grids[i][0].type = IO_TYPE;
+        clb_grids[i][num_of_rows + 1].type = IO_TYPE; /* perimeter (IO_TYPE) cells */
     }
 
-    for (i = 1; i <= num_of_rows; i++) {
-        clb[0][i].type = IO;
-        clb[num_of_columns + 1][i].type = IO;
+    for (i = 1; i <= num_of_rows; ++i) {
+        clb_grids[0][i].type = IO_TYPE;
+        clb_grids[num_of_columns + 1][i].type = IO_TYPE;
     }
 
-    for (i = 1; i <= num_of_columns; i++) { /* interior (LUT) cells */
-        for (j = 1; j <= num_of_rows; j++) {
-            clb[i][j].type = CLB;
+    for (i = 1; i <= num_of_columns; ++i) { /* interior (LUT) cells */
+        int j = 0;
+        for (j = 1; j <= num_of_rows; ++j) {
+            clb_grids[i][j].type = CLB_TYPE;
         }
     }
 
     /* Nothing goes in the corners.      */
-    clb[0][0].type = clb[num_of_columns + 1][0].type = ILLEGAL;
-    clb[0][num_of_rows + 1].type = clb[num_of_columns + 1][num_of_rows + 1].type = ILLEGAL;
+    clb_grids[0][0].type = clb_grids[num_of_columns + 1][0].type = ILLEGAL_TYPE;
+    clb_grids[0][num_of_rows + 1].type =
+        clb_grids[num_of_columns + 1][num_of_rows + 1].type = ILLEGAL_TYPE;
 }
+

@@ -58,7 +58,7 @@ int num_pin_class; /* Number of different classes.  */
 
 int* chan_width_x, *chan_width_y; /* [0..num_of_rows] and [0..num_of_columns] respectively  */
 
-clb_t** clb;   /* Architecture blocks list */
+clb_t** clb_grids;   /* Architecture blocks list */
 
 
 /******** Structures defining the routing ***********/
@@ -1174,9 +1174,9 @@ static void parse_command(int argc,
         }
 
         if (placer_opts->pad_loc_type == RANDOM) {
-            printf("\tPlacer will fix the IO pins in a random configuration.\n");
+            printf("\tPlacer will fix the IO_TYPE pins in a random configuration.\n");
         } else if (placer_opts->pad_loc_type == USER) {
-            printf("\tPlacer will fix the IO pins as specified by file %s.\n",
+            printf("\tPlacer will fix the IO_TYPE pins as specified by file %s.\n",
                    placer_opts->pad_loc_file);
         }
 

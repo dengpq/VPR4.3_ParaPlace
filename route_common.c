@@ -40,10 +40,9 @@ static struct s_linked_f_pointer* rr_modified_head = NULL;
 static struct s_linked_f_pointer* linked_f_pointer_free_head = NULL;
 
 
-
 /*  The numbering relation between the channels and clbs is:               *
  *                                                                         *
- *  |   IO    | chan_   |   CLB      | chan_   |   CLB     |               *
+ *  | IO_TYPE | chan_   |  CLB_TYPE  | chan_   |  CLB_TYPE |               *
  *  |clb[0][2]| y[0][2] | clb[1][2]  | y[1][2] |  clb[2][2]|               *
  *  +-------- +         +------------+         +-----------+               *
  *                                                           } capacity in *
@@ -51,7 +50,7 @@ static struct s_linked_f_pointer* linked_f_pointer_free_head = NULL;
  *                                                           } _x[1]       *
  *  +---------+         +------------+         +-----------+               *
  *  |         | chan_   |            | chan_   |           |               *
- *  |  IO     | y[0][1] |    CLB     | y[1][1] |   CLB     |               *
+ *  | IO_TYPE | y[0][1] |  CLB_TYPE  | y[1][1] | CLB_TYPE  |               *
  *  |clb[0][1]|         |  clb[1][1] |         | clb[2][1] |               *
  *  |         |         |            |         |           |               *
  *  +---------+         +------------+         +-----------+               *
@@ -60,7 +59,7 @@ static struct s_linked_f_pointer* linked_f_pointer_free_head = NULL;
  *                                                           } _x[0]       *
  *                      +------------+         +-----------+               *
  *              No      |            | No      |           |               *
- *            Channel   |    IO      | Channel |   IO      |               *
+ *            Channel   | IO_TYPE    | Channel |  IO_TYPE  |               *
  *                      |  clb[1][0] |         | clb[2][0] |               *
  *                      |            |         |           |               *
  *                      +------------+         +-----------+               *
@@ -69,8 +68,6 @@ static struct s_linked_f_pointer* linked_f_pointer_free_head = NULL;
  *            Capacity in            Capacity in                           *
  *          chan_width_y[0]        chan_width_y[1]                         *
  *                                                                         */
-
-
 /******************** Subroutines local to route_common.c *******************/
 
 static void free_trace_data(struct s_trace* tptr);
@@ -608,8 +605,8 @@ struct s_trace** alloc_saved_routing(vector_t** clb_opins_used_locally,
 static vector_t** alloc_and_load_clb_opins_used_locally(subblock_data_t
                                                       subblock_data)
 {
-    /* Allocates and loads the data needed to make the router reserve some CLB  *
-     * output pins for connections made locally within a CLB (if the netlist    *
+    /* Allocates and loads the data needed to make the router reserve some CLB_TYPE  *
+     * output pins for connections made locally within a CLB_TYPE (if the netlist    *
      * specifies that this is necessary).                                       */
     vector_t** clb_opins_used_locally;
     int* num_subblocks_per_block;
@@ -621,12 +618,12 @@ static vector_t** alloc_and_load_clb_opins_used_locally(subblock_data_t
     subblock_inf = subblock_data.subblock_inf;
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
-        if (blocks[iblk].type != CLB) {
+        if (blocks[iblk].type != CLB_TYPE) {
             for (iclass = 0; iclass < num_pin_class; iclass++) {
                 clb_opins_used_locally[iblk][iclass].nelem = 0;
                 clb_opins_used_locally[iblk][iclass].list = NULL;
             }
-        } else { /* CLB */
+        } else { /* CLB_TYPE */
             for (iclass = 0; iclass < num_pin_class; iclass++) {
                 clb_opins_used_locally[iblk][iclass].nelem = 0;
             }
@@ -634,7 +631,7 @@ static vector_t** alloc_and_load_clb_opins_used_locally(subblock_data_t
             for (isub = 0; isub < num_subblocks_per_block[iblk]; isub++) {
                 clb_pin = subblock_inf[iblk][isub].output;
 
-                /* Subblock output used only locally, but must connect to a CLB OPIN?  */
+                /* Subblock output used only locally, but must connect to a CLB_TYPE OPIN?  */
                 if (clb_pin != OPEN && blocks[iblk].nets[clb_pin] == OPEN) {
                     iclass = clb_pin_class[clb_pin];
                     clb_opins_used_locally[iblk][iclass].nelem++;
@@ -1017,12 +1014,11 @@ static struct s_linked_f_pointer* alloc_linked_f_pointer(void) {
 void print_route(char* route_file)
 {
     /* Prints out the routing to file route_file.  */
-    int inet, ivex, ipin, bnum, ilow, jlow, blk_pin, iclass;
+    int inet, ivex, ipin, block_num, ilow, jlow, blk_pin, iclass;
     rr_types_t rr_type;
     struct s_trace* tptr;
     char* name_type[] = {"SOURCE", "SINK", "IPIN", "OPIN", "CHANX", "CHANY"};
-    FILE* fp;
-    fp = my_fopen(route_file, "w", 0);
+    FILE* fp = my_fopen(route_file, "w", 0);
     fprintf(fp, "Array size: %d x %d logic blocks.\n", num_of_columns, num_of_rows);
     fprintf(fp, "\nRouting:");
 
@@ -1046,9 +1042,9 @@ void print_route(char* route_file)
                 switch (rr_type) {
                     case IPIN:
                     case OPIN:
-                        if (clb[ilow][jlow].type == CLB) {
+                        if (clb_grids[ilow][jlow].type == CLB_TYPE) {
                             fprintf(fp, " Pin: ");
-                        } else { /* IO Pad. */
+                        } else { /* IO_TYPE Pad. */
                             fprintf(fp, " Pad: ");
                         }
 
@@ -1061,9 +1057,9 @@ void print_route(char* route_file)
 
                     case SOURCE:
                     case SINK:
-                        if (clb[ilow][jlow].type == CLB) {
+                        if (clb_grids[ilow][jlow].type == CLB_TYPE) {
                             fprintf(fp, " Class: ");
-                        } else { /* IO Pad. */
+                        } else { /* IO_TYPE Pad. */
                             fprintf(fp, " Pad: ");
                         }
 
@@ -1088,17 +1084,17 @@ void print_route(char* route_file)
                     net[inet].name);
 
             for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
-                bnum = net[inet].blocks[ipin];
+                block_num = net[inet].blocks[ipin];
 
-                if (blocks[bnum].type == CLB) {
+                if (blocks[block_num].type == CLB_TYPE) {
                     blk_pin = net[inet].blk_pin[ipin];
                     iclass = clb_pin_class[blk_pin];
-                } else {            /* IO pad */
+                } else {            /* IO_TYPE pad */
                     iclass = OPEN;   /* Class not relevant */
                 }
 
                 fprintf(fp, "Block %s (#%d) at (%d, %d), Pin class %d.\n",
-                        blocks[bnum].name, bnum, blocks[bnum].x, blocks[bnum].y,
+                        blocks[block_num].name, block_num, blocks[block_num].x, blocks[block_num].y,
                         iclass);
             }
         }
@@ -1119,11 +1115,11 @@ void print_route(char* route_file)
 void reserve_locally_used_opins(double pres_fac, boolean rip_up_local_opins,
                                 vector_t** clb_opins_used_locally)
 {
-    /* If some subblock outputs are hooked directly to CLB outputs, then      *
-     * some CLB outputs are occupied if their associated subblock is used     *
-     * locally, even though the inter-CLB netlist does not say those outputs  *
+    /* If some subblock outputs are hooked directly to CLB_TYPE outputs, then      *
+     * some CLB_TYPE outputs are occupied if their associated subblock is used     *
+     * locally, even though the inter-CLB_TYPE netlist does not say those outputs  *
      * have to connect to anything.  This is important when you have          *
-     * logically equivalent outputs.  Code below makes sure any CLB outputs   *
+     * logically equivalent outputs.  Code below makes sure any CLB_TYPE outputs   *
      * that are used by being directly hooked to subblocks get properly       *
      * reserved.                                                              */
     int iblk, num_local_opin, ivex, from_node, iconn, num_edges, to_node;

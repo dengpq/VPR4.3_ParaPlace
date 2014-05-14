@@ -23,14 +23,13 @@
 /* I will use 4, 6, 8 to test the speed of VPR4.3_parallel */
 #define NUM_OF_THREADS  8
 
-
 /* Block Types in input netlist file */
 typedef enum e_block_types {
-    CLB,
-    OUTPAD,
-    INPAD,
-    IO,
-    ILLEGAL
+    CLB_TYPE,
+    OUTPAD_TYPE,
+    INPAD_TYPE,
+    IO_TYPE,
+    ILLEGAL_TYPE
 } block_types_t;
 
 /* Pin is unconnected, driving a net or in the fanout, respectively. */
@@ -118,24 +117,24 @@ typedef struct s_net {
 
 /* FIXME: Data Structure about clbs or io pads in circuit netlist.   */
 /* name:  Taken from the net which it drives.                        *
- * type:  CLB, INPAD or OUTPAD                                       *
+ * type:  CLB_TYPE, INPAD_TYPE or OUTPAD_TYPE                                       *
  * nets[]:  List of nets connected to this blocks.  If nets[i] = OPEN *
             no net is connected to pin i.                            *
  * x,y:  physical location of the placed blocks.                      */
 typedef struct s_block {
     char* name;
-    enum  e_block_types type; /* CLB,INPAD,OUTPAD,IO,ILLEGAL */
+    enum  e_block_types type; /* CLB_TYPE,INPAD_TYPE,OUTPAD_TYPE,IO_TYPE,ILLEGAL */
     int*  nets; /* [0..pins_per_clb-1] */
     int   x;
     int   y;
 } block_t;
 
 /* FIXME: Data Structure about clb in FPGA chip architecture.        */
-/* type: CLB, IO or ILLEGAL.                                         *
+/* type: CLB_TYPE, IO_TYPE or ILLEGAL.                                         *
  * occ:  number of logical blocks in this physical group.            *
- * u.blocks: number of the blocks occupying this group if it is a CLB. *
+ * u.blocks: number of the blocks occupying this group if it is a CLB_TYPE. *
  * u.io_blocks[]: numbers of other blocks occupying groups (for      *
- *                IO's), up to u.io_blocks[occ-1]                   */
+ *                IO_TYPE's), up to u.io_blocks[occ-1]                   */
 typedef struct s_clb {
     block_types_t type;
     int  occ;
@@ -210,7 +209,7 @@ typedef struct s_place_region_t {
  * name:    Name of this subblock.                                     *
  * output:  Number of the clb pin which the LUT output drives, or OPEN *
  * clock:   Number of clb pin that drives the clock (or OPEN)          *
- * inputs:  [0..sub_block_lut_size-1]. Number of clb_pin that drives  * 
+ * inputs:  [0..sub_block_lut_size-1]. Number of clb_pin that drives  *
  *          this input, or (num_of_subblock_output + pins_per_clb) if *
  *          this pin is driven by a subblock output, or OPEN if unused.*/
 typedef struct s_subblock_t {
@@ -224,7 +223,7 @@ typedef struct s_subblock_t {
  * in each logic blocks). This makes it easy to pass around the subblock     *
  * data all at once. This stuff is used only for Timing-Analysis.           *
  * subblock_inf: [0..num_blocks-1][0..num_subblock_per_block[iblk]-1].      *
- *               Contents of each logic blocks. Not valid for IO blocks.     *
+ *               Contents of each logic blocks. Not valid for IO_TYPE blocks.     *
  * num_subblocks_per_block: [0..num_blocks-1]. Number of subblocks in each  *
  *                  blocks. 0 for IOs, between 1 and max_subblocks_per_block *
  *                  for CLBs.                                               *
@@ -271,7 +270,7 @@ typedef enum e_place_algorithm {
     NEW_TIMING_DRIVEN_PLACE
 } place_algorithm_t;
 
-/* Various options for VPR4.3 SA-based Placer(T-VPlace).                     * 
+/* Various options for VPR4.3 SA-based Placer(T-VPlace).                     *
  * place_algorithm:  BOUNDING_BOX_PLACE or NET_TIMING_DRIVEN_PLACE, or       *
  *                   PATH_TIMING_DRIVEN_PLACE                                *
  * timing_tradeoff:  When TIMING_DRIVEN_PLACE mode, what is the tradeoff *
@@ -301,22 +300,68 @@ typedef enum e_place_algorithm {
  * td_place_exp_last: value that the criticality exponent will be at the end */
 typedef struct s_placer_opts {
     place_algorithm_t  place_algorithm;
-    double timing_tradeoff;
-    int    block_dist;
-    enum   place_c_types place_cost_type;
-    double place_cost_exp;
-    int    place_chan_width;
-    enum   e_pad_loc_type pad_loc_type;
-    char*  pad_loc_file;
-    enum   pfreq place_freq;
-    int    num_regions;
-    int    recompute_crit_iter;
-    boolean enable_timing_computations;
-    int     inner_loop_recompute_divider;
-    double  td_place_exp_first; /* 1.0 */
-    double  td_place_exp_last;  /* 8.0 */
+    double             timing_tradeoff;
+    int                block_dist;
+    enum place_c_types place_cost_type;
+    double             place_cost_exp;
+    int                place_chan_width;
+    enum e_pad_loc_type pad_loc_type;
+    char*              pad_loc_file;
+    enum pfreq         place_freq;
+    int                num_regions;
+    int                recompute_crit_iter;
+    boolean            enable_timing_computations;
+    int                inner_loop_recompute_divider;
+    double             td_place_exp_first; /* 1.0 */
+    double             td_place_exp_last;  /* 8.0 */
 } placer_opts_t;
 
+typedef  struct s_placer_costs {
+    double  m_total_cost;
+    double  m_delay_cost;
+    double  m_bb_cost;
+    double  m_timing_cost;
+
+    double  m_av_cost;
+    double  m_av_bb_cost;
+    double  m_av_timing_cost;
+    double  m_av_delay_cost;
+
+    double  m_inverse_prev_bb_cost;
+    double  m_inverse_prev_timing_cost;
+} placer_costs_t;
+
+typedef  struct s_placer_paras {
+    boolean   m_fixed_pins;
+    int       m_width_factor;
+
+    /* sum_of_squares = total_cost * total_cost; */
+    placer_costs_t*  m_place_costs_ptr;
+
+    double    m_sum_of_squares;
+    int       m_num_connections;
+    double    m_place_delay_value;
+    /* crit_exponent was depend on range_limit */
+    double    m_max_delay;
+    double    m_crit_exponent;
+
+    int       m_outer_crit_iter_count;
+    int       m_move_limit;
+    int       m_inner_crit_iter_count;
+    int       m_inner_recompute_limit;
+    /* update temperature range_limit was depend on sucess_ratio*/
+    double    m_range_limit;
+    double    m_final_rlim;
+    double    m_inverse_delta_rlim;
+    /* temperature and old_temperature */
+    double    m_temper; /* temperature update was depend on sucess_ratio */
+    double    m_old_temper;
+
+    int       m_total_iter;    /* total_iter += move_limit */
+    int       m_success_sum;   /* ++success_sum */
+    int       m_success_ratio; /* ratio = success_sum / total_iter */
+    double    m_std_dev;
+} placer_paras_t;
 /******************************************************************************
  * Now declearing the data structures used for VPR4.3 PathFinder-based Router *
  *****************************************************************************/
@@ -357,7 +402,7 @@ typedef enum e_router_base_cost_type {
  * router_base_cost_type: Specifies how to compute the base cost of each type of rr_node.  *
  *                 INTRINSIC_DELAY->base_cost = intrinsic Tdel of each node.       *
  *                 DELAY_NORMALIZED->base_cost = "demand" x average Tdel to route  *
- *                 past 1 CLB. DEMAND_ONLY->expected demand of this node(old BFS cost)*
+ *                 past 1 CLB_TYPE. DEMAND_ONLY->expected demand of this node(old BFS cost)*
  *                 (bn for each rr_node)                                             *
  * The following parameters are used only by the Timing-Driven Router.      *
  * astar_fac:  Factor (alpha) used to weight expected future costs to       *
@@ -540,7 +585,7 @@ typedef struct {
  * *T_subblock: Array giving the Tdel through each subblock.               *
  *              [0..max_subblocks_per_block - 1]                            */
 typedef struct s_timing_inf {
-    boolean timing_analysis_enabled;
+    boolean  timing_analysis_enabled;
     double   C_ipin_cblock;
     double   T_ipin_cblock;
 

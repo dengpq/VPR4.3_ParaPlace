@@ -5,7 +5,7 @@
 
 /* Array for mapping from a PIN(on a blocks) to a TNODE index. For pads, only *
  * the first two pin locations are used(INPUT of pad is first, output of pad *
- * pad is second). For CLBs, all OPEN pins on the CLB have their mapping set *
+ * pad is second). For CLBs, all OPEN pins on the CLB_TYPE have their mapping set *
  * to OPEN so I won't use it by mistake.                                     */
 int** block_pin_to_tnode; /* [0..num_blocks-1][0..pins_per_clb-1] */
 

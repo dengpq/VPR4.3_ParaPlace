@@ -52,7 +52,7 @@ boolean try_breadth_first_route(router_opts_t router_opts,
             }
         }
 
-        /* Make sure any CLB OPINs used up by subblocks being hooked directly  *
+        /* Make sure any CLB_TYPE OPINs used up by subblocks being hooked directly  *
          * to them are reserved for that purpose.                              */
         boolean rip_up_local_opins;
         if (itry == 1) {

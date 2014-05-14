@@ -173,7 +173,7 @@ static void load_rr_indexed_data_base_costs(int nodes_per_chan, int**
 static double get_delay_normalization_fac(int nodes_per_chan, int**
                                          rr_node_indices)
 {
-    /* Returns the average Tdel to go 1 CLB distance along a wire.  */
+    /* Returns the average Tdel to go 1 CLB_TYPE distance along a wire.  */
     const int clb_dist = 3;  /* Number of CLBs I think the average conn. goes. */
     int ivex, itrack, cost_index;
     double Tdel, delay_sum, frac_num_seg;

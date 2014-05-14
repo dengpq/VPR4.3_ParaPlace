@@ -157,17 +157,16 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
 {
     /* Checks that this SINK node is one of the terminals of inet, and marks   *
      * the appropriate pin as being reached.                                   */
-    int i, j, ipin, ifound, ptc_num, bnum, iclass, blk_pin;
-    i = rr_node[ivex].xlow;
-    j = rr_node[ivex].ylow;
-    ptc_num = rr_node[ivex].ptc_num;
-    ifound = 0;
+    int i = rr_node[ivex].xlow;
+    int j = rr_node[ivex].ylow;
+    int ptc_num = rr_node[ivex].ptc_num;
+    int ifound = 0;
 
-    if (clb[i][j].type == CLB) {
-        bnum = clb[i][j].u.blocks;
-
+    int ipin, block_num, iclass, blk_pin;
+    if (clb_grids[i][j].type == CLB_TYPE) {
+        block_num = clb_grids[i][j].u.blocks;
         for (ipin = 1; ipin < net[inet].num_pins; ipin++) { /* All net SINKs */
-            if (net[inet].blocks[ipin] == bnum) {
+            if (net[inet].blocks[ipin] == block_num) {
                 blk_pin = net[inet].blk_pin[ipin];
                 iclass = clb_pin_class[blk_pin];
 
@@ -182,11 +181,11 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
                 }
             }
         }
-    } else { /* IO pad */
-        bnum = clb[i][j].u.io_blocks[ptc_num];
+    } else { /* IO_TYPE pad */
+        block_num = clb_grids[i][j].u.io_blocks[ptc_num];
 
         for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
-            if (net[inet].blocks[ipin] == bnum) {   /* Pad:  no pin class */
+            if (net[inet].blocks[ipin] == block_num) {   /* Pad:  no pin class */
                 ifound++;
                 pin_done[ipin] = TRUE;
             }
@@ -211,7 +210,7 @@ static void check_source(int ivex, int inet)
 {
     /* Checks that the node passed in is a valid source for this net.        */
     rr_types_t rr_type;
-    int i, j, ptc_num, bnum, blk_pin, iclass;
+    int i, j, ptc_num, block_num, blk_pin, iclass;
     rr_type = rr_node[ivex].type;
 
     if (rr_type != SOURCE) {
@@ -223,15 +222,15 @@ static void check_source(int ivex, int inet)
     i = rr_node[ivex].xlow;
     j = rr_node[ivex].ylow;
     ptc_num = rr_node[ivex].ptc_num;
-    bnum = net[inet].blocks[0];
+    block_num = net[inet].blocks[0];
 
-    if (blocks[bnum].x != i || blocks[bnum].y != j) {
+    if (blocks[block_num].x != i || blocks[block_num].y != j) {
         printf("Error in check_source:  net SOURCE is in wrong location (%d,%d)."
                "\n", i, j);
         exit(1);
     }
 
-    if (blocks[bnum].type == CLB) {
+    if (blocks[block_num].type == CLB_TYPE) {
         blk_pin = net[inet].blk_pin[0];
         iclass = clb_pin_class[blk_pin];
 
@@ -240,8 +239,8 @@ static void check_source(int ivex, int inet)
                    ptc_num);
             exit(1);
         }
-    } else {  /* IO Pad.  NB:  check_node ensured ptc_num < occ of this pad.  */
-        if (clb[i][j].u.io_blocks[ptc_num] != bnum) {
+    } else {  /* IO_TYPE Pad.  NB:  check_node ensured ptc_num < occ of this pad.  */
+        if (clb_grids[i][j].u.io_blocks[ptc_num] != block_num) {
             printf("Error in check_source:  net SOURCE is at wrong pad (pad #%d)."
                    "\n", ptc_num);
             exit(1);
@@ -303,13 +302,9 @@ static boolean check_adjacent(int from_node, int to_node)
      * It returns TRUE if is reachable and FALSE if it is not.  Check_node has   *
      * already been used to verify that both nodes are valid rr_nodes, so only   *
      * adjacency is checked here.                                                */
-    int from_xlow, from_ylow, to_xlow, to_ylow, from_ptc, to_ptc, iclass;
-    int num_adj, to_xhigh, to_yhigh, from_xhigh, from_yhigh, iconn;
-    boolean reached;
-    rr_types_t from_type, to_type;
-    reached = FALSE;
-
-    for (iconn = 0; iconn < rr_node[from_node].num_edges; iconn++) {
+    boolean reached = FALSE;
+    int iconn = -1;
+    for (iconn = 0; iconn < rr_node[from_node].num_edges; ++iconn) {
         if (rr_node[from_node].edges[iconn] == to_node) {
             reached = TRUE;
             break;
@@ -322,44 +317,43 @@ static boolean check_adjacent(int from_node, int to_node)
 
     /* Now we know the rr graph says these two nodes are adjacent.  Double  *
      * check that this makes sense, to verify the rr graph.                 */
-    num_adj = 0;
-    from_type = rr_node[from_node].type;
-    from_xlow = rr_node[from_node].xlow;
-    from_ylow = rr_node[from_node].ylow;
-    from_ptc = rr_node[from_node].ptc_num;
-    to_type = rr_node[to_node].type;
-    to_xlow = rr_node[to_node].xlow;
-    to_ylow = rr_node[to_node].ylow;
-    to_ptc = rr_node[to_node].ptc_num;
+    int num_adj = 0;
+    rr_types_t from_type = rr_node[from_node].type;
+    int from_xlow = rr_node[from_node].xlow;
+    int from_ylow = rr_node[from_node].ylow;
+    int from_ptc = rr_node[from_node].ptc_num;
 
+    rr_types_t to_type = rr_node[to_node].type;
+    int to_xlow = rr_node[to_node].xlow;
+    int to_ylow = rr_node[to_node].ylow;
+    int to_ptc = rr_node[to_node].ptc_num;
+
+    int to_xhigh, to_yhigh, from_xhigh, from_yhigh;
     switch (from_type) {
         case SOURCE:
             if (to_type == OPIN) {
                 if (from_xlow == to_xlow && from_ylow == to_ylow) {
-                    if (clb[to_xlow][to_ylow].type == CLB) {
-                        iclass = clb_pin_class[to_ptc];
-
+                    if (clb_grids[to_xlow][to_ylow].type == CLB_TYPE) {
+                        int iclass = clb_pin_class[to_ptc];
                         if (iclass == from_ptc) {
-                            num_adj++;
+                            ++num_adj;
                         }
-                    } else { /* IO blocks */
+                    } else { /* IO_TYPE blocks */
                         if (to_ptc == from_ptc) {
-                            num_adj++;
+                            ++num_adj;
                         }
                     }
                 }
             }
-
             break;
 
         case SINK:
             if (to_type == SOURCE) {   /* Feedthrough.  Not in code as yet. */
                 if (from_xlow == to_xlow && from_ylow == to_ylow &&
-                        clb[to_xlow][to_ylow].type == CLB) {
-                    num_adj++;
+                        clb_grids[to_xlow][to_ylow].type == CLB_TYPE) {
+                    ++num_adj;
                 }
             }
-
             break;
 
         case OPIN:
@@ -371,19 +365,18 @@ static boolean check_adjacent(int from_node, int to_node)
 
         case IPIN:
             if (to_type == SINK && from_xlow == to_xlow && from_ylow == to_ylow) {
-                if (clb[from_xlow][from_ylow].type == CLB) {
-                    iclass = clb_pin_class[from_ptc];
+                if (clb_grids[from_xlow][from_ylow].type == CLB_TYPE) {
 
+                    int iclass = clb_pin_class[from_ptc];
                     if (iclass == to_ptc) {
-                        num_adj++;
+                        ++num_adj;
                     }
-                } else {  /* OUTPAD */
+                } else {  /* OUTPAD_TYPE */
                     if (from_ptc == to_ptc) {
-                        num_adj++;
+                        ++num_adj;
                     }
                 }
             }
-
             break;
 
         case CHANX:
@@ -395,7 +388,7 @@ static boolean check_adjacent(int from_node, int to_node)
 
                 if (from_ylow == to_ylow) {
                     if (to_xhigh == from_xlow - 1 || from_xhigh == to_xlow - 1) {
-                        num_adj++;
+                        ++num_adj;
                     }
                 }
             } else if (to_type == CHANY) {
@@ -413,7 +406,7 @@ static boolean check_adjacent(int from_node, int to_node)
 
                 if (from_xlow == to_xlow) {
                     if (to_yhigh == from_ylow - 1 || from_yhigh == to_ylow - 1) {
-                        num_adj++;
+                        ++num_adj;
                     }
                 }
             } else if (to_type == CHANX) {
@@ -434,31 +427,27 @@ static boolean check_adjacent(int from_node, int to_node)
 
     printf("Error in check_adjacent: num_adj = %d. Expected 0 or 1.\n", num_adj);
     exit(1);
-}
+}  /* end of static boolean check_adjacent(int from_node, int to_node) */
 
 
 static int chanx_chany_adjacent(int chanx_node, int chany_node)
 {
     /* Returns 1 if the specified CHANX and CHANY nodes are adjacent, 0         *
      * otherwise.                                                               */
-    int chanx_y, chanx_xlow, chanx_xhigh;
-    int chany_x, chany_ylow, chany_yhigh;
-    chanx_y = rr_node[chanx_node].ylow;
-    chanx_xlow = rr_node[chanx_node].xlow;
-    chanx_xhigh = rr_node[chanx_node].xhigh;
-    chany_x = rr_node[chany_node].xlow;
-    chany_ylow = rr_node[chany_node].ylow;
-    chany_yhigh = rr_node[chany_node].yhigh;
+    int chanx_y = rr_node[chanx_node].ylow;
+    int chanx_xlow = rr_node[chanx_node].xlow;
+    int chanx_xhigh = rr_node[chanx_node].xhigh;
 
-    if (chany_ylow > chanx_y + 1 || chany_yhigh < chanx_y) {
-        return (0);
+    int chany_x = rr_node[chany_node].xlow;
+    int chany_ylow = rr_node[chany_node].ylow;
+    int chany_yhigh = rr_node[chany_node].yhigh;
+
+    if (chany_ylow > chanx_y + 1 || chany_yhigh < chanx_y
+          || chanx_xlow > chany_x + 1 || chanx_xhigh < chany_x) {
+        return 0;
     }
 
-    if (chanx_xlow > chany_x + 1 || chanx_xhigh < chany_x) {
-        return (0);
-    }
-
-    return (1);
+    return 1;
 }
 
 
@@ -467,46 +456,43 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
     /* Checks if pin_node is adjacent to chan_node.  It returns 1 if the two   *
      * nodes are adjacent and 0 if they are not (any other value means there's *
      * a bug in this routine).                                                 */
-    int num_adj, pin_x, pin_y, chan_xlow, chan_ylow, chan_xhigh, chan_yhigh;
-    int pin_ptc;
-    rr_types_t chan_type;
-    num_adj = 0;
-    pin_x = rr_node[pin_node].xlow;
-    pin_y = rr_node[pin_node].ylow;
-    pin_ptc = rr_node[pin_node].ptc_num;
-    chan_type = rr_node[chan_node].type;
-    chan_xlow = rr_node[chan_node].xlow;
-    chan_ylow = rr_node[chan_node].ylow;
-    chan_xhigh = rr_node[chan_node].xhigh;
-    chan_yhigh = rr_node[chan_node].yhigh;
+    int num_adj = 0;
+    int pin_x = rr_node[pin_node].xlow;
+    int pin_y = rr_node[pin_node].ylow;
+    int pin_ptc = rr_node[pin_node].ptc_num;
+    rr_types_t chan_type = rr_node[chan_node].type;
+    int chan_xlow = rr_node[chan_node].xlow;
+    int chan_ylow = rr_node[chan_node].ylow;
+    int chan_xhigh = rr_node[chan_node].xhigh;
+    int chan_yhigh = rr_node[chan_node].yhigh;
 
-    if (clb[pin_x][pin_y].type == CLB) {
+    if (clb_grids[pin_x][pin_y].type == CLB_TYPE) {
         if (chan_type == CHANX) {
-            if (chan_ylow == pin_y) {   /* CHANX above CLB */
+            if (chan_ylow == pin_y) {   /* CHANX above CLB_TYPE */
                 if (pinloc[TOP][pin_ptc] == 1 && pin_x <= chan_xhigh &&
                         pin_x >= chan_xlow) {
                     num_adj++;
                 }
-            } else if (chan_ylow == pin_y - 1) { /* CHANX below CLB */
+            } else if (chan_ylow == pin_y - 1) { /* CHANX below CLB_TYPE */
                 if (pinloc[BOTTOM][pin_ptc] == 1 && pin_x <= chan_xhigh &&
                         pin_x >= chan_xlow) {
                     num_adj++;
                 }
             }
         } else if (chan_type == CHANY) {
-            if (chan_xlow == pin_x) {   /* CHANY to right of CLB */
+            if (chan_xlow == pin_x) {   /* CHANY to right of CLB_TYPE */
                 if (pinloc[RIGHT][pin_ptc] == 1 && pin_y <= chan_yhigh &&
                         pin_y >= chan_ylow) {
                     num_adj++;
                 }
-            } else if (chan_xlow == pin_x - 1) { /* CHANY to left of CLB */
+            } else if (chan_xlow == pin_x - 1) { /* CHANY to left of CLB_TYPE */
                 if (pinloc[LEFT][pin_ptc] == 1 && pin_y <= chan_yhigh &&
                         pin_y >= chan_ylow) {
                     num_adj++;
                 }
             }
         }
-    } else {          /* IO pad */
+    } else {          /* IO_TYPE pad */
         if (pin_y == 0) {    /* Bottom row of pads. */
             if (chan_type == CHANX && chan_ylow == 0 && pin_x <= chan_xhigh &&
                     pin_x >= chan_xlow) {
@@ -577,8 +563,8 @@ static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally)
         }
     }
 
-    /* Now update the occupancy of each of the "locally used" OPINs on each CLB *
-     * (CLB outputs used up by being directly wired to subblocks used only      *
+    /* Now update the occupancy of each of the "locally used" OPINs on each CLB_TYPE *
+     * (CLB_TYPE outputs used up by being directly wired to subblocks used only      *
      * locally).                                                                */
 
     for (iblk = 0; iblk < num_blocks; iblk++) {

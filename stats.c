@@ -331,18 +331,18 @@ void print_lambda(void)
     /* Finds the average number of input pins used per clb.  Does not   *
      * count inputs which are hooked to global nets (i.e. the clock     *
      * when it is marked global).                                       */
-    int bnum, ipin;
+    int block_num, ipin;
     int num_inputs_used = 0;
     int iclass, inet;
     double lambda;
 
-    for (bnum = 0; bnum < num_blocks; bnum++) {
-        if (blocks[bnum].type == CLB) {
+    for (block_num = 0; block_num < num_blocks; block_num++) {
+        if (blocks[block_num].type == CLB_TYPE) {
             for (ipin = 0; ipin < pins_per_clb; ipin++) {
                 iclass = clb_pin_class[ipin];
 
                 if (class_inf[iclass].type == RECEIVER) {
-                    inet = blocks[bnum].nets[ipin];
+                    inet = blocks[block_num].nets[ipin];
 
                     if (inet != OPEN)               /* Pin is connected? */
                         if (is_global[inet] == FALSE) {  /* Not a global clock */
