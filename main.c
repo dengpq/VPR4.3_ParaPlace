@@ -30,8 +30,8 @@ boolean* is_global; /* FALSE if a net is normal, TRUE if it is. */
 double ground_num;
 
 /********** Physical architecture stuff ****************/
-int num_of_columns;  /* num_of_block_columns */
-int num_of_rows;  /* num_of_block_rows */
+int num_grid_columns;  /* num_of_block_columns */
+int num_grid_rows;  /* num_of_block_rows */
 int io_rat;
 int pins_per_clb;
 /* Pinloc[0..3][0..pins_per_clb-1].  For each pin pinloc[0..3][i] is 1 if    *
@@ -56,7 +56,7 @@ pin_class_t* class_inf;   /* class_inf[0..num_pin_class-1].  Provides   *
                            * information on all available classes.  */
 int num_pin_class; /* Number of different classes.  */
 
-int* chan_width_x, *chan_width_y; /* [0..num_of_rows] and [0..num_of_columns] respectively  */
+int* chan_width_x, *chan_width_y; /* [0..num_grid_rows] and [0..num_grid_columns] respectively  */
 
 clb_t** clb_grids;   /* Architecture blocks list */
 
@@ -87,7 +87,7 @@ switch_info_t* switch_inf; /* [0..det_routing_arch.num_switch-1] */
 int** rr_clb_source; /* [0..num_blocks-1][0..num_pin_class-1]*/
 
 /********************** Subroutines local to this module ********************/
-static void get_input(char* net_file, char* arch_file, int place_cost_type,
+static void get_input(char* netlist_file, char* arch_file, int place_cost_type,
                       int num_regions, double aspect_ratio, boolean user_sized,
                       router_types_t route_type, detail_routing_arch_t
                       *det_routing_arch, segment_info_t** segment_inf_ptr,
@@ -96,7 +96,7 @@ static void get_input(char* net_file, char* arch_file, int place_cost_type,
 
 static void parse_command(int argc,
                           char* argv[],
-                          char* net_file,
+                          char* netlist_file,
                           char* arch_file,
                           char* place_file,
                           char* route_file,
@@ -127,7 +127,7 @@ int main(int argc, char* argv[])
                    "This code is licensed only for non-commercial use.\n\n";
     printf("%s", title);
 
-    char net_file[BUFSIZE];
+    char netlist_file[BUFSIZE];
     char arch_file[BUFSIZE];
 
     char place_file[BUFSIZE];
@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
     /* Parse the command line. */
     parse_command(argc,
                   argv,
-                  net_file,
+                  netlist_file,
                   arch_file,
                   place_file,
                   route_file,
@@ -173,7 +173,7 @@ int main(int argc, char* argv[])
                   &timing_inf.timing_analysis_enabled,
                   &constant_net_delay);
     /* Parse input circuit and architecture */
-    get_input(net_file,
+    get_input(netlist_file,
               arch_file,
               placer_opts.place_cost_type,
               placer_opts.num_regions,
@@ -190,7 +190,9 @@ int main(int argc, char* argv[])
     }
 
 #ifdef DEBUG
-    print_netlist("net.echo", net_file, subblock_data);
+    print_netlist("net.echo",
+                  netlist_file,
+                  subblock_data);
     print_arch(arch_file,
                router_opts.route_type,
                det_routing_arch,
@@ -224,7 +226,7 @@ int main(int argc, char* argv[])
     place_and_route(operation,
                     placer_opts,
                     place_file,
-                    net_file,
+                    netlist_file,
                     arch_file,
                     route_file,
                     full_stats,
@@ -249,7 +251,7 @@ int main(int argc, char* argv[])
 
 static void parse_command(int argc,
                           char* argv[],
-                          char* net_file,
+                          char* netlist_file,
                           char* arch_file,
                           char* place_file,
                           char* route_file,
@@ -273,9 +275,9 @@ static void parse_command(int argc,
     boolean do_one_nonlinear_place = FALSE;
     boolean bend_cost_set = FALSE;
     boolean router_base_cost_type_set = FALSE;
-    /* Allows me to see if num_of_columns and or num_of_rows have been set. */
-    num_of_columns = 0;
-    num_of_rows = 0;
+    /* Allows me to see if num_grid_columns and or num_grid_rows have been set. */
+    num_grid_columns = 0;
+    num_grid_rows = 0;
     *operation = PLACE_AND_ROUTE;
     annealing_sched->type = AUTO_SCHED;
     annealing_sched->inner_num = 10.0;
@@ -298,6 +300,8 @@ static void parse_command(int argc,
                           *no inner loop recomputes be done*/
     placer_opts->td_place_exp_first = 1; /*exponentiation starts at 1 */
     placer_opts->td_place_exp_last = 8;   /*experimental results indicate 8 is good*/
+    /* NEW added for support parallel placement, default was FALSE. */
+    placer_opts->place_parallel = FALSE;
     /* Old values for breadth first router: first_iter_pres_fac = 0, *
      * pres_fac_mult = 2, acc_fac = 0.2.                             */
     router_opts->router_algorithm = TIMING_DRIVEN;
@@ -324,17 +328,19 @@ static void parse_command(int argc,
     *constant_net_delay = -1;
 
     /* Second parsing the command line. First four arguments are not optional. *
-     * If user didn't input the required parameters, print the help info.     */ 
+     * If user didn't input the required parameters, print the help info.     */
     if (argc < 5) {
         printf("Usage:  vpr circuit.net fpga.arch placed.out routed.out "
                "[Options ...]\n\n");
         printf("General Options:  [-nodisp] [-auto <int>] [-route_only]\n");
         printf("\t[-place_only] [-timing_analyze_only_with_net_delay <double>]\n");
-        printf("\t[-aspect_ratio <double>] [-num_of_columns <int>] [-num_of_rows <int>] [-fast]\n");
+        printf("\t[-aspect_ratio <double>] [-num_grid_columns <int>] [-num_grid_rows <int>] [-fast]\n");
         printf("\t[-full_stats] [-timing_analysis on | off]\n");
         printf("\nPlacer Options: \n");
         printf("\t[-place_algorithm bounding_box | net_timing_driven | path_timing_driven | new_timing_driven]\n");
         printf("\t[-ground_num <double>]\n");
+        /* New added for support Placement Parallel */
+        printf("\t[-place_parallel on | off]");
         printf("\t[-init_t <double>] [-exit_t <double>]\n");
         printf("\t[-alpha_t <double>] [-inner_num <double>] [-seed <int>]\n");
         printf("\t[-place_cost_exp <double>] [-place_cost_type linear | "
@@ -362,8 +368,8 @@ static void parse_command(int argc,
                "\t[-astar_fac <double>] [-max_criticality <double>]\n"
                "\t[-criticality_exp <double>]\n\n");
         exit(1);
-    }
-    strncpy(net_file, argv[1], BUFSIZE);
+    }  /* end of if (argc < 5) */
+    strncpy(netlist_file, argv[1], BUFSIZE);
     strncpy(arch_file, argv[2], BUFSIZE);
     strncpy(place_file, argv[3], BUFSIZE);
     strncpy(route_file, argv[4], BUFSIZE);
@@ -448,12 +454,12 @@ static void parse_command(int argc,
             continue;
         }
 
-        if (strcmp(argv[i], "-num_of_columns") == 0) {
-            num_of_columns = read_int_option(argc, argv, i);
+        if (strcmp(argv[i], "-num_grid_columns") == 0) {
+            num_grid_columns = read_int_option(argc, argv, i);
             *user_sized = TRUE;
 
-            if (num_of_columns <= 0) {
-                printf("Error:  -num_of_columns value must be greater than 0.\n");
+            if (num_grid_columns <= 0) {
+                printf("Error:  -num_grid_columns value must be greater than 0.\n");
                 exit(1);
             }
 
@@ -461,12 +467,12 @@ static void parse_command(int argc,
             continue;
         }
 
-        if (strcmp(argv[i], "-num_of_rows") == 0) {
-            num_of_rows = read_int_option(argc, argv, i);
+        if (strcmp(argv[i], "-num_grid_rows") == 0) {
+            num_grid_rows = read_int_option(argc, argv, i);
             *user_sized = TRUE;
 
-            if (num_of_rows <= 0) {
-                printf("Error:  -num_of_rows value must be greater than 0.\n");
+            if (num_grid_rows <= 0) {
+                printf("Error:  -num_grid_rows value must be greater than 0.\n");
                 exit(1);
             }
 
@@ -620,13 +626,13 @@ static void parse_command(int argc,
                 exit(1);
             }
 
-            if (strcmp(argv[i + 1], "bounding_box") == 0) {
+            if (strcmp(argv[i+1], "bounding_box") == 0) {
                 placer_opts->place_algorithm = BOUNDING_BOX_PLACE;
-            } else if (strcmp(argv[i + 1], "net_timing_driven") == 0) {
+            } else if (strcmp(argv[i+1], "net_timing_driven") == 0) {
                 placer_opts->place_algorithm = NET_TIMING_DRIVEN_PLACE;
-            } else if (strcmp(argv[i + 1], "path_timing_driven") == 0) {
+            } else if (strcmp(argv[i+1], "path_timing_driven") == 0) {
                 placer_opts->place_algorithm = PATH_TIMING_DRIVEN_PLACE;
-            } else if (strcmp(argv[i + 1], "new_timing_driven") == 0) {
+            } else if (strcmp(argv[i+1], "new_timing_driven") == 0) {
                 placer_opts->place_algorithm = NEW_TIMING_DRIVEN_PLACE;
             } else {
                 printf("Error:  -place_algorithm must be bounding_box, "
@@ -647,6 +653,24 @@ static void parse_command(int argc,
             ground_num = atof(argv[i+1]);
             if (ground_num < 0.0) {
                 printf("Error: ground_num must bigger than 0!\n");
+            }
+            i += 2;
+            continue;
+        }
+        /* New added for supporting placement parallel */
+        if (strcmp(argv[i], "-place_parallel") == 0) {
+            if (argc <= i + 1) {
+                printf("Error: should set whether use parallel placement explicity.\n");
+                exit(1);
+            }
+
+            if (strcmp(argv[i+1], "on") == 0) {
+                placer_opts->place_parallel = TRUE;
+            } else if (strcmp(argv[i+1], "off") == 0) {
+                placer_opts->place_parallel = FALSE;
+            } else {
+                printf("Error: only can use on or off options.\n");
+                exit(1);
             }
             i += 2;
             continue;
@@ -1059,7 +1083,6 @@ static void parse_command(int argc,
 
     /* Now echo back the options the user has selected. */
     printf("\nGeneral Options:\n");
-
     if (*aspect_ratio != 1.0) {
         printf("\tFPGA will have a width/length ratio of %g.\n",
                *aspect_ratio);
@@ -1068,18 +1091,18 @@ static void parse_command(int argc,
     if (*user_sized == TRUE) {
         printf("\tThe FPGA size has been specified by the user.\n");
 
-        /* If one of num_of_columns or num_of_rows was unspecified, compute it from the other and  *
+        /* If one of num_grid_columns or num_grid_rows was unspecified, compute it from the other and  *
          * the aspect ratio.  If both are unspecified, wait till the netlist  *
-         * is read and compute the smallest possible num_of_columns and num_of_rows in read_arch.  */
-
-        if (num_of_rows == 0) {
-            num_of_rows = (double)num_of_columns / (double)(*aspect_ratio);
-        } else if (num_of_columns == 0) {
-            num_of_columns = num_of_rows *  *aspect_ratio;
-        } else if (*aspect_ratio != 1 && *aspect_ratio != num_of_columns / num_of_rows) {
+         * is read and compute the smallest possible num_grid_columns and num_grid_rows in read_arch.  */
+        if (num_grid_rows == 0) {
+            num_grid_rows = (double)num_grid_columns / (double)(*aspect_ratio);
+        } else if (num_grid_columns == 0) {
+            num_grid_columns = num_grid_rows *  *aspect_ratio;
+        } else if (*aspect_ratio != 1 && *aspect_ratio !=
+                num_grid_columns / num_grid_rows) {
             printf("\nError:  User-specified size and aspect ratio do\n");
             printf("not match.  Note that aspect ratio does not have to\n");
-            printf("be specified if both num_of_columns and num_of_rows are specified.\n");
+            printf("be specified if both num_grid_columns and num_grid_rows are specified.\n");
             exit(1);
         }
     }
@@ -1191,6 +1214,13 @@ static void parse_command(int argc,
             router_opts->router_base_cost_type = DELAY_NORMALIZED;    /*needed when computing  placement lookup matricies*/
         }
 
+        /* New added for display whether place parallel */
+        if (placer_opts->place_parallel == FALSE) {
+            printf("\tPlacer will use single-thread.\n");
+        } else {
+            printf("\tPlacer will use multi-threads to place parallel.\n");
+        }
+
         printf("\tInitial random seed: %d\n", seed);
         my_srandom(seed);
     }   /* End of echo placement options. */
@@ -1283,7 +1313,7 @@ static void parse_command(int argc,
 }
 
 
-static void get_input(char* net_file,
+static void get_input(char* netlist_file,
                       char* arch_file,
                       int place_cost_type,
                       int num_regions,
@@ -1342,9 +1372,9 @@ static void get_input(char* net_file,
     }
 
     printf("\n");
-    printf("Reading the circuit netlist from %s.\n", net_file);
-    read_netlist(net_file, subblock_data_ptr);
-    printf("Successfully read %s.\n", net_file);
+    printf("Reading the circuit netlist from %s.\n", netlist_file);
+    read_netlist(netlist_file, subblock_data_ptr);
+    printf("Successfully read %s.\n", netlist_file);
     printf("%d blocks, %d nets, %d global nets.\n", num_blocks, num_nets,
            num_globals);
     printf("%d clbs, %d inputs, %d outputs.\n", num_clbs, num_primary_inputs,
@@ -1354,10 +1384,10 @@ static void get_input(char* net_file,
     init_arch(aspect_ratio,
               user_sized);
     printf("The circuit will be mapped into a %d x %d array of clbs.\n\n",
-           num_of_columns, num_of_rows);
+           num_grid_columns, num_grid_rows);
 
-    if (place_cost_type == NONLINEAR_CONG && (num_regions > num_of_columns ||
-                                              num_regions > num_of_rows)) {
+    if (place_cost_type == NONLINEAR_CONG && (num_regions > num_grid_columns ||
+                                              num_regions > num_grid_rows)) {
         printf("Error:  Cannot use more regions than clbs in placement cost "
                "function.\n");
         exit(1);

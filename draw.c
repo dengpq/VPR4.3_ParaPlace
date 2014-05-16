@@ -47,9 +47,9 @@ static enum pic_type pic_on_screen = NO_PICTURE;  /* What do I draw? */
 static double* x_clb_left, *y_clb_bottom;
 
 /* The left and bottom coordinates of each clb in the FPGA.               *
- * x_clb_left[0..num_of_columns+1] and y_clb_bottom[0..num_of_rows+1].                         *
+ * x_clb_left[0..num_grid_columns+1] and y_clb_bottom[0..num_grid_rows+1].                         *
  * COORDINATE SYSTEM goes from (0,0) at the lower left corner to          *
- * (x_clb_left[num_of_columns+1]+clb_width, y_clb_bottom[num_of_rows+1]+clb_width) in the      *
+ * (x_clb_left[num_grid_columns+1]+clb_width, y_clb_bottom[num_grid_rows+1]+clb_width) in the      *
  * upper right corner.                                                    */
 
 
@@ -324,8 +324,8 @@ void alloc_draw_structs(void)
 {
     /* Allocate the structures needed to draw the placement and routing.  Set *
      * up the default colors for blocks and nets.                             */
-    x_clb_left = (double*) my_malloc((num_of_columns + 2) * sizeof(double));
-    y_clb_bottom = (double*) my_malloc((num_of_rows + 2) * sizeof(double));
+    x_clb_left = (double*) my_malloc((num_grid_columns + 2) * sizeof(double));
+    y_clb_bottom = (double*) my_malloc((num_grid_rows + 2) * sizeof(double));
     net_color = (enum color_types*) my_malloc(num_nets *
                                               sizeof(enum color_types));
     block_color = (enum color_types*) my_malloc(num_blocks *
@@ -351,18 +351,18 @@ void init_draw_coords(double clb_width_val)
     pin_size = min(pin_size, 0.3);
     x_clb_left[0] = 0.;
 
-    for (i = 1; i <= num_of_columns + 1; i++) {
+    for (i = 1; i <= num_grid_columns + 1; i++) {
         x_clb_left[i] = x_clb_left[i - 1] + clb_width + chan_width_y[i - 1] + 1.;
     }
 
     y_clb_bottom[0] = 0.;
 
-    for (i = 1; i <= num_of_rows + 1; i++)
+    for (i = 1; i <= num_grid_rows + 1; i++)
         y_clb_bottom[i] = y_clb_bottom[i - 1] + clb_width +
                           chan_width_x[i - 1] + 1.;
 
-    init_world(0., y_clb_bottom[num_of_rows + 1] + clb_width,
-               x_clb_left[num_of_columns + 1] + clb_width, 0.);
+    init_world(0., y_clb_bottom[num_grid_rows + 1] + clb_width,
+               x_clb_left[num_grid_columns + 1] + clb_width, 0.);
 }
 
 
@@ -376,8 +376,8 @@ static void drawplace(void)
     /* Draw the IO_TYPE Pads first. Want each subblock to border on core. */
     setlinewidth(0);
 
-    for (i = 1; i <= num_of_columns; i++) {
-        for (j = 0; j <= num_of_rows + 1; j += num_of_rows + 1) { /* top and bottom */
+    for (i = 1; i <= num_grid_columns; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j += num_grid_rows + 1) { /* top and bottom */
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
             setlinestyle(SOLID);
@@ -406,8 +406,8 @@ static void drawplace(void)
         }
     }
 
-    for (j = 1; j <= num_of_rows; j++) {
-        for (i = 0; i <= num_of_columns + 1; i += num_of_columns + 1) { /* IOs on left and right */
+    for (j = 1; j <= num_grid_rows; j++) {
+        for (i = 0; i <= num_grid_columns + 1; i += num_grid_columns + 1) { /* IOs on left and right */
             x1 = x_clb_left[i];
             x2 = x1 + clb_width;
             setlinestyle(SOLID);
@@ -437,11 +437,11 @@ static void drawplace(void)
 
     /* Now do the CLBs in the middle. */
 
-    for (i = 1; i <= num_of_columns; i++) {
+    for (i = 1; i <= num_grid_columns; i++) {
         x1 = x_clb_left[i];
         x2 = x1 + clb_width;
 
-        for (j = 1; j <= num_of_rows; j++) {
+        for (j = 1; j <= num_grid_rows; j++) {
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
 
@@ -515,7 +515,7 @@ static void get_block_center(int block_num, double* x, double* y)
                 break;
             }
 
-        if (i == 0 || i == num_of_columns + 1) {   /* clb split vertically */
+        if (i == 0 || i == num_grid_columns + 1) {   /* clb split vertically */
             *x = x_clb_left[i] + clb_width / 2.;
             *y = y_clb_bottom[j] + (k + 0.5) * clb_width / (double) io_rat;
         } else {                       /* clb split horizontally */
@@ -1043,7 +1043,7 @@ static void draw_rr_pin(int ivex, enum color_types color)
             iside = RIGHT;
         } else if (j == 0) {
             iside = TOP;
-        } else if (i == num_of_columns + 1) {
+        } else if (i == num_grid_columns + 1) {
             iside = LEFT;
         } else {
             iside = BOTTOM;
@@ -1121,8 +1121,8 @@ static void drawroute(enum e_draw_net_type draw_net_type)
      * ALL_NETS, draw all the nets.  If it is HIGHLIGHTED, draw only the nets    *
      * that are not coloured black (useful for drawing over the rr_graph).       */
     /* Next free track in each channel segment if routing is GLOBAL */
-    static int** chanx_track = NULL;           /* [1..num_of_columns][0..num_of_rows] */
-    static int** chany_track = NULL;           /* [0..num_of_columns][1..num_of_rows] */
+    static int** chanx_track = NULL;           /* [1..num_grid_columns][0..num_grid_rows] */
+    static int** chany_track = NULL;           /* [0..num_grid_columns][1..num_grid_rows] */
     int inet, i, j, ivex, prev_node, prev_track, itrack;
     short switch_type;
     struct s_trace* tptr;
@@ -1131,20 +1131,20 @@ static void drawroute(enum e_draw_net_type draw_net_type)
     if (draw_route_type == GLOBAL) {
         /* Allocate some temporary storage if it's not already available. */
         if (chanx_track == NULL) {
-            chanx_track = (int**) alloc_matrix(1, num_of_columns, 0, num_of_rows, sizeof(int));
+            chanx_track = (int**) alloc_matrix(1, num_grid_columns, 0, num_grid_rows, sizeof(int));
         }
 
         if (chany_track == NULL) {
-            chany_track = (int**) alloc_matrix(0, num_of_columns, 1, num_of_rows, sizeof(int));
+            chany_track = (int**) alloc_matrix(0, num_grid_columns, 1, num_grid_rows, sizeof(int));
         }
 
-        for (i = 1; i <= num_of_columns; i++)
-            for (j = 0; j <= num_of_rows; j++) {
+        for (i = 1; i <= num_grid_columns; i++)
+            for (j = 0; j <= num_grid_rows; j++) {
                 chanx_track[i][j] = -1;
             }
 
-        for (i = 0; i <= num_of_columns; i++)
-            for (j = 1; j <= num_of_rows; j++) {
+        for (i = 0; i <= num_grid_columns; i++)
+            for (j = 1; j <= num_grid_rows; j++) {
                 chany_track[i][j] = -1;
             }
     }
@@ -1323,7 +1323,7 @@ static void highlight_blocks(double x, double y)
     deselect_all();
     hit = 0;
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
         if (x <= x_clb_left[i] + clb_width) {
             if (x >= x_clb_left[i]) {
                 hit = 1;
@@ -1341,7 +1341,7 @@ static void highlight_blocks(double x, double y)
 
     hit = 0;
 
-    for (j = 0; j <= num_of_rows + 1; j++) {
+    for (j = 0; j <= num_grid_rows + 1; j++) {
         if (y <= y_clb_bottom[j] + clb_width) {
             if (y >= y_clb_bottom[j]) {
                 hit = 1;
@@ -1367,7 +1367,7 @@ static void highlight_blocks(double x, double y)
 
         block_num = clb_grids[i][j].u.blocks;
     } else { /* IO_TYPE blocks clb */
-        if (i == 0 || i == num_of_columns + 1) {  /* Vertical columns of IOs */
+        if (i == 0 || i == num_grid_columns + 1) {  /* Vertical columns of IOs */
             k = (int)((y - y_clb_bottom[j]) / io_step);
         } else {
             k = (int)((x - x_clb_left[i]) / io_step);

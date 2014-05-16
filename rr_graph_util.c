@@ -10,7 +10,6 @@
 t_linked_edge* insert_in_edge_list(t_linked_edge* head, int edge, short iswitch,
                                    t_linked_edge** free_list_head_ptr)
 {
-    
     t_linked_edge* linked_edge;
 
     if (*free_list_head_ptr != NULL) {
@@ -74,7 +73,7 @@ int seg_index_of_sblock(int from_node, int to_node)
      * switch box on the left side of a CHANX segment at (i,j) has seg_index =   *
      * i-1, while the switch box on the right side of that segment has seg_index *
      * = i.  CHANY stuff works similarly.  Hence the range of values returned is *
-     * 0 to num_of_columns (if from_node is a CHANX) or 0 to num_of_rows (if from_node is a CHANY).   */
+     * 0 to num_grid_columns (if from_node is a CHANX) or 0 to num_grid_rows (if from_node is a CHANY).   */
     rr_types_t from_rr_type, to_rr_type;
     from_rr_type = rr_node[from_node].type;
     to_rr_type = rr_node[to_node].type;

@@ -31,8 +31,8 @@ void read_user_pad_loc(char* pad_loc_file)
         }
     }
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j++) {
             if (clb_grids[i][j].type == IO_TYPE) {
                 for (isubblk = 0; isubblk < io_rat; isubblk++) {
                     clb_grids[i][j].u.io_blocks[isubblk] = OPEN;    /* Flag for err. check */
@@ -101,7 +101,7 @@ void read_user_pad_loc(char* pad_loc_file)
             exit(1);
         }
 
-        if (i < 0 || i > num_of_columns + 1 || j < 0 || j > num_of_rows + 1) {
+        if (i < 0 || i > num_grid_columns + 1 || j < 0 || j > num_grid_rows + 1) {
             printf("Error:  blocks #%d (%s) location\n", block_num, bname);
             printf("(%d,%d) is out of range.\n", i, j);
             exit(1);
@@ -136,8 +136,8 @@ void read_user_pad_loc(char* pad_loc_file)
         }
     }
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j++) {
             if (clb_grids[i][j].type == IO_TYPE) {
                 for (isubblk = 0; isubblk < clb_grids[i][j].occ; isubblk++) {
                     if (clb_grids[i][j].u.io_blocks[isubblk] == OPEN) {
@@ -161,8 +161,8 @@ void dump_clbs(void)
     /* Output routine for debugging. */
     int i, j, index;
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j++) {
             printf("clb (%d,%d):  type: %d  occ: %d\n",
                    i, j, clb_grids[i][j].type, clb_grids[i][j].occ);
 
@@ -199,7 +199,7 @@ void print_place(char* place_file, char* net_file, char* arch_file)
     fp = my_fopen(place_file, "w", 0);
     fprintf(fp, "Netlist file: %s   Architecture file: %s\n", net_file,
             arch_file);
-    fprintf(fp, "Array size: %d x %d logic blocks\n\n", num_of_columns, num_of_rows);
+    fprintf(fp, "Array size: %d x %d logic blocks\n\n", num_grid_columns, num_grid_rows);
     fprintf(fp, "#blocks name\tx\ty\tsubblk\tblock number\n");
     fprintf(fp, "#----------\t--\t--\t------\t------------\n");
 
@@ -257,8 +257,8 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
     linenum = 0;
     read_place_header(fp, net_file, arch_file, buf);
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j++) {
             clb_grids[i][j].occ = 0;
 
             if (clb_grids[i][j].type == IO_TYPE) {
@@ -339,7 +339,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
             exit(1);
         }
 
-        if (i < 0 || i > num_of_columns + 1 || j < 0 || j > num_of_rows + 1) {
+        if (i < 0 || i > num_grid_columns + 1 || j < 0 || j > num_grid_rows + 1) {
             printf("Error in read_place.  Block #%d (%s) location\n", block_num, bname);
             printf("(%d,%d) is out of range.\n", i, j);
             exit(1);
@@ -395,8 +395,8 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
         }
     }
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j++) {
             if (clb_grids[i][j].type == IO_TYPE) {
                 for (isubblock = 0; isubblock < clb_grids[i][j].occ; isubblock++) {
                     if (clb_grids[i][j].u.io_blocks[isubblock] == OPEN) {
@@ -519,10 +519,10 @@ static void read_place_header(FILE* fp, char* net_file, char* arch_file,
         }
     }
 
-    if (nx_check != num_of_columns || ny_check != num_of_rows) {
+    if (nx_check != num_grid_columns || ny_check != num_grid_rows) {
         printf("Error:  placement file assumes an array size of %d x %d.\n",
                nx_check, ny_check);
-        printf("Current size is %d x %d.\n", num_of_columns, num_of_rows);
+        printf("Current size is %d x %d.\n", num_grid_columns, num_grid_rows);
         exit(1);
     }
 }

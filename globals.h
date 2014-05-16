@@ -15,7 +15,7 @@ extern block_t* blocks;
 extern boolean* is_global;
 
 /* Physical FPGA architecture stuff */
-extern int num_of_columns, num_of_rows, io_rat, pins_per_clb;
+extern int num_grid_columns, num_grid_rows, io_rat, pins_per_clb;
 extern int** pinloc;
 extern int* clb_pin_class;
 extern boolean* is_global_clb_pin;

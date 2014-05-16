@@ -183,7 +183,7 @@ void get_serial_num(void)
 
         while (tptr != NULL) {
             ivex = tptr->index;
-            serial_num += (inet + 1) * (rr_node[ivex].xlow * (num_of_columns + 1) -
+            serial_num += (inet + 1) * (rr_node[ivex].xlow * (num_grid_columns + 1) -
                                         rr_node[ivex].yhigh);
             serial_num -= rr_node[ivex].ptc_num * (inet + 1) * 10;
             serial_num -= rr_node[ivex].type * (inet + 1) * 100;
@@ -554,7 +554,7 @@ vector_t** alloc_route_structs(subblock_data_t subblock_data)
                                               sizeof(struct s_trace*));
     trace_tail = (struct s_trace**) my_malloc(num_nets *
                                               sizeof(struct s_trace*));
-    heap_size = num_of_columns * num_of_rows;
+    heap_size = num_grid_columns * num_grid_rows;
     heap = (struct s_heap**) my_malloc(heap_size *
                                        sizeof(struct s_heap*));
     heap--;   /* heap stores from [1..heap_size] */
@@ -736,11 +736,11 @@ static void load_route_bb(int bb_factor)
      * limited to channels contained with the net bounding box expanded    *
      * by bb_factor channels on each side.  For example, if bb_factor is   *
      * 0, the maze router must route each net within its bounding box.     *
-     * If bb_factor = num_of_columns, the maze router will search every channel in     *
+     * If bb_factor = num_grid_columns, the maze router will search every channel in     *
      * the FPGA if necessary.  The bounding boxes returned by this routine *
      * are different from the ones used by the placer in that they are     *
-     * clipped to lie within (0,0) and (num_of_columns+1,num_of_rows+1) rather than (1,1) and   *
-     * (num_of_columns,num_of_rows).                                                            */
+     * clipped to lie within (0,0) and (num_grid_columns+1,num_grid_rows+1) rather than (1,1) and   *
+     * (num_grid_columns,num_grid_rows).                                                            */
     int k, xmax, ymax, xmin, ymin, x, y, inet;
 
     for (inet = 0; inet < num_nets; inet++) {
@@ -774,9 +774,9 @@ static void load_route_bb(int bb_factor)
         /* Expand the net bounding box by bb_factor, then clip to the physical *
          * chip area.                                                          */
         route_bb[inet].xmin = max(xmin - bb_factor, 0);
-        route_bb[inet].xmax = min(xmax + bb_factor, num_of_columns + 1);
+        route_bb[inet].xmax = min(xmax + bb_factor, num_grid_columns + 1);
         route_bb[inet].ymin = max(ymin - bb_factor, 0);
-        route_bb[inet].ymax = min(ymax + bb_factor, num_of_rows + 1);
+        route_bb[inet].ymax = min(ymax + bb_factor, num_grid_rows + 1);
     }
 }
 
@@ -1019,7 +1019,7 @@ void print_route(char* route_file)
     struct s_trace* tptr;
     char* name_type[] = {"SOURCE", "SINK", "IPIN", "OPIN", "CHANX", "CHANY"};
     FILE* fp = my_fopen(route_file, "w", 0);
-    fprintf(fp, "Array size: %d x %d logic blocks.\n", num_of_columns, num_of_rows);
+    fprintf(fp, "Array size: %d x %d logic blocks.\n", num_grid_columns, num_grid_rows);
     fprintf(fp, "\nRouting:");
 
     for (inet = 0; inet < num_nets; inet++) {

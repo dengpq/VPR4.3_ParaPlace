@@ -72,3 +72,54 @@ void load_one_clb_fanout_count(int subblock_lut_size,
     }  /* End for each subblock */
 } /* end of void load_one_clb_fanout_count() */
 
+
+placer_costs_t*  init_placer_costs(void)
+{
+    placer_costs_t* placer_costs_ptr = (placer_costs_t*)malloc(sizeof(placer_costs_t));
+
+    placer_costs_ptr->m_bb_cost = placer_costs_ptr->m_timing_cost = 0.0;
+    placer_costs_ptr->m_delay_cost = placer_costs_ptr->m_total_cost = 0.0;
+
+    placer_costs_ptr->m_av_cost = placer_costs_ptr->m_av_bb_cost = 0.0;
+    placer_costs_ptr->m_av_timing_cost = placer_costs_ptr->m_av_delay_cost = 0.0;
+
+    placer_costs_ptr->m_new_bb_cost = placer_costs_ptr->m_new_timing_cost = placer_costs_ptr->m_delay_cost = 0.0;
+
+    placer_costs_ptr->m_inverse_prev_bb_cost = placer_costs_ptr->m_inverse_prev_timing_cost = 0.0;
+
+    return placer_costs_ptr;
+}
+
+placer_paras_t*  init_placer_paras(void)
+{
+    placer_paras_t* placer_paras = (placer_paras_t*)malloc(sizeof(placer_paras_t));
+    placer_paras->m_fixed_pins = FALSE;
+    placer_paras->m_sum_of_squares = placer_paras->m_place_delay_value = 0.0;
+    placer_paras->m_width_factor = placer_paras->m_num_connections = 0;
+
+    placer_paras->m_max_delay = placer_paras->m_crit_exponent = 0.0;
+
+    placer_paras->m_inner_crit_iter_count = placer_paras->m_outer_crit_iter_count = 0;
+    placer_paras->m_move_limit = placer_paras->m_inner_recompute_limit = 0;
+
+    placer_paras->m_temper = 0.0;  /* sucess_ratio */
+    placer_paras->m_range_limit = placer_paras->m_final_rlim = placer_paras->m_inverse_delta_rlim = 1.0;
+
+    placer_paras->m_total_iter = placer_paras->m_success_sum = 0;
+    placer_paras->m_success_ratio = placer_paras->m_std_dev = 0.0;
+
+    return placer_paras;
+}
+
+void  free_placer_costs(placer_costs_t*  placer_costs)
+{
+    free(placer_costs);
+    placer_costs = NULL;
+}
+
+void  free_placer_paras(placer_paras_t*  placer_paras)
+{
+    free(placer_paras);
+    placer_paras = NULL;
+}
+

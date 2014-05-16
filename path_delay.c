@@ -295,7 +295,7 @@ static void assign_front_crit_path_through_pin_to_primary_inputs(void)
 
 /* It required subnet_forward_local_slack[inet][ipin]; net_t net;
 * double** net_delay and double crit_delay.          *
-* Third, front_crit_path_through_pin[tail] += 
+* Third, front_crit_path_through_pin[tail] +=
 *    discount * front_crit_path_through_pin[source] */
 static void calc_all_tnodes_front_crit_path_through_pin(const double crit_delay)
 {
@@ -487,7 +487,7 @@ void  check_vertexs_levels()
     char message[BUFSIZE * 300];
     char tmp[8];
 
-    sprintf(message, "It had %d levles", num_tnode_levels); 
+    sprintf(message, "It had %d levles", num_tnode_levels);
     fputs(message, file);
     int l = -1;
     for (l = 0; l < num_tnode_levels; ++l) {
@@ -1588,7 +1588,7 @@ t_linked_int* allocate_and_load_critical_path(void)
     critical_path_head->data = crit_node;
     int num_edges = vertexes[crit_node].num_edges;
 
-    t_linked_int* curr_crit_node = NULL; 
+    t_linked_int* curr_crit_node = NULL;
     edge_t* tedge = NULL;
     t_linked_int* prev_crit_node = critical_path_head;
     while (num_edges != 0) {   /* Path will end at SINK (no fanout) */

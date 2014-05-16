@@ -148,11 +148,11 @@ void build_rr_graph(router_types_t route_type,
     segment_details_t* seg_details_x = alloc_and_load_seg_details(nodes_per_chan,
                                                               segment_inf,
                                                               det_routing_arch.num_segment,
-                                                              num_of_columns);
+                                                              num_grid_columns);
     segment_details_t* seg_details_y = alloc_and_load_seg_details(nodes_per_chan,
                                                               segment_inf,
                                                               det_routing_arch.num_segment,
-                                                              num_of_rows);
+                                                              num_grid_rows);
 #ifdef DEBUG
     dump_seg_details(seg_details_x, nodes_per_chan, "x.echo");
     dump_seg_details(seg_details_y, nodes_per_chan, "y.echo");
@@ -169,13 +169,13 @@ void build_rr_graph(router_types_t route_type,
      * at (0,0) (empty), go to (1,0), (2,0) ... (0,1) and so on.                 */
     /* NB:  Allocates data structures for fast index computations -- more than *
      * just rr_node_indices are allocated by this routine.                     */
-    /* int  rr_node_indices[num_of_columns+2][num_of_rows+2] */
+    /* int  rr_node_indices[num_grid_columns+2][num_grid_rows+2] */
     int** rr_node_indices = alloc_and_load_rr_node_indices(nodes_per_clb,
                                                            nodes_per_pad,
                                                            nodes_per_chan,
                                                            seg_details_x,
                                                            seg_details_y);
-    num_rr_nodes = rr_node_indices[num_of_columns + 1][num_of_rows + 1];
+    num_rr_nodes = rr_node_indices[num_grid_columns + 1][num_grid_rows + 1];
 
     int  Fc_output, Fc_input, Fc_pad;
     if (det_routing_arch.Fc_type == ABSOLUTE) {
@@ -338,8 +338,8 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
     wire_to_ipin_switch = det_routing_arch.wire_to_ipin_switch;
     num_segment = det_routing_arch.num_segment;
 
-    for (i = 0; i <= num_of_columns + 1; ++i) {
-        for (j = 0; j <= num_of_rows + 1; ++j) {
+    for (i = 0; i <= num_grid_columns + 1; ++i) {
+        for (j = 0; j <= num_grid_rows + 1; ++j) {
             if (clb_grids[i][j].type == CLB_TYPE) {
                 build_rr_clb(rr_node_indices, Fc_output, clb_opin_to_tracks,
                              nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
@@ -747,7 +747,7 @@ static void build_rr_xchan(int** rr_node_indices, router_types_t
             continue;    /* Not the start of this segment. */
         }
 
-        iend = get_seg_end(seg_details_x, itrack, istart, j, num_of_columns);
+        iend = get_seg_end(seg_details_x, itrack, istart, j, num_grid_columns);
         edge_list_head = NULL;
 
         /* First count number of edges and put the edges in a linked list. */
@@ -763,7 +763,7 @@ static void build_rr_xchan(int** rr_node_indices, router_types_t
             num_edges += get_xtrack_to_ytracks(istart, iend, j, itrack, j + 1,
                                                &edge_list_head, nodes_per_chan, rr_node_indices,
                                                seg_details_x,  seg_details_y, switch_block_type);
-        } else if (j == num_of_rows) {         /* Between top clbs and pads. */
+        } else if (j == num_grid_rows) {         /* Between top clbs and pads. */
             num_edges = get_xtrack_to_clb_ipin_edges(istart, iend, j, itrack,
                                                      BOTTOM, &edge_list_head, tracks_to_clb_ipin, nodes_per_chan,
                                                      rr_node_indices, seg_details_x, wire_to_ipin_switch);
@@ -796,7 +796,7 @@ static void build_rr_xchan(int** rr_node_indices, router_types_t
                                               seg_details_x, switch_block_type);
         }
 
-        if (iend != num_of_columns) {      /* x-chan to right exists. */
+        if (iend != num_grid_columns) {      /* x-chan to right exists. */
             num_edges += get_xtrack_to_xtrack(iend, j, itrack, iend + 1,
                                               &edge_list_head, nodes_per_chan, rr_node_indices,
                                               seg_details_x, switch_block_type);
@@ -848,7 +848,7 @@ static void build_rr_ychan(int** rr_node_indices, router_types_t
             continue;    /* Not the start of this segment. */
         }
 
-        jend = get_seg_end(seg_details_y, itrack, jstart, i, num_of_rows);
+        jend = get_seg_end(seg_details_y, itrack, jstart, i, num_grid_rows);
         edge_list_head = NULL;
 
         /* First count number of edges and put the edges in a linked list. */
@@ -864,7 +864,7 @@ static void build_rr_ychan(int** rr_node_indices, router_types_t
             num_edges += get_ytrack_to_xtracks(jstart, jend, i, itrack, i + 1,
                                                &edge_list_head, nodes_per_chan, rr_node_indices,
                                                seg_details_x, seg_details_y, switch_block_type);
-        } else if (i == num_of_columns) {         /* Between rightmost clbs and pads. */
+        } else if (i == num_grid_columns) {         /* Between rightmost clbs and pads. */
             num_edges = get_ytrack_to_clb_ipin_edges(jstart, jend, i, itrack,
                                                      LEFT, &edge_list_head, tracks_to_clb_ipin, nodes_per_chan,
                                                      rr_node_indices, seg_details_y, wire_to_ipin_switch);
@@ -897,7 +897,7 @@ static void build_rr_ychan(int** rr_node_indices, router_types_t
                                               seg_details_y, switch_block_type);
         }
 
-        if (jend != num_of_rows) {      /* y-chan above exists. */
+        if (jend != num_grid_rows) {      /* y-chan above exists. */
             num_edges += get_ytrack_to_ytrack(i, jend, itrack, jend + 1,
                                               &edge_list_head, nodes_per_chan, rr_node_indices,
                                               seg_details_y, switch_block_type);

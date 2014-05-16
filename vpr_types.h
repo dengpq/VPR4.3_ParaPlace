@@ -32,6 +32,54 @@ typedef enum e_block_types {
     ILLEGAL_TYPE
 } block_types_t;
 
+/* Gives the Tdels through a subblock.                                    *
+ * T_comb: The Tdel from input to output when the subblock is used in     *
+ *         combinational mode (clock input is open).                       *
+ * T_seq_in: The Tdel from subblock input to storage element when the     *
+ *           subblock is in sequential mode (clock input not open).  The   *
+ *           Tdel includes any combinational logic Tdel (e.g. a LUT)     *
+ *           done before the signal is latched, plus the setup time.       *
+ * T_seq_out: The Tdel from storage element to subblock output when the   *
+ *            subblock is in sequential mode.  Includes clock_to_Q plus    *
+ *            any combinational path (muxes, etc.) on the output.          */
+typedef struct {
+    double T_comb;
+    double T_seq_in;
+    double T_seq_out;
+} T_subblock_t;
+
+
+/* C_ipin_cblock: Capacitance added to a routing track by the isolation     *
+ *                buffer between a track and the Cblocks at an (i,j) loc.   *
+ * T_ipin_cblock: Delay through an input pin connection box (from a         *
+ *                   routing track to a logic blocks input pin).             *
+ * T_sblk_opin_to_sblk_ipin: Delay through the local interconnect(mux,      *
+ *       wires or whatever) in a clb containing multiple subblocks. That is,*
+ *       the Tdel from a subblock output to the input of another subblock  *
+ *       in the same clb.                                                   *
+ * T_clb_ipin_to_sblk_ipin: Delay from a clb input pin to any subblock      *
+ *                   input pin (e.g. the mux Tdel in an Altera 8K clb).    *
+ * T_sblk_opin_to_clb_opin: Delay from a subblock output to a clb output.   *
+ *                   Will be 0 in many architectures.                       *
+ * T_ipad:  Delay through an input pad.                                     *
+ * T_opad:  Delay through an output pad.                                    *
+ * *T_subblock: Array giving the Tdel through each subblock.               *
+ *              [0..max_subblocks_per_block - 1]                            */
+typedef struct s_timing_inf {
+    boolean  timing_analysis_enabled;
+    double   C_ipin_cblock;
+    double   T_ipin_cblock;
+
+    double   T_sblk_opin_to_sblk_ipin;
+    double   T_clb_ipin_to_sblk_ipin;
+    double   T_sblk_opin_to_clb_opin;
+
+    double   T_ipad;
+    double   T_opad;
+    T_subblock_t* T_subblock;
+} timing_info_t;
+
+
 /* Pin is unconnected, driving a net or in the fanout, respectively. */
 typedef enum e_pin_type {
     OPEN = -1,
@@ -144,9 +192,80 @@ typedef struct s_clb {
     } u;
 } clb_t;
 
+typedef enum e_grid_loc_type {
+    BOUNDARY = 0,
+    FILL,
+    COL_REPEAT,
+    COL_REL
+} grid_loc_type_t;
+
+/* Define how to place type in the grid *
+ * grid_loc_type - where the type gones and which numbers are valid;
+ * start_col - the absolute value of the starting column from the left to fill,
+ *             used with COL_REPEAT;
+ * repeat - the number of columns to skip before placing the same type, used with
+ *          COL_REPEAT. 0 means do not repeat;
+ * rel_col - the fraction column to place type;
+ * priority - in the event of confict, which type gets picked.     */
+typedef struct s_grid_loc_def {
+    grid_loc_type_t grid_loc_type;
+    int    start_col;
+    int    repeat;
+    double  col_rel;
+    int    priority;
+} grid_loc_def_t;
+
+typedef  struct s_type_descriptor {
+    const char*   m_name;
+    int     m_num_pins;
+    int     m_capacity;
+    int     m_height;
+    int***  m_pinloc; /* [0..height-1][0..3][0..num_pins-1] */
+
+    int     m_num_class;
+    struct s_pin_class*  m_class_info; /* [0..num_class-1] */
+    int*    m_pin_class;               /* [0..num_pins-1] */
+
+    boolean*  is_global_pin;  /* [0..num_pins-1] */
+
+    boolean   is_Fc_factor;
+    boolean   is_Fc_out_full_flex;
+    double    m_Fc_in;
+    double    m_Fc_out;
+
+    /* subblock info */
+    int  m_max_subblocks;
+    int  m_max_subblocks_inputs;
+    int  m_max_subblocks_outputs;
+
+    /* grid_location info */
+    struct s_grid_loc_def* m_grid_loc_def;
+    int    m_num_grid_loc_def;
+
+    /* timing info */
+    timing_info_t  m_timing_inf;
+    
+    /* This can be determinded from class_info and pin_class_t but store for
+     * fast access */
+    int  m_num_drivers;
+    int  m_num_receivers;
+
+    /* index of type_descriptor in array(allow for index reference) */
+    int  m_index;
+} type_descriptor_t;
+typedef const type_descriptor_t*  block_type_ptr;
+
+/* the grid_tile_t was similar with clb_t */
+typedef struct s_grid_tile {
+    block_type_ptr  m_type;
+    int   m_offset;
+    int   m_usage;
+    int*  m_blocks;
+} grid_tile_t; /* clb_t */
+
 /* Stores the bounding box of a net in terms of the minimum and  *
  * maximum coordinates of the blocks forming the net, clipped to *
- * the region (1..num_of_columns, 1..num_of_rows).                                    */
+ * the region (1..num_grid_columns, 1..num_grid_rows).                                    */
 typedef struct s_bb {
     int xmin;
     int xmax;
@@ -297,7 +416,8 @@ typedef enum e_place_algorithm {
  *               criticalities is done.                                      *
  * td_place_exp_first: exponent that is used on the timing_driven criticlity *
  *               it is the value that the exponent starts at.                *
- * td_place_exp_last: value that the criticality exponent will be at the end */
+ * td_place_exp_last: value that the criticality exponent will be at the end *
+ * parallel_place: whether use placement parallel, default value was FALSE   */
 typedef struct s_placer_opts {
     place_algorithm_t  place_algorithm;
     double             timing_tradeoff;
@@ -314,6 +434,8 @@ typedef struct s_placer_opts {
     int                inner_loop_recompute_divider;
     double             td_place_exp_first; /* 1.0 */
     double             td_place_exp_last;  /* 8.0 */
+    /* New added for support para_place */
+    boolean            place_parallel;
 } placer_opts_t;
 
 typedef  struct s_placer_costs {
@@ -327,6 +449,10 @@ typedef  struct s_placer_costs {
     double  m_av_timing_cost;
     double  m_av_delay_cost;
 
+    double  m_new_bb_cost;
+    double  m_new_timing_cost;
+    double  m_new_delay_cost;
+
     double  m_inverse_prev_bb_cost;
     double  m_inverse_prev_timing_cost;
 } placer_costs_t;
@@ -336,8 +462,6 @@ typedef  struct s_placer_paras {
     int       m_width_factor;
 
     /* sum_of_squares = total_cost * total_cost; */
-    placer_costs_t*  m_place_costs_ptr;
-
     double    m_sum_of_squares;
     int       m_num_connections;
     double    m_place_delay_value;
@@ -355,13 +479,12 @@ typedef  struct s_placer_paras {
     double    m_inverse_delta_rlim;
     /* temperature and old_temperature */
     double    m_temper; /* temperature update was depend on sucess_ratio */
-    double    m_old_temper;
 
     int       m_total_iter;    /* total_iter += move_limit */
     int       m_success_sum;   /* ++success_sum */
-    int       m_success_ratio; /* ratio = success_sum / total_iter */
+    double    m_success_ratio; /* ratio = success_sum / total_iter */
     double    m_std_dev;
-} placer_paras_t;
+} placer_paras_t;  /* totally 19 items */
 /******************************************************************************
  * Now declearing the data structures used for VPR4.3 PathFinder-based Router *
  *****************************************************************************/
@@ -551,53 +674,6 @@ typedef struct t_seg_details {
     double   Cmetal;
     int      index;
 } segment_details_t;
-
-/* Gives the Tdels through a subblock.                                    *
- * T_comb: The Tdel from input to output when the subblock is used in     *
- *         combinational mode (clock input is open).                       *
- * T_seq_in: The Tdel from subblock input to storage element when the     *
- *           subblock is in sequential mode (clock input not open).  The   *
- *           Tdel includes any combinational logic Tdel (e.g. a LUT)     *
- *           done before the signal is latched, plus the setup time.       *
- * T_seq_out: The Tdel from storage element to subblock output when the   *
- *            subblock is in sequential mode.  Includes clock_to_Q plus    *
- *            any combinational path (muxes, etc.) on the output.          */
-typedef struct {
-    double T_comb;
-    double T_seq_in;
-    double T_seq_out;
-} T_subblock_t;
-
-/* C_ipin_cblock: Capacitance added to a routing track by the isolation     *
- *                buffer between a track and the Cblocks at an (i,j) loc.   *
- * T_ipin_cblock: Delay through an input pin connection box (from a         *
- *                   routing track to a logic blocks input pin).             *
- * T_sblk_opin_to_sblk_ipin: Delay through the local interconnect(mux,      *
- *       wires or whatever) in a clb containing multiple subblocks. That is,*
- *       the Tdel from a subblock output to the input of another subblock  *
- *       in the same clb.                                                   *
- * T_clb_ipin_to_sblk_ipin: Delay from a clb input pin to any subblock      *
- *                   input pin (e.g. the mux Tdel in an Altera 8K clb).    *
- * T_sblk_opin_to_clb_opin: Delay from a subblock output to a clb output.   *
- *                   Will be 0 in many architectures.                       *
- * T_ipad:  Delay through an input pad.                                     *
- * T_opad:  Delay through an output pad.                                    *
- * *T_subblock: Array giving the Tdel through each subblock.               *
- *              [0..max_subblocks_per_block - 1]                            */
-typedef struct s_timing_inf {
-    boolean  timing_analysis_enabled;
-    double   C_ipin_cblock;
-    double   T_ipin_cblock;
-
-    double   T_sblk_opin_to_sblk_ipin;
-    double   T_clb_ipin_to_sblk_ipin;
-    double   T_sblk_opin_to_clb_opin;
-
-    double   T_ipad;
-    double   T_opad;
-    T_subblock_t* T_subblock;
-} timing_info_t;
-
 
 /* A linked list of double pointers.  Used for keeping track of   *
  * which pathcosts in the router have been changed.              */

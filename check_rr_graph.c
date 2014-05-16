@@ -141,8 +141,8 @@ static boolean rr_node_is_global_clb_ipin(int ivex)
         return (FALSE);
     }
 
-    if (rr_node[ivex].xlow == 0 || rr_node[ivex].xlow == num_of_columns + 1 ||
-            rr_node[ivex].ylow == 0 || rr_node[ivex].ylow == num_of_rows + 1) { /* I/O pad */
+    if (rr_node[ivex].xlow == 0 || rr_node[ivex].xlow == num_grid_columns + 1 ||
+            rr_node[ivex].ylow == 0 || rr_node[ivex].ylow == num_grid_rows + 1) { /* I/O pad */
         return (FALSE);
     }
 
@@ -173,7 +173,7 @@ void check_node(int ivex, router_types_t route_type)
         exit(1);
     }
 
-    if (xlow < 0 || xhigh > num_of_columns + 1 || ylow < 0 || yhigh > num_of_rows + 1) {
+    if (xlow < 0 || xhigh > num_grid_columns + 1 || ylow < 0 || yhigh > num_grid_rows + 1) {
         printf("Error in check_node:  rr endpoints, (%d,%d) and (%d,%d), \n"
                "are out of range.\n", xlow, ylow, xhigh, yhigh);
         exit(1);
@@ -208,7 +208,7 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case CHANX:
-            if (xlow < 1 || xhigh > num_of_columns || yhigh > num_of_rows || yhigh != ylow) {
+            if (xlow < 1 || xhigh > num_grid_columns || yhigh > num_grid_rows || yhigh != ylow) {
                 printf("Error in check_node:  CHANX out of range.\n");
                 printf("Endpoints: (%d,%d) and (%d,%d)\n", xlow, ylow, xhigh, yhigh);
                 exit(1);
@@ -222,7 +222,7 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case CHANY:
-            if (xhigh > num_of_columns || ylow < 1 || yhigh > num_of_rows || xlow != xhigh) {
+            if (xhigh > num_grid_columns || ylow < 1 || yhigh > num_grid_rows || xlow != xhigh) {
                 printf("Error in check_node:  CHANY out of range.\n");
                 printf("Endpoints: (%d,%d) and (%d,%d)\n", xlow, ylow, xhigh, yhigh);
                 exit(1);

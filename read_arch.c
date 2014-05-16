@@ -1552,35 +1552,35 @@ void print_arch(char* arch_file, router_types_t route_type,
 /* Allocates various data structures that depend on the FPGA         *
  * architecture.  Aspect_ratio specifies how many columns there are  *
  * relative to the number of rows -- i.e. width/height.  Used-sized  *
- * is TRUE if the user specified num_of_columns and num_of_rows already;
+ * is TRUE if the user specified num_grid_columns and num_grid_rows already;
  * in that case use the user's values and don't recompute them.      */
 void init_arch(double aspect_ratio, boolean user_sized)
 {
     /* User specified the dimensions on the command line.  Check if they *
      * will fit the circuit.                                             */
     if (user_sized == TRUE) {
-        if (num_clbs > num_of_columns * num_of_rows || num_primary_inputs + num_primary_outputs >
-                2 * io_rat * (num_of_columns + num_of_rows)) {
+        if (num_clbs > num_grid_columns * num_grid_rows || num_primary_inputs + num_primary_outputs >
+                2 * io_rat * (num_grid_columns + num_grid_rows)) {
             printf("Error:  User-specified size is too small for circuit.\n");
             exit(1);
         }
     } else {
         /* Size the FPGA automatically to be smallest that will fit circuit */
-        /* Area = num_of_columns * num_of_rows = num_of_rows * num_of_rows * aspect_ratio                  *
-         * Perimeter = 2 * (num_of_columns + num_of_rows) = 2 * num_of_rows * (1. + aspect_ratio)  */
-        num_of_rows = (int)ceil(sqrt((double)(num_clbs / aspect_ratio)));
+        /* Area = num_grid_columns * num_grid_rows = num_grid_rows * num_grid_rows * aspect_ratio                  *
+         * Perimeter = 2 * (num_grid_columns + num_grid_rows) = 2 * num_grid_rows * (1. + aspect_ratio)  */
+        num_grid_rows = (int)ceil(sqrt((double)(num_clbs / aspect_ratio)));
         int io_lim = (int)ceil((num_primary_inputs + num_primary_outputs) /
                                        (2 * io_rat * (1.0 + aspect_ratio)));
-        num_of_rows = max(num_of_rows, io_lim);
-        num_of_columns = (int)ceil(num_of_rows * aspect_ratio);
+        num_grid_rows = max(num_grid_rows, io_lim);
+        num_grid_columns = (int)ceil(num_grid_rows * aspect_ratio);
     }
 
-    /* If both num_of_columns and num_of_rows are 1, we only have one valid *
+    /* If both num_grid_columns and num_grid_rows are 1, we only have one valid *
      * location for a clb. That's a major problem, as won't be able to move *
      * the clb and the find_to routine that tries moves in the placer will  *
      * go into an infinite loop trying to move it.  Exit with an error message*
      * instead.                                                            */
-    if (num_of_columns == 1  && num_of_rows == 1 && num_clbs != 0) {
+    if (num_grid_columns == 1  && num_grid_rows == 1 && num_clbs != 0) {
         printf("Error:\n");
         printf("Sorry, can't place a circuit with only one valid location\n");
         printf("for a logic blocks (clb).\n");
@@ -1590,18 +1590,18 @@ void init_arch(double aspect_ratio, boolean user_sized)
 
     /* To remove this limitation, change ylow etc. in rr_node_t to        *
      * be ints instead.  Used shorts to save memory.                      */
-    if (num_of_columns > 32766 || num_of_rows > 32766) {
-        printf("Error:  num_of_columns and num_of_rows must be less than 32767, since the \n");
+    if (num_grid_columns > 32766 || num_grid_rows > 32766) {
+        printf("Error:  num_grid_columns and num_grid_rows must be less than 32767, since the \n");
         printf("router uses shorts (16-bit) to store coordinates.\n");
-        printf("num_of_columns: %d.  num_of_rows: %d.\n", num_of_columns, num_of_rows);
+        printf("num_grid_columns: %d.  num_grid_rows: %d.\n", num_grid_columns, num_grid_rows);
         exit(1);
     }
 
-    clb_grids = (clb_t**)alloc_matrix(0, num_of_columns + 1,
-                                      0, num_of_rows + 1,
+    clb_grids = (clb_t**)alloc_matrix(0, num_grid_columns + 1,
+                                      0, num_grid_rows + 1,
                                       sizeof(clb_t));
-    chan_width_x = (int*)my_malloc((num_of_rows + 1) * sizeof(int));
-    chan_width_y = (int*)my_malloc((num_of_columns + 1) * sizeof(int));
+    chan_width_x = (int*)my_malloc((num_grid_rows + 1) * sizeof(int));
+    chan_width_y = (int*)my_malloc((num_grid_columns + 1) * sizeof(int));
 
     fill_arch();
 }  /* end of void init_arch(double aspect_ratio, boolean user_sized) */
@@ -1610,44 +1610,44 @@ void init_arch(double aspect_ratio, boolean user_sized)
 static void fill_arch(void)
 {
     /* allocate io_blocks arrays. Done this way to save storage */
-    int  i = 2 * io_rat * (num_of_columns + num_of_rows);
+    int  i = 2 * io_rat * (num_grid_columns + num_grid_rows);
     int* index = (int*) my_malloc(i * sizeof(int));
 
-    for (i = 1; i <= num_of_columns; ++i) {
+    for (i = 1; i <= num_grid_columns; ++i) {
         clb_grids[i][0].u.io_blocks = index;
         index += io_rat;
-        clb_grids[i][num_of_rows + 1].u.io_blocks = index;
+        clb_grids[i][num_grid_rows + 1].u.io_blocks = index;
         index += io_rat;
     }
 
-    for (i = 1; i <= num_of_rows; ++i) {
+    for (i = 1; i <= num_grid_rows; ++i) {
         clb_grids[0][i].u.io_blocks = index;
         index += io_rat;
-        clb_grids[num_of_columns + 1][i].u.io_blocks = index;
+        clb_grids[num_grid_columns + 1][i].u.io_blocks = index;
         index += io_rat;
     }
 
     /* Initialize type, and occupancy. */
-    for (i = 1; i <= num_of_columns; ++i) {
+    for (i = 1; i <= num_grid_columns; ++i) {
         clb_grids[i][0].type = IO_TYPE;
-        clb_grids[i][num_of_rows + 1].type = IO_TYPE; /* perimeter (IO_TYPE) cells */
+        clb_grids[i][num_grid_rows + 1].type = IO_TYPE; /* perimeter (IO_TYPE) cells */
     }
 
-    for (i = 1; i <= num_of_rows; ++i) {
+    for (i = 1; i <= num_grid_rows; ++i) {
         clb_grids[0][i].type = IO_TYPE;
-        clb_grids[num_of_columns + 1][i].type = IO_TYPE;
+        clb_grids[num_grid_columns + 1][i].type = IO_TYPE;
     }
 
-    for (i = 1; i <= num_of_columns; ++i) { /* interior (LUT) cells */
+    for (i = 1; i <= num_grid_columns; ++i) { /* interior (LUT) cells */
         int j = 0;
-        for (j = 1; j <= num_of_rows; ++j) {
+        for (j = 1; j <= num_grid_rows; ++j) {
             clb_grids[i][j].type = CLB_TYPE;
         }
     }
 
     /* Nothing goes in the corners.      */
-    clb_grids[0][0].type = clb_grids[num_of_columns + 1][0].type = ILLEGAL_TYPE;
-    clb_grids[0][num_of_rows + 1].type =
-        clb_grids[num_of_columns + 1][num_of_rows + 1].type = ILLEGAL_TYPE;
+    clb_grids[0][0].type = clb_grids[num_grid_columns + 1][0].type = ILLEGAL_TYPE;
+    clb_grids[0][num_grid_rows + 1].type =
+        clb_grids[num_grid_columns + 1][num_grid_rows + 1].type = ILLEGAL_TYPE;
 }
 

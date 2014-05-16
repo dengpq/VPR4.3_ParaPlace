@@ -116,26 +116,26 @@ static void gechannel_tnel_occupancy_stats(void)
     /* Determines how many tracks are used in each channel.                    */
     int i, j, max_occ, total_x, total_y;
     double av_occ;
-    int** chanx_occ;   /* [1..num_of_columns][0..num_of_rows] */
-    int** chany_occ;   /* [0..num_of_columns][1..num_of_rows] */
-    chanx_occ = (int**) alloc_matrix(1, num_of_columns, 0, num_of_rows, sizeof(int));
-    chany_occ = (int**) alloc_matrix(0, num_of_columns, 1, num_of_rows, sizeof(int));
+    int** chanx_occ;   /* [1..num_grid_columns][0..num_grid_rows] */
+    int** chany_occ;   /* [0..num_grid_columns][1..num_grid_rows] */
+    chanx_occ = (int**) alloc_matrix(1, num_grid_columns, 0, num_grid_rows, sizeof(int));
+    chany_occ = (int**) alloc_matrix(0, num_grid_columns, 1, num_grid_rows, sizeof(int));
     load_channel_occupancies(chanx_occ, chany_occ);
     printf("\nX - Directed channels:\n\n");
     printf("j\tmax occ\tav_occ\t\tcapacity\n");
     total_x = 0;
 
-    for (j = 0; j <= num_of_rows; j++) {
+    for (j = 0; j <= num_grid_rows; j++) {
         total_x += chan_width_x[j];
         av_occ = 0.;
         max_occ = -1;
 
-        for (i = 1; i <= num_of_columns; i++) {
+        for (i = 1; i <= num_grid_columns; i++) {
             max_occ = max(chanx_occ[i][j], max_occ);
             av_occ += chanx_occ[i][j];
         }
 
-        av_occ /= num_of_columns;
+        av_occ /= num_grid_columns;
         printf("%d\t%d\t%-#9g\t%d\n", j, max_occ, av_occ, chan_width_x[j]);
     }
 
@@ -143,24 +143,24 @@ static void gechannel_tnel_occupancy_stats(void)
     printf("i\tmax occ\tav_occ\t\tcapacity\n");
     total_y = 0;
 
-    for (i = 0; i <= num_of_columns; i++) {
+    for (i = 0; i <= num_grid_columns; i++) {
         total_y += chan_width_y[i];
         av_occ = 0.;
         max_occ = -1;
 
-        for (j = 1; j <= num_of_rows; j++) {
+        for (j = 1; j <= num_grid_rows; j++) {
             max_occ = max(chany_occ[i][j], max_occ);
             av_occ += chany_occ[i][j];
         }
 
-        av_occ /= num_of_rows;
+        av_occ /= num_grid_rows;
         printf("%d\t%d\t%-#9g\t%d\n", i, max_occ, av_occ, chan_width_y[i]);
     }
 
     printf("\nTotal Tracks in X-direction: %d  in Y-direction: %d\n\n",
            total_x, total_y);
-    free_matrix(chanx_occ, 1, num_of_columns, 0, sizeof(int));
-    free_matrix(chany_occ, 0, num_of_columns, 1, sizeof(int));
+    free_matrix(chanx_occ, 1, num_grid_columns, 0, sizeof(int));
+    free_matrix(chany_occ, 0, num_grid_columns, 1, sizeof(int));
 }
 
 
@@ -174,13 +174,13 @@ static void load_channel_occupancies(int** chanx_occ, int** chany_occ)
 
     /* First set the occupancy of everything to zero. */
 
-    for (i = 1; i <= num_of_columns; i++)
-        for (j = 0; j <= num_of_rows; j++) {
+    for (i = 1; i <= num_grid_columns; i++)
+        for (j = 0; j <= num_grid_rows; j++) {
             chanx_occ[i][j] = 0;
         }
 
-    for (i = 0; i <= num_of_columns; i++)
-        for (j = 1; j <= num_of_rows; j++) {
+    for (i = 0; i <= num_grid_columns; i++)
+        for (j = 1; j <= num_grid_rows; j++) {
             chany_occ[i][j] = 0;
         }
 
@@ -289,7 +289,7 @@ void print_wirelen_prob_dist(void)
     double norm_fac, two_point_length;
     int inet, bends, length, segments, index;
     double av_length;
-    prob_dist = (double*) my_calloc(num_of_columns + num_of_rows + 3, sizeof(double));
+    prob_dist = (double*) my_calloc(num_grid_columns + num_grid_rows + 3, sizeof(double));
     norm_fac = 0.;
 
     for (inet = 0; inet < num_nets; inet++) {
@@ -314,7 +314,7 @@ void print_wirelen_prob_dist(void)
     printf("Length    p(Lenth)\n");
     av_length = 0;
 
-    for (index = 0; index < num_of_columns + num_of_rows + 3; index++) {
+    for (index = 0; index < num_grid_columns + num_grid_rows + 3; index++) {
         prob_dist[index] /= norm_fac;
         printf("%6d  %10.6f\n", index, prob_dist[index]);
         av_length += prob_dist[index] * index;

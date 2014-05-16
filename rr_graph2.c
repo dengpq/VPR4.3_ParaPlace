@@ -28,8 +28,8 @@ t_linked_edge* free_edge_list_head = NULL;
 /* Two arrays below give the rr_node_index of the channel segment at        *
  * (i,j,track) for fast index lookup.                                       */
 
-static int*** chanx_rr_indices; /* [1..num_of_columns][0..num_of_rows][0..nodes_per_chan-1] */
-static int*** chany_rr_indices; /* [0..num_of_columns][1..num_of_rows][0..nodes_per_chan-1] */
+static int*** chanx_rr_indices; /* [1..num_grid_columns][0..num_grid_rows][0..nodes_per_chan-1] */
+static int*** chany_rr_indices; /* [0..num_grid_columns][1..num_grid_rows][0..nodes_per_chan-1] */
 
 
 
@@ -343,7 +343,7 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
         chan_j = j;
         chan_type = CHANX;
         seg_details = seg_details_x;
-    } else if (j == num_of_rows + 1) {
+    } else if (j == num_grid_rows + 1) {
         chan_i = i;
         chan_j = j - 1;
         chan_type = CHANX;
@@ -353,7 +353,7 @@ int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,
         chan_j = j;
         chan_type = CHANY;
         seg_details = seg_details_y;
-    } else if (i == num_of_columns + 1) {
+    } else if (i == num_grid_columns + 1) {
         chan_i = i - 1;
         chan_j = j;
         chan_type = CHANY;
@@ -420,15 +420,15 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
      * track in each (i,j) channel segment.                                    */
     int index, i, j;
     int** rr_node_indices;
-    rr_node_indices = (int**) alloc_matrix(0, num_of_columns + 1, 0, num_of_rows + 1, sizeof(int));
-    chanx_rr_indices = (int***) alloc_matrix3(1, num_of_columns, 0, num_of_rows, 0,
+    rr_node_indices = (int**) alloc_matrix(0, num_grid_columns + 1, 0, num_grid_rows + 1, sizeof(int));
+    chanx_rr_indices = (int***) alloc_matrix3(1, num_grid_columns, 0, num_grid_rows, 0,
                                               nodes_per_chan - 1, sizeof(int));
-    chany_rr_indices = (int***) alloc_matrix3(0, num_of_columns, 1, num_of_rows, 0,
+    chany_rr_indices = (int***) alloc_matrix3(0, num_grid_columns, 1, num_grid_rows, 0,
                                               nodes_per_chan - 1, sizeof(int));
     index = 0;
 
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j++) {
             rr_node_indices[i][j] = index;
 
             if (clb_grids[i][j].type == CLB_TYPE) {
@@ -462,9 +462,9 @@ void free_rr_node_indices(int** rr_node_indices)
 {
     /* Frees all the rr_node_indices structures allocated for fast index       *
      * computations.                                                           */
-    free_matrix(rr_node_indices, 0, num_of_columns + 1, 0, sizeof(int));
-    free_matrix3(chanx_rr_indices, 1, num_of_columns, 0, num_of_rows, 0, sizeof(int));
-    free_matrix3(chany_rr_indices, 0, num_of_columns, 1, num_of_rows, 0, sizeof(int));
+    free_matrix(rr_node_indices, 0, num_grid_columns + 1, 0, sizeof(int));
+    free_matrix3(chanx_rr_indices, 1, num_grid_columns, 0, num_grid_rows, 0, sizeof(int));
+    free_matrix3(chany_rr_indices, 0, num_grid_columns, 1, num_grid_rows, 0, sizeof(int));
 }
 
 
@@ -486,7 +486,7 @@ static int load_chanx_rr_indices(segment_details_t* seg_details_x, int
             continue;
         }
 
-        iend = get_seg_end(seg_details_x, itrack, istart, j, num_of_columns);
+        iend = get_seg_end(seg_details_x, itrack, istart, j, num_grid_columns);
 
         for (iseg = istart; iseg <= iend; iseg++) {
             chanx_rr_indices[iseg][j][itrack] = rr_index;
@@ -517,7 +517,7 @@ static int load_chany_rr_indices(segment_details_t* seg_details_y, int
             continue;
         }
 
-        jend = get_seg_end(seg_details_y, itrack, jstart, i, num_of_rows);
+        jend = get_seg_end(seg_details_y, itrack, jstart, i, num_grid_rows);
 
         for (jseg = jstart; jseg <= jend; jseg++) {
             chany_rr_indices[i][jseg][itrack] = rr_index;
@@ -549,10 +549,10 @@ static int load_chany_rr_indices(segment_details_t* seg_details_y, int
  * question exists.                                                         */
 int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
                       int nodes_per_chan, int** rr_node_indices)
-{   
+{
     assert(ioff >= 0);
-    assert(i >= 0 && i < num_of_columns + 2);
-    assert(j >= 0 && j < num_of_rows + 2);
+    assert(i >= 0 && i < num_grid_columns + 2);
+    assert(j >= 0 && j < num_grid_rows + 2);
     int  index = rr_node_indices[i][j];  /* Start of that blocks */
 
     int iclass = 0;
@@ -661,7 +661,7 @@ int get_seg_end(segment_details_t* seg_details, int itrack, int seg_start, int
     /* Returns the segment number (coordinate along the channel) at which this *
      * segment ends.  For a segment spanning clbs from 1 to 4, seg_end is 4.   *
      * max_end is the maximum dimension of the FPGA in this direction --       *
-     * either num_of_columns or num_of_rows.                                                        */
+     * either num_grid_columns or num_grid_rows.                                                        */
     int seg_end, length, norm_start;
     length = seg_details[itrack].length;
 

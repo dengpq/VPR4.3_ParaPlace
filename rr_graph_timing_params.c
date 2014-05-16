@@ -28,10 +28,10 @@ void add_rr_graph_C_from_switches(double C_ipin_cblock)
     int icblock, isblock, iseg_low, iseg_high;
     double Cin, Cout;
     rr_types_t from_rr_type, to_rr_type;
-    boolean* cblock_counted;  /* [0..max(num_of_columns,num_of_rows)] -- 0th element unused. */
-    double* buffer_Cin;        /* [0..max(num_of_columns,num_of_rows)] */
+    boolean* cblock_counted;  /* [0..max(num_grid_columns,num_grid_rows)] -- 0th element unused. */
+    double* buffer_Cin;        /* [0..max(num_grid_columns,num_grid_rows)] */
     boolean buffered;
-    maxlen = max(num_of_columns, num_of_rows) + 1;
+    maxlen = max(num_grid_columns, num_grid_rows) + 1;
     cblock_counted = (boolean*) my_calloc(maxlen, sizeof(boolean));
     buffer_Cin = (double*) my_calloc(maxlen, sizeof(double));
 

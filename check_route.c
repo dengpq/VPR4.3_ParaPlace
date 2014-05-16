@@ -498,8 +498,8 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
                     pin_x >= chan_xlow) {
                 num_adj++;
             }
-        } else if (pin_y == num_of_rows + 1) { /* Top row of pads. */
-            if (chan_type == CHANX && chan_ylow == num_of_rows && pin_x <= chan_xhigh &&
+        } else if (pin_y == num_grid_rows + 1) { /* Top row of pads. */
+            if (chan_type == CHANX && chan_ylow == num_grid_rows && pin_x <= chan_xhigh &&
                     pin_x >= chan_xlow) {
                 num_adj++;
             }
@@ -508,8 +508,8 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
                     pin_y >= chan_ylow) {
                 num_adj++;
             }
-        } else if (pin_x == num_of_columns + 1) { /* Right row of pads */
-            if (chan_type == CHANY && chan_xlow == num_of_columns && pin_y <= chan_yhigh &&
+        } else if (pin_x == num_grid_columns + 1) { /* Right row of pads */
+            if (chan_type == CHANY && chan_xlow == num_grid_columns && pin_y <= chan_yhigh &&
                     pin_y >= chan_ylow) {
                 num_adj++;
             }

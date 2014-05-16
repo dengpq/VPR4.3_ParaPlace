@@ -65,8 +65,8 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
      * optimistic (but I still think it's pretty reasonable).                    */
     int* num_inputs_to_cblock;  /* [0..num_rr_nodes-1], but all entries not    */
     /* corresponding to IPINs will be 0.           */
-    boolean* cblock_counted;          /* [0..max(num_of_columns,num_of_rows)] -- 0th element unused. */
-    double* shared_buffer_trans;       /* [0..max_nx,num_of_rows)] */
+    boolean* cblock_counted;          /* [0..max(num_grid_columns,num_grid_rows)] -- 0th element unused. */
+    double* shared_buffer_trans;       /* [0..max_nx,num_grid_rows)] */
     double* unsharable_switch_trans, *sharable_switch_trans; /* [0..num_switch-1] */
     rr_types_t from_rr_type, to_rr_type;
     int from_node, to_node, iedge, num_edges, maxlen;
@@ -99,7 +99,7 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
     /* trans_track_to_cblock_buf = 1. + trans_per_R (R_minW_nmos, R_minW_pmos);
      trans_cblock_to_lblock_buf = 1. + trans_per_R (R_minW_nmos, R_minW_pmos); */
     num_inputs_to_cblock = (int*) my_calloc(num_rr_nodes, sizeof(int));
-    maxlen = max(num_of_columns, num_of_rows) + 1;
+    maxlen = max(num_grid_columns, num_grid_rows) + 1;
     cblock_counted = (boolean*) my_calloc(maxlen, sizeof(boolean));
     shared_buffer_trans = (double*) my_calloc(maxlen, sizeof(double));
     unsharable_switch_trans = alloc_and_load_unsharable_switch_trans(num_switch,
@@ -220,9 +220,9 @@ void count_routing_transistors(int num_switch, double R_minW_nmos,
     ntrans_no_sharing += input_cblock_trans;
     printf("\nRouting area (in minimum width transistor areas):\n");
     printf("Assuming no buffer sharing (pessimistic). Total: %#g  Per clb: "
-           "%#g\n", ntrans_no_sharing, ntrans_no_sharing / (double)(num_of_columns * num_of_rows));
+           "%#g\n", ntrans_no_sharing, ntrans_no_sharing / (double)(num_grid_columns * num_grid_rows));
     printf("Assuming buffer sharing (slightly optimistic). Total: %#g  Per clb: "
-           "%#g\n\n", ntrans_sharing, ntrans_sharing / (double)(num_of_columns * num_of_rows));
+           "%#g\n\n", ntrans_sharing, ntrans_sharing / (double)(num_grid_columns * num_grid_rows));
 }
 
 

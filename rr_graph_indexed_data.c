@@ -72,9 +72,9 @@ void alloc_and_load_rr_indexed_data(segment_info_t* segment_inf,
         rr_indexed_data[index].ortho_cost_index = index + num_segment;
 
         if (segment_inf[iseg].longline) {
-            length = num_of_columns;
+            length = num_grid_columns;
         } else {
-            length = min(segment_inf[iseg].length, num_of_columns);
+            length = min(segment_inf[iseg].length, num_grid_columns);
         }
 
         rr_indexed_data[index].inv_length = 1. / length;
@@ -91,9 +91,9 @@ void alloc_and_load_rr_indexed_data(segment_info_t* segment_inf,
         rr_indexed_data[index].ortho_cost_index = index - num_segment;
 
         if (segment_inf[iseg].longline) {
-            length = num_of_rows;
+            length = num_grid_rows;
         } else {
-            length = min(segment_inf[iseg].length, num_of_rows);
+            length = min(segment_inf[iseg].length, num_grid_rows);
         }
 
         rr_indexed_data[index].inv_length = 1. / length;
@@ -180,7 +180,7 @@ static double get_delay_normalization_fac(int nodes_per_chan, int**
     delay_sum = 0.;
 
     for (itrack = 0; itrack < nodes_per_chan; itrack++) {
-        ivex = gerr_node_t_index((num_of_columns + 1) / 2, (num_of_rows + 1) / 2, CHANX, itrack,
+        ivex = gerr_node_t_index((num_grid_columns + 1) / 2, (num_grid_rows + 1) / 2, CHANX, itrack,
                                   nodes_per_chan, rr_node_indices);
         cost_index = rr_node[ivex].cost_index;
         frac_num_seg = clb_dist * rr_indexed_data[cost_index].inv_length;
@@ -190,7 +190,7 @@ static double get_delay_normalization_fac(int nodes_per_chan, int**
     }
 
     for (itrack = 0; itrack < nodes_per_chan; itrack++) {
-        ivex = gerr_node_t_index((num_of_columns + 1) / 2, (num_of_rows + 1) / 2, CHANY, itrack,
+        ivex = gerr_node_t_index((num_grid_columns + 1) / 2, (num_grid_rows + 1) / 2, CHANY, itrack,
                                   nodes_per_chan, rr_node_indices);
         cost_index = rr_node[ivex].cost_index;
         frac_num_seg = clb_dist * rr_indexed_data[cost_index].inv_length;
@@ -216,7 +216,7 @@ static double get_average_opin_delay(int** rr_node_indices, int
         iclass = clb_pin_class[ipin];
 
         if (class_inf[iclass].type == DRIVER) {   /* OPIN */
-            ivex = gerr_node_t_index((num_of_columns + 1) / 2, (num_of_rows + 1) / 2, OPIN, ipin,
+            ivex = gerr_node_t_index((num_grid_columns + 1) / 2, (num_grid_rows + 1) / 2, OPIN, ipin,
                                       nodes_per_chan, rr_node_indices);
             num_edges = rr_node[ivex].num_edges;
 
@@ -256,7 +256,7 @@ static void load_rr_indexed_data_T_values(int index_start, int
      * channel segment, near the middle of the array.                           */
 
     for (itrack = 0; itrack < nodes_per_chan; itrack++) {
-        ivex = gerr_node_t_index((num_of_columns + 1) / 2, (num_of_rows + 1) / 2, rr_type, itrack,
+        ivex = gerr_node_t_index((num_grid_columns + 1) / 2, (num_grid_rows + 1) / 2, rr_type, itrack,
                                   nodes_per_chan, rr_node_indices);
         cost_index = rr_node[ivex].cost_index;
         num_nodes_of_index[cost_index]++;

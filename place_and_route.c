@@ -3,6 +3,7 @@
 #include "globals.h"
 #include "place_and_route.h"
 #include "place.h"
+#include "place_parallel.h"
 #include "read_place.h"
 #include "route_export.h"
 #include "draw.h"
@@ -73,34 +74,56 @@ void place_and_route(operation_types_t operation,
                    timing_inf,
                    subblock_data_ptr);
     } else if (placer_opts.place_freq == PLACE_ONCE) {
-        try_place(netlist_file,
-                  placer_opts,
-                  annealing_sched,
-                  chan_width_dist,
-                  router_opts,
-                  det_routing_arch,
-                  segment_inf,
-                  timing_inf,
-                  subblock_data_ptr);
+        if (placer_opts.place_parallel == FALSE) {
+            try_place(netlist_file,
+                      placer_opts,
+                      annealing_sched,
+                      chan_width_dist,
+                      router_opts,
+                      det_routing_arch,
+                      segment_inf,
+                      timing_inf,
+                      subblock_data_ptr);
+        } else {
+            try_place_by_multi_threads(netlist_file,
+                                       placer_opts,
+                                       annealing_sched,
+                                       chan_width_dist,
+                                       router_opts,
+                                       det_routing_arch,
+                                       segment_inf,
+                                       timing_inf,
+                                       subblock_data_ptr);
+        }
 
         print_place(place_file,
                     netlist_file,
                     arch_file);
     } else if (placer_opts.place_freq == PLACE_ALWAYS
-                 && router_opts.fixed_channel_width
-                      != NO_FIXED_CHANNEL_WIDTH) {
+             && router_opts.fixed_channel_width != NO_FIXED_CHANNEL_WIDTH) {
         placer_opts.place_chan_width = router_opts.fixed_channel_width;
 
-        try_place(netlist_file,
-                  placer_opts,
-                  annealing_sched,
-                  chan_width_dist,
-                  router_opts,
-                  det_routing_arch,
-                  segment_inf,
-                  timing_inf,
-                  subblock_data_ptr);
-
+        if (placer_opts.place_parallel == FALSE) {
+            try_place(netlist_file,
+                      placer_opts,
+                      annealing_sched,
+                      chan_width_dist,
+                      router_opts,
+                      det_routing_arch,
+                      segment_inf,
+                      timing_inf,
+                      subblock_data_ptr);
+        } else {
+            try_place_by_multi_threads(netlist_file,
+                                       placer_opts,
+                                       annealing_sched,
+                                       chan_width_dist,
+                                       router_opts,
+                                       det_routing_arch,
+                                       segment_inf,
+                                       timing_inf,
+                                       subblock_data_ptr);
+        }
         print_place(place_file,
                     netlist_file,
                     arch_file);
@@ -113,7 +136,6 @@ void place_and_route(operation_types_t operation,
     }
 
     /* Binary search over channel width required? */
-
     if (router_opts.fixed_channel_width == NO_FIXED_CHANNEL_WIDTH) {
         width_fac = binary_search_place_and_route(placer_opts,
                                                   place_file,
@@ -264,16 +286,28 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
         if (placer_opts.place_freq == PLACE_ALWAYS) {
             /* using current channel width to placement */
             placer_opts.place_chan_width = current;
-            try_place(netlist_file,
-                      placer_opts,
-                      annealing_sched,
-                      chan_width_dist,
-                      router_opts,
-                      det_routing_arch,
-                      segment_inf,
-                      timing_inf,
-                      subblock_data_ptr);
-        }
+            if (placer_opts.place_parallel == FALSE) {
+                try_place(netlist_file,
+                          placer_opts,
+                          annealing_sched,
+                          chan_width_dist,
+                          router_opts,
+                          det_routing_arch,
+                          segment_inf,
+                          timing_inf,
+                          subblock_data_ptr);
+            } else {
+                try_place_by_multi_threads(netlist_file,
+                                           placer_opts,
+                                           annealing_sched,
+                                           chan_width_dist,
+                                           router_opts,
+                                           det_routing_arch,
+                                           segment_inf,
+                                           timing_inf,
+                                           subblock_data_ptr);
+            }
+        }  /* end of if (placer_opts.place_freq == PLACE_ALWAYS) */
         /* try to route according to current tracks per channel */
         success = try_route(current,
                             router_opts,
@@ -327,7 +361,6 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
      * successfully.  If one does route successfully, the router keeps    *
      * trying smaller channel widths until two in a row (e.g. 8 and 9)    *
      * fail.                                                              */
-
     if (verify_binary_search) {
         printf("\nVerifying that binary search found min. channel width ...\n");
         prev_success = TRUE; /* Actually final - 1 failed, but this makes router */
@@ -377,7 +410,8 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
 
     /* Restore the best placement (if necessary), the best routing, and  *
      * the best channel widths for final drawing and statistics output.  */
-    init_channel_t(final, chan_width_dist);
+    init_channel_t(final,
+                   chan_width_dist);
 
     if (placer_opts.place_freq == PLACE_ALWAYS) {
         printf("Reading best placement back in.\n");
@@ -426,7 +460,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
     free_saved_routing(best_routing, saved_clb_opins_used_locally);
     fflush(stdout);
     return (final);
-}
+}  /* end of static int binary_search_place_and_route(placer_opts_t placer_opts) */
 
 
 /* Assigns widths to channels(in tracks). The minimum value was one track per    *
@@ -446,39 +480,39 @@ void init_channel_t(int cfactor,
     if (nio == 0) {
         nio = 1;    /* No zero width channels */
     }
-    /* the 0 and num_of_columns or num_of_rows was io */
-    chan_width_x[0] = chan_width_x[num_of_rows] = nio;
-    chan_width_y[0] = chan_width_y[num_of_columns] = nio;
+    /* the 0 and num_grid_columns or num_grid_rows was io */
+    chan_width_x[0] = chan_width_x[num_grid_rows] = nio;
+    chan_width_y[0] = chan_width_y[num_grid_columns] = nio;
 
     double x, separation;
     int i;
-    /* then initial chan_width_x[1...num_of_rows-1] */
-    if (num_of_rows > 1) {
-        separation = 1.0 / (num_of_rows - 2.0); /* Norm. distance between two channels in y-dix. */
-        x = 0.0;    /* This avoids div by zero if num_of_rows = 2. */
+    /* then initial chan_width_x[1...num_grid_rows-1] */
+    if (num_grid_rows > 1) {
+        separation = 1.0 / (num_grid_rows - 2.0); /* Norm. distance between two channels in y-dix. */
+        x = 0.0;    /* This avoids div by zero if num_grid_rows = 2. */
         chan_width_x[1] = (int)floor(cfactor * comp_width(&chan_x_dist, x,
                                                           separation) + 0.5);
         /* No zero width channels */
         chan_width_x[1] = max(chan_width_x[1], 1);
-        /* TODO: Why did the chan_width_x[1...num_of_rows-1] should initial like the
+        /* TODO: Why did the chan_width_x[1...num_grid_rows-1] should initial like the
          * following statement? */
-        for (i = 1; i < num_of_rows-1; ++i) {
-            x = (double)i / ((double)(num_of_rows - 2.0));
+        for (i = 1; i < num_grid_rows-1; ++i) {
+            x = (double)i / ((double)(num_grid_rows - 2.0));
             chan_width_x[i+1] = (int)floor(cfactor * comp_width(&chan_x_dist, x,
                                                                 separation) + 0.5);
             chan_width_x[i+1] = max(chan_width_x[i+1], 1);
         }
     }
-    /* then initial chan_width_y[1...num_of_columns-1] */
-    if (num_of_columns > 1) {
-        separation = 1.0 / (num_of_columns - 2.0); /* Norm. distance between two channels in x-dix. */
-        x = 0.0;    /* Avoids div by zero if num_of_columns = 2. */
+    /* then initial chan_width_y[1...num_grid_columns-1] */
+    if (num_grid_columns > 1) {
+        separation = 1.0 / (num_grid_columns - 2.0); /* Norm. distance between two channels in x-dix. */
+        x = 0.0;    /* Avoids div by zero if num_grid_columns = 2. */
         chan_width_y[1] = (int)floor(cfactor * comp_width(&chan_y_dist, x,
                                                           separation) + 0.5);
         chan_width_y[1] = max(chan_width_y[1], 1);
         /* TODO: Q: like previous question. */
-        for (i = 1; i < num_of_columns - 1; i++) {
-            x = (double)i / ((double)(num_of_columns - 2.0));
+        for (i = 1; i < num_grid_columns - 1; i++) {
+            x = (double)i / ((double)(num_grid_columns - 2.0));
             chan_width_y[i + 1] = (int)floor(cfactor * comp_width(&chan_y_dist, x,
                                                                    separation) + 0.5);
             chan_width_y[i + 1] = max(chan_width_y[i + 1], 1);
@@ -487,14 +521,12 @@ void init_channel_t(int cfactor,
 
 #ifdef VERBOSE
     printf("\nchan_width_x:\n");
-
-    for (i = 0; i <= num_of_rows; i++) {
+    for (i = 0; i <= num_grid_rows; i++) {
         printf("%d  ", chan_width_x[i]);
     }
 
     printf("\n\nchan_width_y:\n");
-
-    for (i = 0; i <= num_of_columns; i++) {
+    for (i = 0; i <= num_grid_columns; i++) {
         printf("%d  ", chan_width_y[i]);
     }
 

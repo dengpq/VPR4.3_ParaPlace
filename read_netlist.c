@@ -281,23 +281,23 @@ static char* get_token(char* buf,
     if (strcmp(ptr, ".clb") == 0) {
         ptr = add_clb(doall, fp_net, buf);
         return ptr;
-    } 
+    }
     if (strcmp(ptr, ".input") == 0) {
         add_io(doall, INPAD_TYPE, fp_net, buf);
         ptr = my_fgets(buf, BUFSIZE, fp_net);
         return ptr;
-    } 
+    }
     if (strcmp(ptr, ".output") == 0) {
         add_io(doall, OUTPAD_TYPE, fp_net, buf);
         ptr = my_fgets(buf, BUFSIZE, fp_net);
         return ptr;
-    } 
+    }
     if (strcmp(ptr, ".global") == 0) {
         add_global(doall, fp_net, buf);
         ptr = my_fgets(buf, BUFSIZE, fp_net);
         return ptr;
     }
-    
+
     printf("Error in get_token while parsing netlist file.\n");
     printf("Line %d starts with an invalid token (%s).\n", linenum, ptr);
     exit(1);

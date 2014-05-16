@@ -241,8 +241,8 @@ static void alloc_block(void)
 static void init_occ(void)
 {
     int i, j;
-    for (i = 0; i <= num_of_columns + 1; i++) {
-        for (j = 0; j <= num_of_rows + 1; j++) {
+    for (i = 0; i <= num_grid_columns + 1; i++) {
+        for (j = 0; j <= num_grid_rows + 1; j++) {
             clb_grids[i][j].occ = 0;
         }
     }
@@ -339,7 +339,7 @@ static void alloc_routing_structs(router_opts_t router_opts,
 {
     /*calls routines that set up routing resource graph and associated structures*/
     /*must set up dummy blocks for the first pass through*/
-    assign_locations(CLB_TYPE, 1, 1, CLB_TYPE, num_of_columns, num_of_rows);
+    assign_locations(CLB_TYPE, 1, 1, CLB_TYPE, num_grid_columns, num_grid_rows);
 
     clb_opins_used_locally = alloc_route_structs(subblock_data);
     free_rr_graph();
@@ -352,7 +352,7 @@ static void alloc_routing_structs(router_opts_t router_opts,
     alloc_timing_driven_route_structs(&pin_criticality,
                                       &sink_order,
                                       &rt_node_of_sink);
-    int bb_factor = num_of_columns + num_of_rows; /*set it to a huge value*/
+    int bb_factor = num_grid_columns + num_grid_rows; /*set it to a huge value*/
     init_route_structs(bb_factor);
 }
 /**************************************/
@@ -457,49 +457,49 @@ static double assign_blocks_and_route_net(block_types_t source_type,
 static void alloc_delta_arrays(void)  /* FIXME */
 {
     delta_clb_to_clb = (double**)alloc_matrix(0,
-                                              num_of_columns - 1,
+                                              num_grid_columns - 1,
                                               0,
-                                              num_of_rows - 1,
+                                              num_grid_rows - 1,
                                               sizeof(double));
     delta_inpad_to_clb = (double**)alloc_matrix(0,
-                                                num_of_columns,
+                                                num_grid_columns,
                                                 0,
-                                                num_of_rows,
+                                                num_grid_rows,
                                                 sizeof(double));
     delta_clb_to_outpad = (double**)alloc_matrix(0,
-                                                 num_of_columns,
+                                                 num_grid_columns,
                                                  0,
-                                                 num_of_rows,
+                                                 num_grid_rows,
                                                  sizeof(double));
     delta_inpad_to_outpad = (double**)alloc_matrix(0,
-                                                   num_of_columns + 1,
+                                                   num_grid_columns + 1,
                                                    0,
-                                                   num_of_rows + 1,
+                                                   num_grid_rows + 1,
                                                    sizeof(double));
 
     /*initialize all of the array locations to -1*/
     int id_x = -1;
     int id_y = -1;
-    for (id_x = 0; id_x <= num_of_columns; ++id_x) {
-        for (id_y = 0; id_y <= num_of_rows; ++id_y) {
+    for (id_x = 0; id_x <= num_grid_columns; ++id_x) {
+        for (id_y = 0; id_y <= num_grid_rows; ++id_y) {
             delta_inpad_to_clb[id_x][id_y] = IMPOSSIBLE;
         }
     }
 
-    for (id_x = 0; id_x <= num_of_columns - 1; ++id_x) {
-        for (id_y = 0; id_y <= num_of_rows - 1; ++id_y) {
+    for (id_x = 0; id_x <= num_grid_columns - 1; ++id_x) {
+        for (id_y = 0; id_y <= num_grid_rows - 1; ++id_y) {
             delta_clb_to_clb[id_x][id_y] = IMPOSSIBLE;
         }
     }
 
-    for (id_x = 0; id_x <= num_of_columns; ++id_x) {
-        for (id_y = 0; id_y <= num_of_rows; ++id_y) {
+    for (id_x = 0; id_x <= num_grid_columns; ++id_x) {
+        for (id_y = 0; id_y <= num_grid_rows; ++id_y) {
             delta_clb_to_outpad[id_x][id_y] = IMPOSSIBLE;
         }
     }
 
-    for (id_x = 0; id_x <= num_of_columns + 1; ++id_x) {
-        for (id_y = 0; id_y <= num_of_rows + 1; ++id_y) {
+    for (id_x = 0; id_x <= num_grid_columns + 1; ++id_x) {
+        for (id_y = 0; id_y <= num_grid_rows + 1; ++id_y) {
             delta_inpad_to_outpad[id_x][id_y] = IMPOSSIBLE;
         }
     }
@@ -510,22 +510,22 @@ static void free_delta_arrays(void)
 {
     free_matrix(delta_inpad_to_clb,
                 0,
-                num_of_columns,
+                num_grid_columns,
                 0,
                 sizeof(double));
     free_matrix(delta_clb_to_clb,
                 0,
-                num_of_columns - 1,
+                num_grid_columns - 1,
                 0,
                 sizeof(double));
     free_matrix(delta_clb_to_outpad,
                 0,
-                num_of_columns,
+                num_grid_columns,
                 0,
                 sizeof(double));
     free_matrix(delta_inpad_to_outpad,
                 0,
-                num_of_columns + 1,
+                num_grid_columns + 1,
                 0,
                 sizeof(double));
 }
@@ -584,20 +584,20 @@ static void compute_delta_clb_to_clb(router_opts_t router_opts,
     block_types_t sink_type = CLB_TYPE;
 
     int start_x = 0;
-    if (longest_length < 0.5 * (num_of_columns)) {
+    if (longest_length < 0.5 * (num_grid_columns)) {
         start_x = longest_length;
     } else {
-        start_x = (int)(0.5 * num_of_columns);
+        start_x = (int)(0.5 * num_grid_columns);
     }
-    const int end_x = num_of_columns;
+    const int end_x = num_grid_columns;
 
     int start_y = 0;
-    if (longest_length < 0.5 * (num_of_rows)) {
+    if (longest_length < 0.5 * (num_grid_rows)) {
         start_y = longest_length;
     } else {
-        start_y = (int)(0.5 * num_of_rows);
+        start_y = (int)(0.5 * num_grid_rows);
     }
-    const int end_y = num_of_rows;
+    const int end_y = num_grid_rows;
 
     /*don't put the sink all the way to the corner, until it is necessary*/
     int delta_x = 0;
@@ -701,13 +701,13 @@ static void compute_delta_inpad_to_clb(router_opts_t router_opts,
     block_types_t source_type = INPAD_TYPE;
     block_types_t sink_type = CLB_TYPE;
     delta_inpad_to_clb[0][0] = IMPOSSIBLE;
-    delta_inpad_to_clb[num_of_columns][num_of_rows] = IMPOSSIBLE;
+    delta_inpad_to_clb[num_grid_columns][num_grid_rows] = IMPOSSIBLE;
     int source_x = 0;
     int source_y = 1;
     int start_x = 1;
-    int end_x = num_of_columns;
+    int end_x = num_grid_columns;
     int start_y = 1;
-    int end_y = num_of_rows;
+    int end_y = num_grid_rows;
     generic_compute_matrix(&delta_inpad_to_clb,
                            source_type,
                            sink_type,
@@ -726,7 +726,7 @@ static void compute_delta_inpad_to_clb(router_opts_t router_opts,
     start_x = 1;
     end_x = 1;
     start_y = 1;
-    end_y = num_of_rows;
+    end_y = num_grid_rows;
     generic_compute_matrix(&delta_inpad_to_clb,
                            source_type,
                            sink_type,
@@ -741,9 +741,9 @@ static void compute_delta_inpad_to_clb(router_opts_t router_opts,
                            segment_inf,
                            timing_inf);
     start_x = 1;
-    end_x = num_of_columns;
-    start_y = num_of_rows;
-    end_y = num_of_rows;
+    end_x = num_grid_columns;
+    start_y = num_grid_rows;
+    end_y = num_grid_rows;
     generic_compute_matrix(&delta_inpad_to_clb,
                            source_type,
                            sink_type,
@@ -765,7 +765,7 @@ static void compute_delta_clb_to_outpad(router_opts_t router_opts)
     block_types_t source_type = CLB_TYPE;
     block_types_t sink_type = OUTPAD_TYPE;
     delta_clb_to_outpad[0][0] = IMPOSSIBLE;
-    delta_clb_to_outpad[num_of_columns][num_of_rows] = IMPOSSIBLE;
+    delta_clb_to_outpad[num_grid_columns][num_grid_rows] = IMPOSSIBLE;
 
     int sink_x = 0;
     int sink_y = 1;
@@ -773,11 +773,11 @@ static void compute_delta_clb_to_outpad(router_opts_t router_opts)
     int source_y = 0;
     int delta_x = 0;
     int delta_y = 0;
-    for (source_x = 1; source_x <= num_of_columns; ++source_x) {
-        for (source_y = 1; source_y <= num_of_rows; ++source_y) {
+    for (source_x = 1; source_x <= num_grid_columns; ++source_x) {
+        for (source_y = 1; source_y <= num_grid_rows; ++source_y) {
             delta_x = abs(source_x - sink_x);
             delta_y = abs(source_y - sink_y);
-            delta_clb_to_outpad[delta_x][delta_y] = 
+            delta_clb_to_outpad[delta_x][delta_y] =
                             assign_blocks_and_route_net(source_type,
                                                         source_x,
                                                         source_y,
@@ -792,7 +792,7 @@ static void compute_delta_clb_to_outpad(router_opts_t router_opts)
     sink_y = 0;
     source_x = 1;
     delta_x = abs(source_x - sink_x);
-    for (source_y = 1; source_y <= num_of_rows; ++source_y) {
+    for (source_y = 1; source_y <= num_grid_rows; ++source_y) {
         delta_y = abs(source_y - sink_y);
         delta_clb_to_outpad[delta_x][delta_y] =
             assign_blocks_and_route_net(source_type,
@@ -806,9 +806,9 @@ static void compute_delta_clb_to_outpad(router_opts_t router_opts)
 
     sink_x = 1;
     sink_y = 0;
-    source_y = num_of_rows;
+    source_y = num_grid_rows;
     delta_y = abs(source_y - sink_y);
-    for (source_x = 2; source_x <= num_of_columns; ++source_x) {
+    for (source_x = 2; source_x <= num_grid_columns; ++source_x) {
         delta_x = abs(source_x - sink_x);
         delta_clb_to_outpad[delta_x][delta_y] =
             assign_blocks_and_route_net(source_type,
@@ -828,11 +828,11 @@ static void compute_delta_inpad_to_outpad(router_opts_t router_opts)
     block_types_t sink_type = OUTPAD_TYPE;
 
     delta_inpad_to_outpad[0][0] = 0; /*Tdel to itself is 0 (this can happen)*/
-    delta_inpad_to_outpad[num_of_columns + 1][num_of_rows + 1] = IMPOSSIBLE;
-    delta_inpad_to_outpad[0][num_of_rows] = IMPOSSIBLE;
-    delta_inpad_to_outpad[num_of_columns][0] = IMPOSSIBLE;
-    delta_inpad_to_outpad[num_of_columns][num_of_rows + 1] = IMPOSSIBLE;
-    delta_inpad_to_outpad[num_of_columns + 1][num_of_rows] = IMPOSSIBLE;
+    delta_inpad_to_outpad[num_grid_columns + 1][num_grid_rows + 1] = IMPOSSIBLE;
+    delta_inpad_to_outpad[0][num_grid_rows] = IMPOSSIBLE;
+    delta_inpad_to_outpad[num_grid_columns][0] = IMPOSSIBLE;
+    delta_inpad_to_outpad[num_grid_columns][num_grid_rows + 1] = IMPOSSIBLE;
+    delta_inpad_to_outpad[num_grid_columns + 1][num_grid_rows] = IMPOSSIBLE;
 
     int source_x = 0;
     int source_y = 1;
@@ -840,7 +840,7 @@ static void compute_delta_inpad_to_outpad(router_opts_t router_opts)
     int sink_y = 0;
     int delta_x = abs(sink_x - source_x);
     int delta_y = 0;
-    for (sink_y = 2; sink_y <= num_of_rows; ++sink_y) {
+    for (sink_y = 2; sink_y <= num_grid_rows; ++sink_y) {
         delta_y = abs(sink_y - source_y);
         delta_inpad_to_outpad[delta_x][delta_y] =
             assign_blocks_and_route_net(source_type,
@@ -854,9 +854,9 @@ static void compute_delta_inpad_to_outpad(router_opts_t router_opts)
 
     source_x = 0;
     source_y = 1;
-    sink_x = num_of_columns + 1;
+    sink_x = num_grid_columns + 1;
     delta_x = abs(sink_x - source_x);
-    for (sink_y = 1; sink_y <= num_of_rows; ++sink_y) {
+    for (sink_y = 1; sink_y <= num_grid_rows; ++sink_y) {
         delta_y = abs(sink_y - source_y);
         delta_inpad_to_outpad[delta_x][delta_y] =
             assign_blocks_and_route_net(source_type,
@@ -872,7 +872,7 @@ static void compute_delta_inpad_to_outpad(router_opts_t router_opts)
     source_y = 0;
     sink_y = 0;
     delta_y = abs(sink_y - source_y);
-    for (sink_x = 2; sink_x <= num_of_columns; ++sink_x) {
+    for (sink_x = 2; sink_x <= num_grid_columns; ++sink_x) {
         delta_x = abs(sink_x - source_x);
         delta_inpad_to_outpad[delta_x][delta_y] =
             assign_blocks_and_route_net(source_type,
@@ -886,9 +886,9 @@ static void compute_delta_inpad_to_outpad(router_opts_t router_opts)
 
     source_x = 1;
     source_y = 0;
-    sink_y = num_of_rows + 1;
+    sink_y = num_grid_rows + 1;
     delta_y = abs(sink_y - source_y);
-    for (sink_x = 1; sink_x <= num_of_columns; ++sink_x) {
+    for (sink_x = 1; sink_x <= num_grid_columns; ++sink_x) {
         delta_x = abs(sink_x - source_x);
         delta_inpad_to_outpad[delta_x][delta_y] =
             assign_blocks_and_route_net(source_type,
@@ -901,9 +901,9 @@ static void compute_delta_inpad_to_outpad(router_opts_t router_opts)
     }
 
     source_x = 0;
-    sink_y = num_of_rows + 1;
-    for (source_y = 1; source_y <= num_of_rows; ++source_y) {
-        for (sink_x = 1; sink_x <= num_of_columns; ++sink_x) {
+    sink_y = num_grid_rows + 1;
+    for (source_y = 1; source_y <= num_grid_rows; ++source_y) {
+        for (sink_x = 1; sink_x <= num_grid_columns; ++sink_x) {
             delta_y = abs(source_y - sink_y);
             delta_x = abs(source_x - sink_x);
             delta_inpad_to_outpad[delta_x][delta_y] =
@@ -966,16 +966,16 @@ static void compute_delta_arrays(router_opts_t router_opts,   /* FIXME */
     lookup_dump = my_fopen(DUMPFILE, "w", 0);
 
     fprintf(lookup_dump, "\n\nprinting delta_clb_to_clb\n");
-    print_array(delta_clb_to_clb, 0 , num_of_columns - 1, 0, num_of_rows - 1);
+    print_array(delta_clb_to_clb, 0 , num_grid_columns - 1, 0, num_grid_rows - 1);
 
     fprintf(lookup_dump, "\n\nprinting delta_inpad_to_clb\n");
-    print_array(delta_inpad_to_clb, 0, num_of_columns, 0, num_of_rows);
+    print_array(delta_inpad_to_clb, 0, num_grid_columns, 0, num_grid_rows);
 
     fprintf(lookup_dump, "\n\nprinting delta_clb_to_outpad\n");
-    print_array(delta_clb_to_outpad, 0, num_of_columns, 0, num_of_rows);
+    print_array(delta_clb_to_outpad, 0, num_grid_columns, 0, num_grid_rows);
 
     fprintf(lookup_dump, "\n\nprinting delta_inpad_to_outpad\n");
-    print_array(delta_inpad_to_outpad, 0, num_of_columns + 1, 0, num_of_rows + 1);
+    print_array(delta_inpad_to_outpad, 0, num_grid_columns + 1, 0, num_grid_rows + 1);
 
     fclose(lookup_dump);
 #endif

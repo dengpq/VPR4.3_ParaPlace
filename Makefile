@@ -5,11 +5,11 @@
 # (3) On many systems, the -R/usr/openwin/lib option on the LIB line
 #     will have to be removed.
 # (4) X11_INCLUDE to point at the directory containing "x11/xlib.h" etc.
-# (5) OPT_FLAGS should be changed to whatever options turn on maximum 
+# (5) OPT_FLAGS should be changed to whatever options turn on maximum
 #     optimization in your compiler.
 # (6) If your system does not support X11 (e.g. you're running on Windows NT)
 #     then add -DNO_GRAPHICS to the end of the "FLAGS =" line.
-CC = gcc 
+CC = gcc
 
 #SunOS lines below.
 #LIB_DIR = -L/usr/lib/X11R5
@@ -25,27 +25,26 @@ SRC_DIR = .
 # right into the binary.  Shouldn't be necessary, but it is on our machines.
 
 #LIB = -lX11 -lm -R/usr/openwin/lib
-LIB = -lX11 -lm
+LIB = -lX11 -lm -pthread
 
 #X11_INCLUDE = -I/usr/openwin/include
 
-# Overly strict flags line below.  Lots of useless warnings, but can 
-# let you look for redudant declarations. 
+# Overly strict flags line below.  Lots of useless warnings, but can
+# let you look for redudant declarations.
 # To avoid redundant declarations here I use -D__STDC instead of
 # -D__USE_FIXED_PROTOTYPES, but that means some prototypes are missing.
 
 #FLAGS = -Wall -Wpointer-arith -Wcast-qual -Wstrict-prototypes -O -D__STDC__ -ansi -pedantic -Wredundant-decls -Wmissing-prototypes -Wshadow -Wcast-align -D_POSIX_SOURCE
 
-#Flags to be passed to the compiler.  First is for strict warnings, 
-#second for interactive debugging and third for optimization. 
+#Flags to be passed to the compiler.  First is for strict warnings,
+#second for interactive debugging and third for optimization.
 
 #-D_POSIX_SOURCE stops extra declarations from being included in math.h
 #and causing -Wshadow to complain about conflicts with y1 in math.h
-#(Bessel function 1 of the second kind) 
-
+#(Bessel function 1 of the second kind)
 WARN_FLAGS = -Wall -Wpointer-arith -Wcast-qual -Wstrict-prototypes -O -D__USE_FIXED_PROTOTYPES__ -ansi -pedantic -Wmissing-prototypes -Wshadow -Wcast-align -D_POSIX_SOURCE
-DEBUG_FLAGS = -g -pg
-OPT_FLAGS = -Wall -fPIC -O3
+DEBUG_FLAGS = -g -pg -Wall
+OPT_FLAGS = -fPIC -O3 -pthread
 
 #I found that in Ubuntu12.04-x86_64 and gcc4,6, the P&R result was same whether or not added -std=c99,
 #but they were different in Fedora17-i386 system, gcc4.7.3
@@ -69,7 +68,7 @@ OBJ = ../obj/main.o ../obj/util.o ../obj/read_netlist.o ../obj/print_netlist.o .
       ../obj/rr_graph_timing_params.o ../obj/rr_graph_indexed_data.o ../obj/rr_graph_area.o ../obj/check_rr_graph.o \
       ../obj/check_route.o ../obj/hash.o ../obj/heapsort.o ../obj/read_place.o ../obj/net_delay.o \
 	  ../obj/path_delay.o ../obj/path_delay2.o ../obj/vpr_utils.o ../obj/timing_place_lookup.o \
-	  ../obj/timing_place.o
+	  ../obj/timing_place.o ../obj/place_parallel.o#../obj/ezxml.o ../obj/xml_arch.o
 
 #attention, the test_h.c and graphics.c should delete from SRC, it should compile seperately.
 SRC = main.c util.c read_netlist.c print_netlist.c check_netlist.c read_arch.c \
@@ -78,7 +77,7 @@ SRC = main.c util.c read_netlist.c print_netlist.c check_netlist.c read_arch.c \
 	  rr_graph2.c rr_graph_sbox.c rr_graph_util.c rr_graph_timing_params.c \
 	  rr_graph_indexed_data.c rr_graph_area.c check_rr_graph.c check_route.c hash.c \
 	  heapsort.c read_place.c net_delay.c path_delay.c path_delay2.c \
-	  vpr_utils.c timing_place_lookup.c timing_place.c
+	  vpr_utils.c timing_place_lookup.c timing_place.c place_parallel.c#ezxml.c xml_arch.c
 
 Header = util.h vpr_types.h globals.h graphics.h read_netlist.h \
          print_netlist.h check_netlist.h read_arch.h stats.h \
@@ -88,17 +87,14 @@ Header = util.h vpr_types.h globals.h graphics.h read_netlist.h \
 		 rr_graph_timing_params.h rr_graph_indexed_data.h rr_graph_area.h \
 		 check_rr_graph.h check_route.h hash.h heapsort.h read_place.h \
          path_delay.h path_delay2.h net_delay.h vpr_utils.h \
-		 timing_place_lookup.h timing_place.h
-
-# I haven't been able to make -static work under Solaris.  Use shared
-# libraries all the time.
+		 timing_place_lookup.h timing_place.h place_parallel.h#ezxml.h xml_arch.h
 
 # Add purify before $(CC) in the link line below to run purify on VPR.
 
 #link all needed object files to binary file.
 #FIXME: the statement must define at all object files, graphics.o and test_h.o,
 #otherwise, it will not compile all the needed object files.
-$(EXE): $(OBJ) ../obj/test_h.o 
+$(EXE): $(OBJ) ../obj/test_h.o
 	$(CC) $(FLAGS) $(OBJ) ../obj/test_h.o -o $(EXE) $(LIB_DIR) $(LIB)
 
 # test_h.c is a dummy file -- it just checks the header files against each
@@ -110,7 +106,6 @@ $(EXE): $(OBJ) ../obj/test_h.o
 #then I should set most object files. Attention, I should use %.o, %.c, not *.o, *.c.
 ../obj/%.o : $(SRC_DIR)/%.c
 	$(CC) $(FLAGS) -c $< -o $@
-
 
 clean:
 	rm -fv ../obj/*.o $(EXE)
