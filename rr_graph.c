@@ -264,9 +264,11 @@ void build_rr_graph(router_types_t route_type,
 }
 
 
-void free_rr_graph_internals(router_types_t route_type, detail_routing_arch_t
-                             det_routing_arch, segment_info_t* segment_inf, timing_info_t
-                             timing_inf, router_base_cost_t router_base_cost_type)
+void free_rr_graph_internals(router_types_t route_type,
+                             detail_routing_arch_t det_routing_arch,
+                             segment_info_t* segment_inf,
+                             timing_info_t timing_inf,
+                             router_base_cost_t router_base_cost_type)
 {
     /* frees the variables that are internal to build_rr_graph.        */
     /* this procedure should typically be called immediatley after     */
@@ -1211,7 +1213,6 @@ static vector_t** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
     /* The routing graph will connect tracks to input pins on the clbs.   *
      * This routine converts the list of which tracks each ipin connects  *
      * to into a list of the ipins each track connects to.                */
-
     int ipin, iside, itrack, iconn, ioff, tr_side;
 
     /* [0..nodes_per_chan-1][0..3].  For each track number it stores a vector  *

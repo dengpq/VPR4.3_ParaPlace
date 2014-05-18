@@ -84,7 +84,7 @@ void place_and_route(operation_types_t operation,
                       segment_inf,
                       timing_inf,
                       subblock_data_ptr);
-        } else {
+        }/* else {
             try_place_by_multi_threads(netlist_file,
                                        placer_opts,
                                        annealing_sched,
@@ -94,7 +94,7 @@ void place_and_route(operation_types_t operation,
                                        segment_inf,
                                        timing_inf,
                                        subblock_data_ptr);
-        }
+        } */
 
         print_place(place_file,
                     netlist_file,
@@ -113,7 +113,7 @@ void place_and_route(operation_types_t operation,
                       segment_inf,
                       timing_inf,
                       subblock_data_ptr);
-        } else {
+        }/*else {
             try_place_by_multi_threads(netlist_file,
                                        placer_opts,
                                        annealing_sched,
@@ -123,7 +123,7 @@ void place_and_route(operation_types_t operation,
                                        segment_inf,
                                        timing_inf,
                                        subblock_data_ptr);
-        }
+        } */
         print_place(place_file,
                     netlist_file,
                     arch_file);
@@ -296,7 +296,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
                           segment_inf,
                           timing_inf,
                           subblock_data_ptr);
-            } else {
+            }/* else {
                 try_place_by_multi_threads(netlist_file,
                                            placer_opts,
                                            annealing_sched,
@@ -306,7 +306,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
                                            segment_inf,
                                            timing_inf,
                                            subblock_data_ptr);
-            }
+            } */
         }  /* end of if (placer_opts.place_freq == PLACE_ALWAYS) */
         /* try to route according to current tracks per channel */
         success = try_route(current,

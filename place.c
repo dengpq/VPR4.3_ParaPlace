@@ -23,15 +23,18 @@
 #define TO          1
 #define FROM_AND_TO 2
 
-#define ERROR_TOL .001
+#define ERROR_TOL   0.001
 #define MAX_MOVES_BEFORE_RECOMPUTE 1000000
+/* Attention, for place_parallel.c, the ERROR_TOL *
+ * and MAX_MOVES_BEFORE_RECOMPUTE had changed to  *
+ * #define ERROR_TOL       0.0025
+ * #define MAX_MOVES_BEFORE_RECOMPUTE 50000*/
 
 #define EMPTY -1
 
 /********************** Variables local to place.c ***************************/
-/* [0..num_nets-1]  0 if net never connects to the same blocks more than  *
+/* [0..num_nets-1]  0 if net never connects to the same blocks more than *
  *  once, otherwise it gives the number of duplicate connections.        */
-
 static int* duplicate_pins;
 
 /* [0..num_nets-1][0..num_unique_blocks-1]  Contains a list of blocks with *
@@ -39,7 +42,7 @@ static int* duplicate_pins;
 static int** unique_pin_list;
 
 /* Cost of a net, and a temporary cost of a net used during move assessment. */
-static double* net_cost = NULL; /* double new_cost[0..num_nets-1] */
+static double* net_cost = NULL;      /* double new_cost[0..num_nets-1] */
 static double* temp_net_cost = NULL; /* double temp_new_cost[0..num_nets-1] */
 
 /* [0..num_nets-1][1..num_pins-1]. What is the value of the timing   */
@@ -47,7 +50,6 @@ static double* temp_net_cost = NULL; /* double temp_new_cost[0..num_nets-1] */
 /* (criticality * Tdel) for each point to point connection. */
 static double** point_to_point_timing_cost = NULL;
 static double** temp_point_to_point_timing_cost = NULL;
-
 
 
 /* [0..num_nets-1][1..num_pins-1]. The value of the Tdel */
@@ -62,9 +64,9 @@ static double**  temp_point_to_point_delay_cost = NULL;
 /* each net. That is <pin_number, net_number>. */
 static int** net_pin_index = NULL;
 
-
 /* [0..num_nets-1], store the bounding_box coordinates of each net. */
 static bbox_t* bb_coords = NULL;
+
 /* [0..num_nets-1], store the number of blocks on each of a net's bounding_box *
  * (to allow efficient updates), respectively.                                 */
 static bbox_t* bb_num_on_edges = NULL;
@@ -73,10 +75,12 @@ static bbox_t* bb_num_on_edges = NULL;
  * region in the placement.  Used only by the NONLINEAR_CONG cost        *
  * function.  [0..num_region-1][0..num_region-1].  Place_region_x and    *
  * y give the situation for the x and y directed channels, respectively. */
-static place_region_t** place_region_x, ** place_region_y;
+static place_region_t**  place_region_x;
+static place_region_t**  place_region_y;
 
 /* Used only with nonlinear congestion.  [0..num_regions]. */
-static double* place_region_bounds_x, *place_region_bounds_y;
+static double*  place_region_bounds_x;
+static double*  place_region_bounds_y;
 
 /* The arrays below are used to precompute the inverse of the average   *
  * number of tracks per channel between [subhigh] and [sublow].  Access *
@@ -157,32 +161,40 @@ static void compute_delta_timing_driven_cost(place_algorithm_t place_algo,
                                              double* delta_timing,
                                              double* delta_delay);
 
-static void compute_timing_driven_cost_by_orig_algo(double* timing_cost,
-                                                    double* connection_delay_sum);
-
 /*======    New added by Pengqiu Deng for Timing-Driven Placement   ======*/
 extern int num_of_vertexs;
 extern vertex_t*  vertexes;
 extern int* driver_node_index_of_net;
-
-static void compute_timing_driven_costs_by_path_algo(double* total_timing_cost,
-                                                     double* connection_delay_sum);
 /********************     End!     ***********************************/
 
 static int assess_swap(double delta_cost, double t);
 
-static void find_to(int x_from, int y_from, int type, double rlim,
-                    int* x_to, int* y_to);
+static void find_to(int x_from,
+                    int y_from,
+                    int type,
+                    double rlim,
+                    int* x_to,
+                    int* y_to);
 
-static void get_non_updateable_bb(int inet, bbox_t* bb_coord_new);
+static void get_non_updateable_bb(int inet,
+                                  bbox_t* bb_coord_new);
 
-static void update_bb(int inet, bbox_t* bb_coord_new, bbox_t
-                      *bb_edge_new, int xold, int yold, int xnew, int ynew);
+static void update_bb(int inet,
+                      bbox_t* bb_coord_new,
+                      bbox_t* bb_edge_new,
+                      int xold,
+                      int yold,
+                      int xnew,
+                      int ynew);
 
-static int find_affected_nets(int* nets_to_update, int* net_block_moved,
-                              int from_block, int to_block, int num_of_pins);
+static int find_affected_nets(int* nets_to_update,
+                              int* net_block_moved,
+                              int from_block,
+                              int to_block,
+                              int num_of_pins);
 
-static double get_net_cost(int inet, bbox_t* bb_ptr);
+static double get_net_cost(int inet,
+                           bbox_t* bb_ptr);
 
 static double nonlinear_cong_cost(int num_regions);
 
@@ -206,8 +218,8 @@ static void get_bb_from_scratch(int inet, bbox_t* coords,
  * architectures. Place_cost_type determines which cost function is used.     *
  * num_regions is used only the place_cost_type is NONLINEAR_CONG.            */
 void try_place(const char*         netlist_file,
-               placer_opts_t       placer_opts,
-               annealing_sched_t   annealing_sched,
+               const placer_opts_t       placer_opts,
+               const annealing_sched_t   annealing_sched,
                chan_width_distr_t  chan_width_dist,
                router_opts_t       router_opts,
                detail_routing_arch_t det_routing_arch,
@@ -435,138 +447,18 @@ void try_place(const char*         netlist_file,
             placer_paras_ptr->m_width_factor);
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
-    /* outer loop of SA-based Placement  */
-    int  inner_iter = 0;
-    int moves_since_cost_recompute = 0;
-    placer_paras_ptr->m_total_iter = 0;
-    while (exit_crit(placer_paras_ptr->m_temper,
-                     placer_costs_ptr->m_total_cost,
-                     annealing_sched) == 0) { /* FIXME: outer loop of VPR */
-        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-              /* New added for support PATH Timing-Driven Placement */
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-            placer_costs_ptr->m_total_cost = 1.0;
-        }
+    /*************  MAIN SIMULATED ANNEANLING PlACEMENT STAGE  ****************/
+    run_main_placement(placer_opts,
+                       annealing_sched,
+                       pins_on_block,
+                       placer_paras_ptr,
+                       old_region_occ_x,
+                       old_region_occ_y,
+                       net_slack,
+                       net_delay,
+                       placer_costs_ptr);
+    /*****************  END OF MAIN PLACEMENT STAGE   ******************/
 
-        placer_costs_ptr->m_av_cost = placer_costs_ptr->m_av_bb_cost = 0.0;
-        placer_costs_ptr->m_av_timing_cost = placer_costs_ptr->m_av_delay_cost = 0.0;
-        placer_paras_ptr->m_sum_of_squares = placer_paras_ptr->m_success_sum = 0;
-
-        /*------   First running timing_analyze before try_swap() in outer loop ------*/
-        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-              /* new added for supporting PATH Timing-Driven Placement */
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-            perform_timing_analyze(&placer_opts,
-                                   net_slack,
-                                   net_delay,
-                                   placer_paras_ptr,
-                                   placer_costs_ptr);
-        } /* end of placement_algorithm == TIMING_DRIVEN_PLACE */
-        /*----   Run Timing Analyze before try_swap() in Outer Loop OK! -----*/
-
-        placer_paras_ptr->m_inner_crit_iter_count = 1;
-        const int move_limit = placer_paras_ptr->m_move_limit;
-        for (inner_iter = 0; inner_iter < move_limit; ++inner_iter) {
-            /* FIXME: try to swap a pair of clbs or io pads randomly */
-            if (try_swap(placer_paras_ptr,
-                         placer_opts,
-                         pins_on_block,
-                         old_region_occ_x,
-                         old_region_occ_y,
-                         placer_costs_ptr) == 1) {
-                ++(placer_paras_ptr->m_success_sum);
-                placer_costs_ptr->m_av_cost += placer_costs_ptr->m_total_cost;
-                placer_costs_ptr->m_av_bb_cost += placer_costs_ptr->m_bb_cost;
-                placer_costs_ptr->m_av_delay_cost += placer_costs_ptr->m_delay_cost;
-                placer_costs_ptr->m_av_timing_cost += placer_costs_ptr->m_timing_cost;
-                placer_paras_ptr->m_sum_of_squares +=
-                    placer_costs_ptr->m_total_cost * placer_costs_ptr->m_total_cost;
-            } /* -------------     end of try_swap() success   -------------*/
-
-            /*--------------   Update Timing-Driven Placement Cost  After swap ------------*/
-            if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-                  || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-                  /* New added for supporting PATH Timing-Driven Placement */
-                  || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-                update_timing_cost_after_swap(&placer_opts,
-                                              inner_iter,
-                                              net_delay,
-                                              net_slack,
-                                              placer_paras_ptr,
-                                              placer_costs_ptr);
-            } /* end of update timing-cost after try_swap() */
-
-#ifdef VERBOSE
-            /* Attention, when I use the following codes, VPR will call  *
-             * compute_bb_cost() as frequency as try_swap(), it will result *
-             * in VPR costing 4 or 5 times long than origin algorithm. So*
-             * Do not use the following codes!!!                         */
-            if (fabs(placer_costs_ptr->m_bb_cost - compute_bb_cost(CHECK,
-                                                                   placer_opts.place_cost_type,
-                                                                   placer_opts.num_regions))
-                    > placer_costs_ptr->m_bb_cost * ERROR_TOL) {
-                exit(1);
-            }
-#endif
-        } /* end of INNER LOOP OF VPR */
-
-        /* Lines below prevent too much round-off error from accumulating *
-         * in the cost over many iterations.  This round-off can lead to  *
-         * error checks failing because the cost is different from what   *
-         * you get when you recompute from scratch.                       */
-        moves_since_cost_recompute += move_limit;
-        if (moves_since_cost_recompute > MAX_MOVES_BEFORE_RECOMPUTE) { /* > 10^6 */
-            update_place_cost_after_max_move_times(&placer_opts,
-                                                   placer_costs_ptr);
-            moves_since_cost_recompute = 0;
-        } /* update placement_cost after MAX_MOVES_BEFORE_RECOMPUTE in inner_loop */
-
-        placer_paras_ptr->m_total_iter += move_limit;
-        placer_paras_ptr->m_success_ratio = ((double)placer_paras_ptr->m_success_sum) / move_limit;
-
-        update_place_costs_by_success_sum(placer_paras_ptr,
-                                          placer_costs_ptr);
-        /* std_dev was standard deviation. */
-        placer_paras_ptr->m_std_dev = get_std_dev(placer_paras_ptr->m_success_sum,
-                                                  placer_paras_ptr->m_sum_of_squares,
-                                                  placer_costs_ptr->m_av_cost);
-
-        /* FIXME: update_temperature */
-        update_temperature(&placer_paras_ptr->m_temper,
-                           placer_paras_ptr->m_range_limit,
-                           placer_paras_ptr->m_success_ratio,
-                           annealing_sched);
-
-        sprintf(msg, "Cost: %g  BB Cost %g  TD Cost %g  Temperature: %g  Max_Delay: %g",
-                placer_costs_ptr->m_total_cost,
-                placer_costs_ptr->m_bb_cost,
-                placer_costs_ptr->m_timing_cost,
-                placer_paras_ptr->m_temper,
-                placer_paras_ptr->m_max_delay);
-        update_screen(MINOR,
-                      msg,
-                      PLACEMENT,
-                      FALSE);
-
-        /* FIXME: update range_limit */
-        update_range_limit(&placer_paras_ptr->m_range_limit,
-                           placer_paras_ptr->m_success_ratio);
-
-        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-              /* new added for supporting PATH timing-driven placement */
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-            /* FIXME: update timing_critical_exponent */
-            placer_paras_ptr->m_crit_exponent = update_crit_exponent(&placer_opts,
-                                                                     placer_paras_ptr);
-        }
-
-#ifdef VERBOSE
-        dump_clbs();
-#endif
-    } /* FIXME:  end of VPR outer loop */
 
     /* Now run low-temperature Simulated-Annealing placement! */
     printf("Attention, then will run low-temperature SA-Based Placement.......\n");
@@ -692,6 +584,151 @@ void try_place(const char*         netlist_file,
 } /* end of try_place() */
 
 
+void run_main_placement(const placer_opts_t  placer_opts,
+                        const annealing_sched_t annealing_sched,
+                        const int*        pins_on_block,
+                        placer_paras_t*   placer_paras_ptr,
+                        double**  old_region_occ_x,
+                        double**  old_region_occ_y,
+                        double**  net_slack,
+                        double**  net_delay,
+                        placer_costs_t*   placer_costs_ptr)
+{
+    int  inner_iter = 0;
+    int moves_since_cost_recompute = 0;
+    placer_paras_ptr->m_total_iter = 0;
+    char msg[BUFSIZE] = "";
+    while (exit_crit(placer_paras_ptr->m_temper,
+                     placer_costs_ptr->m_total_cost,
+                     annealing_sched) == 0) { /* FIXME: outer loop of VPR */
+        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
+              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+              /* New added for support PATH Timing-Driven Placement */
+              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+            placer_costs_ptr->m_total_cost = 1.0;
+        }
+
+        placer_costs_ptr->m_av_cost = placer_costs_ptr->m_av_bb_cost = 0.0;
+        placer_costs_ptr->m_av_timing_cost = placer_costs_ptr->m_av_delay_cost = 0.0;
+        placer_paras_ptr->m_sum_of_squares = placer_paras_ptr->m_success_sum = 0;
+
+        /*------   First running timing_analyze before try_swap() in outer loop ------*/
+        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
+              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+              /* new added for supporting PATH Timing-Driven Placement */
+              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+            perform_timing_analyze(&placer_opts,
+                                   net_slack,
+                                   net_delay,
+                                   placer_paras_ptr,
+                                   placer_costs_ptr);
+        } /* end of placement_algorithm == TIMING_DRIVEN_PLACE */
+        /*----   Run Timing Analyze before try_swap() in Outer Loop OK! -----*/
+
+        placer_paras_ptr->m_inner_crit_iter_count = 1;
+        const int move_limit = placer_paras_ptr->m_move_limit;
+        for (inner_iter = 0; inner_iter < move_limit; ++inner_iter) {
+            /* FIXME: try to swap a pair of clbs or io pads randomly */
+            if (try_swap(placer_paras_ptr,
+                         placer_opts,
+                         pins_on_block,
+                         old_region_occ_x,
+                         old_region_occ_y,
+                         placer_costs_ptr) == 1) {
+                ++(placer_paras_ptr->m_success_sum);
+                placer_costs_ptr->m_av_cost += placer_costs_ptr->m_total_cost;
+                placer_costs_ptr->m_av_bb_cost += placer_costs_ptr->m_bb_cost;
+                placer_costs_ptr->m_av_delay_cost += placer_costs_ptr->m_delay_cost;
+                placer_costs_ptr->m_av_timing_cost += placer_costs_ptr->m_timing_cost;
+                placer_paras_ptr->m_sum_of_squares +=
+                    placer_costs_ptr->m_total_cost * placer_costs_ptr->m_total_cost;
+            } /* -------------     end of try_swap() success   -------------*/
+
+            /*--------------   Update Timing-Driven Placement Cost  After swap ------------*/
+            if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
+                  || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+                  /* New added for supporting PATH Timing-Driven Placement */
+                  || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+                recompute_td_cost_after_swap_certain_times(&placer_opts,
+                                                           inner_iter,
+                                                           net_delay,
+                                                           net_slack,
+                                                           placer_paras_ptr,
+                                                           placer_costs_ptr);
+            } /* end of update timing-cost after try_swap() */
+
+#ifdef VERBOSE
+            /* Attention, when I use the following codes, VPR will call  *
+             * compute_bb_cost() as frequency as try_swap(), it will result *
+             * in VPR costing 4 or 5 times long than origin algorithm. So*
+             * Do not use the following codes!!!                         */
+            if (fabs(placer_costs_ptr->m_bb_cost - compute_bb_cost(CHECK,
+                                                                   placer_opts.place_cost_type,
+                                                                   placer_opts.num_regions))
+                    > placer_costs_ptr->m_bb_cost * ERROR_TOL) {
+                exit(1);
+            }
+#endif
+        } /* end of INNER LOOP OF VPR */
+
+        /* Lines below prevent too much round-off error from accumulating *
+         * in the cost over many iterations.  This round-off can lead to  *
+         * error checks failing because the cost is different from what   *
+         * you get when you recompute from scratch.                       */
+        moves_since_cost_recompute += move_limit;
+        if (moves_since_cost_recompute > MAX_MOVES_BEFORE_RECOMPUTE) { /* > 10^6 */
+            update_place_cost_after_max_move_times(&placer_opts,
+                                                   placer_costs_ptr);
+            moves_since_cost_recompute = 0;
+        } /* update placement_cost after MAX_MOVES_BEFORE_RECOMPUTE in inner_loop */
+
+        placer_paras_ptr->m_total_iter += move_limit;
+        placer_paras_ptr->m_success_ratio =
+                    ((double)placer_paras_ptr->m_success_sum) / move_limit;
+
+        update_place_costs_by_success_sum(placer_paras_ptr,
+                                          placer_costs_ptr);
+        /* std_dev was standard deviation. */
+        placer_paras_ptr->m_std_dev = get_std_dev(placer_paras_ptr->m_success_sum,
+                                                  placer_paras_ptr->m_sum_of_squares,
+                                                  placer_costs_ptr->m_av_cost);
+
+        /* FIXME: update_temperature */
+        update_temperature(&placer_paras_ptr->m_temper,
+                           placer_paras_ptr->m_range_limit,
+                           placer_paras_ptr->m_success_ratio,
+                           annealing_sched);
+
+        sprintf(msg, "Cost: %g  BB Cost %g  TD Cost %g  Temperature: %g  Max_Delay: %g",
+                placer_costs_ptr->m_total_cost,
+                placer_costs_ptr->m_bb_cost,
+                placer_costs_ptr->m_timing_cost,
+                placer_paras_ptr->m_temper,
+                placer_paras_ptr->m_max_delay);
+        update_screen(MINOR,
+                      msg,
+                      PLACEMENT,
+                      FALSE);
+
+        /* FIXME: update range_limit */
+        update_range_limit(&placer_paras_ptr->m_range_limit,
+                           placer_paras_ptr->m_success_ratio);
+
+        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
+              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+              /* new added for supporting PATH timing-driven placement */
+              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+            /* FIXME: update timing_critical_exponent */
+            placer_paras_ptr->m_crit_exponent = update_crit_exponent(&placer_opts,
+                                                                     placer_paras_ptr);
+        }
+
+#ifdef VERBOSE
+        dump_clbs();
+#endif
+    } /* FIXME:  end of VPR outer loop */
+}  /* end of void run_main_placement(const placer_opts_t  placer_opts,..) */
+
 void  run_low_temperature_place(const placer_opts_t  placer_opts,
                                 const int*  pins_on_block,
                                 placer_paras_t*  placer_paras_ptr,
@@ -745,7 +782,7 @@ void  run_low_temperature_place(const placer_opts_t  placer_opts,
                   || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
                   /* new added for supporting PATH timing-driven placement */
                   || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-                update_timing_cost_after_swap(&placer_opts,
+                recompute_td_cost_after_swap_certain_times(&placer_opts,
                                               inner_iter,
                                               net_delay,
                                               net_slack,
@@ -815,7 +852,7 @@ void perform_timing_analyze(const placer_opts_t* placer_opts_ptr,
     placer_costs_ptr->m_inverse_prev_timing_cost = 1 / placer_costs_ptr->m_timing_cost;
 }  /* end of void perform_timing_analyze() */
 
-void  update_timing_cost_after_swap(const placer_opts_t* placer_opts_ptr,
+void  recompute_td_cost_after_swap_certain_times(const placer_opts_t* placer_opts_ptr,
                                     const int inner_iter,
                                     double**  net_delay,
                                     double**  net_slack,
@@ -850,7 +887,7 @@ void  update_timing_cost_after_swap(const placer_opts_t* placer_opts_ptr,
     } /* update timing_cost_ptr in try_swap() at low-temperature placement */
 
     ++(placer_paras_ptr->m_inner_crit_iter_count);
-}  /* end of update_timing_cost_after_swap() */
+}  /* end of recompute_td_cost_after_swap_certain_times() */
 
 void  compute_timing_driven_cost(const placer_opts_t*  placer_opts_ptr,
                                  const placer_paras_t* placer_paras_ptr,
@@ -2069,8 +2106,8 @@ static void compute_delta_timing_driven_cost(place_algorithm_t place_algorithm,
 /* Computes the cost(from scratch) due to the Tdels and criticalities on all  *
  * point-to-point connections, we define the timing cost of each connection as *
  * criticality * Tdel.                                                        */
-static void compute_timing_driven_cost_by_orig_algo(double* timing_cost,
-                                                    double* connection_delay_sum)
+void compute_timing_driven_cost_by_orig_algo(double* timing_cost,
+                                             double* connection_delay_sum)
 {
     double local_timing_cost = 0.0;
     double local_connect_delay_sum = 0.0;
@@ -2104,11 +2141,12 @@ static void compute_timing_driven_cost_by_orig_algo(double* timing_cost,
     *connection_delay_sum = local_connect_delay_sum;
 } /* end of static void compute_timing_driven_cost_by_orig_algo() */
 
+
 /* FIXME: This function was used for calculate Timing-Driven_Placement by *
  * PATH algorithm, which noted at "A Novel Net Weighting Algorithm for    *
  * Timing-Driven Placement", Tim Kong, 2002.                              */
-static void compute_timing_driven_costs_by_path_algo(double* timing_cost,
-                                                     double* connection_delay_sum)
+void compute_timing_driven_costs_by_path_algo(double* timing_cost,
+                                              double* connection_delay_sum)
 {
     double local_timing_cost = 0.0;
     double local_connect_delay_sum = 0.0;
@@ -2155,8 +2193,8 @@ double compute_bb_cost(int method,
     if (place_cost_type == NONLINEAR_CONG) {
         int i = -1;
         int j = -1;
-        for (i = 0; i < num_regions; i++) {
-            for (j = 0; j < num_regions; j++) {
+        for (i = 0; i < num_regions; ++i) {
+            for (j = 0; j < num_regions; ++j) {
                 place_region_x[i][j].occupancy = 0.;
                 place_region_y[i][j].occupancy = 0.;
             }
@@ -2195,7 +2233,7 @@ double compute_bb_cost(int method,
         cost = nonlinear_cong_cost(num_regions);
     }
 
-    return (cost);
+    return cost;
 }  /* end of static double compute_bb_cost(int method,) */
 
 
@@ -3226,7 +3264,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
  * every blocks, blocks are in legal spots, etc.  Also recomputes  *
  * the final placement cost from scratch and makes sure it is      *
  * within roundoff of what we think the cost is.                   */
-void check_place(placer_opts_t*  placer_opts_ptr,
+void check_place(const placer_opts_t*  placer_opts_ptr,
                  placer_costs_t* placer_costs_ptr)
 {
     double bb_cost_check = compute_bb_cost(CHECK,

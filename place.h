@@ -3,26 +3,35 @@
 
 #include "vpr_types.h"
 
-
 /* For comp_cost.  NORMAL means use the method that generates updateable  *
  * bounding boxes for speed.  CHECK means compute all bounding boxes from *
  * scratch using a very simple routine to allow checks of the other       *
  * costs.                                                                 */
 enum cost_methods {
-    NORMAL, CHECK
+    NORMAL,
+    CHECK
 };
-
 
 /* This functions was used for placement using single-thread */
 void try_place(const char* netlist_file,
-               placer_opts_t     placer_opts,
-               annealing_sched_t annealing_sched,
+               const placer_opts_t     placer_opts,
+               const annealing_sched_t annealing_sched,
                chan_width_distr_t chan_width_dist,
                router_opts_t  router_opts,
                detail_routing_arch_t det_routing_arch,
                segment_info_t* segment_inf,
                timing_info_t   timing_inf,
                subblock_data_t* subblock_data_ptr);
+
+void run_main_placement(const placer_opts_t  placer_opts,
+                        const annealing_sched_t annealing_sched,
+                        const int*        pins_on_block,
+                        placer_paras_t*   placer_paras_ptr,
+                        double**  old_region_occ_x,
+                        double**  old_region_occ_y,
+                        double**  net_slack,
+                        double**  net_delay,
+                        placer_costs_t*   placer_costs_ptr);
 
 void run_low_temperature_place(const placer_opts_t   placer_opts,
                                const int*   pins_on_block,
@@ -39,12 +48,12 @@ void perform_timing_analyze(const placer_opts_t* placer_opts_ptr,
                             placer_paras_t*  placer_paras_ptr,
                             placer_costs_t*  placer_costs_ptr);
 
-void  update_timing_cost_after_swap(const placer_opts_t*  placer_opts_ptr,
-                                    const int inner_iter,
-                                    double**  net_delay,
-                                    double**  net_slack,
-                                    placer_paras_t*  placer_paras_ptr,
-                                    placer_costs_t*  placer_costs_ptr);
+void recompute_td_cost_after_swap_certain_times(const placer_opts_t*  placer_opts_ptr,
+                                                const int inner_iter,
+                                                double**  net_delay,
+                                                double**  net_slack,
+                                                placer_paras_t*  placer_paras_ptr,
+                                                placer_costs_t*  placer_costs_ptr);
 
 void compute_timing_driven_cost(const placer_opts_t*  placer_opts_ptr,
                                 const placer_paras_t* placer_paras_ptr,
@@ -79,8 +88,8 @@ double starting_temperature(const annealing_sched_t annealing_sched,
  * , switch the blocks. Assess the change in cost function, and accept or   *
  * reject the move. If rejected, return 0, else return 1. Pass back the new *
  * value of the cost function. rlim is the range_limit. pins_on_block gives *
- * the number of pins on each type of blocks(improves efficiency). Pins on   *
- * each type of blocks(improves efficiency).                                 */
+ * the number of pins on each type of blocks(improves efficiency). Pins on  *
+ * each type of blocks(improves efficiency).                                */
 int try_swap(const placer_paras_t* placer_paras_ptr,
              const placer_opts_t   placer_opts,
              const int*  pins_on_block,
@@ -88,6 +97,19 @@ int try_swap(const placer_paras_t* placer_paras_ptr,
              double**  old_region_occ_y,
              placer_costs_t*  placer_costs_ptr);
 
+/* FIXME: compute timing-driven costs of all signal nets(its all subnets)  *
+ * Attention: I found this function was called by NET_TIMING_DRIVEN_PLACE. */
+/* Computes the cost(from scratch) due to the Tdels and criticalities on all  *
+ * point-to-point connections, we define the timing cost of each connection as *
+ * criticality * Tdel.                                                        */
+void compute_timing_driven_cost_by_orig_algo(double* timing_cost,
+                                             double* connection_delay_sum);
+
+/* FIXME: This function was used for calculate Timing-Driven_Placement by *
+ * PATH algorithm, which noted at "A Novel Net Weighting Algorithm for    *
+ * Timing-Driven Placement", Tim Kong, 2002.                              */
+void compute_timing_driven_costs_by_path_algo(double* total_timing_cost,
+                                              double* connection_delay_sum);
 /* Finds the cost from scratch. Done only when the placement has been     *
  * radically changed(i.e. after initial placement). Otherwise find the    *
  * cost change Incrementally. If method check is NORMAL, we find bounding *
@@ -108,7 +130,7 @@ void alloc_and_load_placement_structs(const placer_opts_t* placer_opts_ptr,
 void initial_placement(pad_loc_t pad_loc_type,
                        char* pad_loc_file);
 
-void check_place(placer_opts_t*  placer_opts_ptr,
+void check_place(const placer_opts_t*  placer_opts_ptr,
                  placer_costs_t* placer_costs_ptr);
 
 void read_place(char* place_file,

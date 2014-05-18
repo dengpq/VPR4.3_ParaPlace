@@ -207,23 +207,21 @@ static t_rt_node* add_path_to_route_tree(struct s_heap* hptr, t_rt_node
     /* Adds the most recent wire segment, ending at the SINK indicated by hptr, *
      * to the routing tree.  It returns the first (most upstream) new rt_node,  *
      * and (via a pointer) the rt_node of the new SINK.                         */
-    int ivex, remaining_connections_to_sink;
     short iedge, iswitch;
     double C_downstream;
     t_rt_node* rt_node, *downstream_rt_node, *sink_rt_node;
     t_linked_rt_edge* linked_rt_edge;
-    ivex = hptr->index;
-#ifdef DEBUG
+    int ivex = hptr->index;
 
+#ifdef DEBUG
     if (rr_node[ivex].type != SINK) {
         printf("Error in add_path_to_route_tree.  Expected type = SINK (%d).\n",
                SINK);
         printf("Got type = %d.", rr_node[ivex].type);
         exit(1);
     }
-
 #endif
-    remaining_connections_to_sink = rr_node_route_inf[ivex].target_flag;
+
     sink_rt_node = alloc_rt_node();
     sink_rt_node->u.child_list = NULL;
     sink_rt_node->ivex = ivex;
@@ -234,11 +232,13 @@ static t_rt_node* add_path_to_route_tree(struct s_heap* hptr, t_rt_node
      * Undefine NO_ROUTE_THROUGHS if you want route-throughs or ipin doglegs.   *
      * It makes the code more efficient (though not vastly) to prune this way   *
      * when there aren't route-throughs or ipin doglegs.                        */
+
 #define NO_ROUTE_THROUGHS 1  /* Can't route through unused CLB_TYPE outputs */
 #ifdef NO_ROUTE_THROUGHS
     sink_rt_node->re_expand = FALSE;
 #else
 
+    int remaining_connections_to_sink = rr_node_route_inf[ivex].target_flag;
     if (remaining_connections_to_sink == 0) {   /* Usual case */
         sink_rt_node->re_expand = TRUE;
     }

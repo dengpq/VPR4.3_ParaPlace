@@ -1,7 +1,6 @@
 #ifndef  PLACE_PARALLEL_H
 #define  PLACE_PARALLEL_H
 
-#include <pthread.h>
 #include "vpr_types.h"
 
 /* the purpose of start_finish_nets was to evenly divide up the work allocated *
@@ -61,50 +60,44 @@ typedef struct s_region_boundary {
 
 typedef struct pthread_data {
     int      m_thread_id;
-    region_boudary_t  m_boundary;
 
-    boolean  m_fixed_pins;
-    double*  m_temper; /* temperature */
+    int      m_x_start;
+    int      m_x_end;
+    int      m_y_start;
+    int      m_y_end;
 
     placer_opts_t      m_placer_opts;
     annealing_sched_t  m_annealing_sched;
+
+    double**  m_net_slack;
+    double**  m_net_delay;
+    /* boolean  m_fixed_pins;
+    double*  m_temper;
     int*     m_move_limit;
-    int*     m_success_sum;
     int*     m_total_iter;
-    double*  m_success_ratio; /* ratio = success_sum / move_limit */
     int*     m_inner_iter_num;
 
-    double** m_net_slack;
-    double** m_net_delay;
-
-    /* double*  m_av_cost;
-    double*  m_av_bb_cost;
-    double*  m_av_timing_cost;
-    double*  m_av_delay_cost;
-
-    double*  m_total_cost;
-    double*  m_bb_cost;
-    double*  m_timing_cost;
-    double*  m_inverse_prev_bb_cost;
-    double*  m_inverse_prev_timing_cost;
-
-    double*  m_delay_cost; */
-    placer_costs_t*  m_local_place_cost;
+    int*     m_success_sum;
+    double*  m_success_ratio;
 
     int*     m_num_connections;
-    /* place_delay_value = delay_cost / num_connections */
+
     double*  m_place_delay_value;
+
     double*  m_max_delay;
 
-    double*  m_sum_of_squares; /* sum_of_squares = total_cost * total_cost */
+    double*  m_sum_of_squares;
     double*  m_std_dev;
 
     int*     m_exit;
     double*  m_crit_exponent;
-    double*  m_range_limit;
+    double*  m_range_limit; total 15 items */
+    placer_paras_t*  m_local_place_paras_ptr;
 
-    int*     m_current_row;
-    int*     m_current_row2;
+    placer_costs_t*  m_local_place_cost_ptr;
+
+    int*     m_current_row_ptr;
+    int*     m_current_row2_ptr;
 } __attribute__((aligned(64))) pthread_data_t;
 
 typedef  struct  s_swap {
@@ -159,7 +152,6 @@ void try_place_by_multi_threads(const char*     netlist_file,
 void   barrier_polling(const int thread_id);
 
 void   barrier_polling_reset();
-
 
 void  balance_two_consecutive_threads_edge(const int thread_id);
 
@@ -325,9 +317,9 @@ int   try_swap_parallel(const int thread_id,
 double  compute_bb_cost_parallel(const int start_net,
                                  const int end_net);
 
-double  compute_timing_driven_p2p_delay_parallel(const int inet,
-                                                 const int ipin,
-                                                 local_block_t*  local_block_ptr);
+double comp_td_point_to_point_delay_parallel(int inet,
+                                            int ipin,
+                                            local_block_t* local_block);
 /**********************  End Of Parallel Placement   **************************/
 #endif
 

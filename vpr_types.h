@@ -5,13 +5,6 @@
 #include "util.h"
 /* #define DEBUG 1 */ /* Echoes input & checks error conditions */
 /* Only causes about a 1% speed degradation in V 3.10 */
-
-/*#define PRINT_SINK_DELAYS*/ /*prints the sink Tdels to files*/
-/*#define PRINT_NET_SLACKS*/ /*prints out all slacks in the circuit*/
-/*#define PRINT_PLACE_CRIT_PATH*/ /*prints out placement estimated critical path*/
-/*#define PRINT_NET_DELAYS*/ /*prints out Tdels for all connections*/
-/*#define PRINT_TIMING_GRAPH*/ /*prints out the timing graph */
-
 #ifdef SPEC
 #define NO_GRAPHICS    /* Rips out graphics (for non-X11 systems)      */
 #define NDEBUG         /* Turns off assertion checking for extra speed */
@@ -439,10 +432,13 @@ typedef struct s_placer_opts {
 } placer_opts_t;
 
 typedef  struct s_placer_costs {
-    double  m_total_cost;
-    double  m_delay_cost;
     double  m_bb_cost;
     double  m_timing_cost;
+    double  m_delay_cost;
+    double  m_total_cost;
+
+    double  m_inverse_prev_bb_cost;
+    double  m_inverse_prev_timing_cost;
 
     double  m_av_cost;
     double  m_av_bb_cost;
@@ -452,9 +448,6 @@ typedef  struct s_placer_costs {
     double  m_new_bb_cost;
     double  m_new_timing_cost;
     double  m_new_delay_cost;
-
-    double  m_inverse_prev_bb_cost;
-    double  m_inverse_prev_timing_cost;
 } placer_costs_t;
 
 typedef  struct s_placer_paras {
