@@ -3246,55 +3246,55 @@ static double check_place(double bb_cost,
  */
 void barrier_polling(int thread_id)
 {
-    ++(barrier1[thread_id].entry);
+    ++(g_barrier[thread_id].m_entry);
 
-    const int local_entry = (barrier1[thread_id].entry ) % 2;
+    const int local_entry = (g_barrier[thread_id].m_entry ) % 2;
     if (NUM_OF_THREADS == 1) {
         return;
     } else if (thread_id == 0) {
         /* wait for thread_id 1 finished */
-        while (barrier1[1].arrived != local_entry) {};
+        while (g_barrier[1].m_arrived != local_entry) {};
 
-        barrier1[1].proceed = local_entry;
+        g_barrier[1].m_proceed = local_entry;
     } else if (thread_id == 1) {
         /* wait for children finished */
         if (NUM_OF_THREADS > 3) {
-            while (barrier1[2].arrived != local_entry || barrier1[3].arrived != local_entry) {};
+            while (g_barrier[2].m_arrived != local_entry || g_barrier[3].m_arrived != local_entry) {};
         } else if (NUM_OF_THREADS > 2) {
-            while (barrier1[2].arrived != local_entry) {};
+            while (g_barrier[2].m_arrived != local_entry) {};
         }
 
         /* signal my arrival */
-        barrier1[thread_id].arrived = local_entry;
+        g_barrier[thread_id].m_arrived = local_entry;
 
-        while (barrier1[thread_id].proceed != local_entry) {};
+        while (g_barrier[thread_id].m_proceed != local_entry) {};
 
         //release children
         if (NUM_OF_THREADS > 3) {
-            barrier1[2].proceed = barrier1[3].proceed = local_entry;
+            g_barrier[2].m_proceed = g_barrier[3].m_proceed = local_entry;
         } else if (NUM_OF_THREADS > 2) {
-            barrier1[2].proceed = local_entry;
+            g_barrier[2].m_proceed = local_entry;
         }
     } else { /* thread_id > 1 */
         /* wait for children finished! */
         if (NUM_OF_THREADS > thread_id * 2 + 1) {
-            while (barrier1[thread_id * 2].arrived != local_entry
-                    || barrier1[thread_id * 2 + 1].arrived != local_entry) {};
+            while (g_barrier[thread_id * 2].m_arrived != local_entry
+                    || g_barrier[thread_id * 2 + 1].m_arrived != local_entry) {};
         } else if (NUM_OF_THREADS > thread_id * 2) {
-            while (barrier1[thread_id * 2].arrived != local_entry) {};
+            while (g_barrier[thread_id * 2].m_arrived != local_entry) {};
         }
 
         //signal my arrival
-        barrier1[thread_id].arrived = local_entry;
+        g_barrier[thread_id].m_arrived = local_entry;
 
-        while (barrier1[thread_id].proceed != local_entry) {};
+        while (g_barrier[thread_id].m_proceed != local_entry) {};
 
         //release children
         if (NUM_OF_THREADS > thread_id * 2 + 1) {
-            barrier1[thread_id * 2].proceed =
-                barrier1[thread_id * 2 + 1].proceed = local_entry;
+            g_barrier[thread_id * 2].m_proceed =
+                g_barrier[thread_id * 2 + 1].m_proceed = local_entry;
         } else if (NUM_OF_THREADS > thread_id * 2) {
-            barrier1[thread_id * 2].proceed = local_entry;
+            g_barrier[thread_id * 2].m_proceed = local_entry;
         }
     } /* end of else */
 }  /* end of void barrier_polling(int thread_id) */
@@ -3303,18 +3303,20 @@ void barrier_polling_reset()
 {
     int x = -1;
     for (x = 0; x < NUM_OF_THREADS; ++x) {
-        barrier1[x].arrived = 0;
-        barrier1[x].proceed = 0;
-        barrier1[x].entry = 0;
+        g_barrier[x].m_arrived = 0;
+        g_barrier[x].m_proceed = 0;
+        g_barrier[x].m_entry = 0;
     }
 }
 
 /*partition nets evenly based on number of edges each net is connected to(that is sub-connections). */
 void balance_two_consecutive_threads_edge(int thread_id)
 {
-    ++(start_finish_nets[thread_id].counter_edge);
-    unsigned long work_in_this_region = start_finish_nets[thread_id].edges_in_this_partition;
-    unsigned long work_in_next_region = start_finish_nets[thread_id + 1].edges_in_this_partition;
+    ++(start_finish_nets[thread_id].m_counter_edge);
+    unsigned long work_in_this_region =
+            start_finish_nets[thread_id].m_edges_in_this_partition;
+    unsigned long work_in_next_region =
+            start_finish_nets[thread_id + 1].m_edges_in_this_partition;
 
     /*if next partition has more work (edges)
      *adjust the boundary according to % of difference */
@@ -3322,35 +3324,38 @@ void balance_two_consecutive_threads_edge(int thread_id)
     double exceed_ratio = 0.0;
     int edge_partition_size = 0;
     if (work_in_this_region < work_in_next_region) {
-        exceed_ratio = (work_in_next_region - work_in_this_region) / work_in_this_region;
-        edge_partition_size = start_finish_nets[thread_id + 1].edge_partition_size;
+        exceed_ratio =
+            (work_in_next_region - work_in_this_region) / work_in_this_region;
+        edge_partition_size =
+            start_finish_nets[thread_id + 1].m_edge_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * edge_partition_size * 0.25);
 
-        if (net_shift == 0 && (start_finish_nets[thread_id + 1].edge_partition_size >= 2)) {
+        if (net_shift == 0
+              && (start_finish_nets[thread_id + 1].m_edge_partition_size >= 2)) {
             net_shift = 1;
         }
 
-        start_finish_nets[thread_id].finish_edge += net_shift;
-        start_finish_nets[thread_id + 1].start_edge += net_shift;
+        start_finish_nets[thread_id].m_finish_edge += net_shift;
+        start_finish_nets[thread_id + 1].m_start_edge += net_shift;
     } else if (work_in_this_region > work_in_next_region) {
         /* if this partition has more edges
          * adjust the boundary according to % of difference */
         exceed_ratio = (work_in_this_region - work_in_next_region) / work_in_next_region;
-        edge_partition_size = start_finish_nets[thread_id].edge_partition_size;
+        edge_partition_size = start_finish_nets[thread_id].m_edge_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * edge_partition_size * 0.25);
 
-        if (net_shift == 0 && start_finish_nets[thread_id].edge_partition_size >= 2) {
+        if (net_shift == 0 && start_finish_nets[thread_id].m_edge_partition_size >= 2) {
             net_shift = 1;
         }
 
-        start_finish_nets[thread_id].finish_edge -= net_shift;
-        start_finish_nets[thread_id + 1].start_edge -= net_shift;
+        start_finish_nets[thread_id].m_finish_edge -= net_shift;
+        start_finish_nets[thread_id + 1].m_start_edge -= net_shift;
     } else {
         /* No operations */
     }
 
-    assert(start_finish_nets[thread_id].finish_edge
-             > start_finish_nets[thread_id].start_edge);
+    assert(start_finish_nets[thread_id].m_finish_edge
+             > start_finish_nets[thread_id].m_start_edge);
 } /* end of void balance_two_consecutive_threads_edge(int thread_id)  */
 
 /*partition nets evenly based on number of sinks each net is connected to*/
@@ -3368,9 +3373,10 @@ void balance_two_consecutive_threads_sinks(int thread_id)
     double exceed_ratio = 0.0;
     int sink_partition_size = 0;
     if (work_in_this_region < work_in_next_region) {
-        exceed_ratio = (work_in_next_region - work_in_this_region) / work_in_this_region;
+        exceed_ratio =
+            (work_in_next_region - work_in_this_region) / work_in_this_region;
         sink_partition_size =
-                        start_finish_nets[thread_id + 1].m_sink_partition_size;
+            start_finish_nets[thread_id + 1].m_sink_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * sink_partition_size * 0.25);
 
         start_finish_nets[thread_id].m_finish_sinks += net_shift;
@@ -3378,8 +3384,10 @@ void balance_two_consecutive_threads_sinks(int thread_id)
     } else if (work_in_this_region > work_in_next_region) {
         /*if this partition has more edges
          *adjust the boundary according to % of difference */
-        exceed_ratio = (work_in_this_region - work_in_next_region) / work_in_next_region;
-        sink_partition_size = start_finish_nets[thread_id].m_sink_partition_size;
+        exceed_ratio =
+            (work_in_this_region - work_in_next_region) / work_in_next_region;
+        sink_partition_size =
+            start_finish_nets[thread_id].m_sink_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * sink_partition_size * 0.25);
 
         start_finish_nets[thread_id].m_finish_sinks -= net_shift;

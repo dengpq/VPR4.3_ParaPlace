@@ -127,7 +127,7 @@ typedef struct aligned_mutex {
 } __attribute__((aligned(64))) aligned_mutex_t;
 
 aligned_neighbor_bar_t  g_neighbor_bar[NUM_OF_THREADS];
-aligned_bar_t           g_barrier1[NUM_OF_THREADS];
+aligned_bar_t           g_barrier[NUM_OF_THREADS];
 aligned_mutex_t         global_data_access;
 
 /* In VPR_ParaPlace, the partial_result was used for timing_cost and bb_cost,
