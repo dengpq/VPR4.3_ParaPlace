@@ -137,7 +137,7 @@ void build_rr_graph(router_types_t route_type,
      * then the routing graph built is for detailed routing, otherwise it is *
      * for GLOBAL routing.                                                   */
     int nodes_per_clb = num_pin_class + pins_per_clb;
-    int nodes_per_pad = 4 * io_rat; /* SOURCE, SINK, OPIN, and IPIN */
+    int nodes_per_pad = 4 * io_ratio; /* SOURCE, SINK, OPIN, and IPIN */
     int nodes_per_chan = 0;
     if (route_type == GLOBAL) {
         nodes_per_chan = 1;
@@ -294,7 +294,7 @@ void free_rr_graph_internals(router_types_t route_type,
     free_matrix3(clb_ipin_to_tracks, 0, pins_per_clb - 1, 0, 3, 0, sizeof(int));
     free_ivec_matrix(tracks_to_clb_ipin, 0, nodes_per_chan - 1, 0, 3);
     free_ivec_vector(tracks_to_pads, 0, nodes_per_chan - 1);
-    free_matrix(pads_to_tracks, 0, io_rat - 1, 0, sizeof(int));
+    free_matrix(pads_to_tracks, 0, io_ratio - 1, 0, sizeof(int));
     free_switch_block_conn(nodes_per_chan);
     free_edge_list_hard(&free_edge_list_head);
     free_seg_details(seg_details_x, nodes_per_chan);
@@ -652,7 +652,7 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
      * pad is bidirectional.  The fact that it will only be used as either an *
      * input or an output makes no difference.                                */
 
-    for (ipad = 0; ipad < io_rat; ipad++) { /* For each pad at this (i,j) */
+    for (ipad = 0; ipad < io_ratio; ipad++) { /* For each pad at this (i,j) */
         /* Do SOURCE first.   */
         s_node = gerr_node_t_index(i, j, SOURCE, ipad, nodes_per_chan,
                                    rr_node_indices);
@@ -1319,16 +1319,16 @@ static int track_side(int clb_side)
 
 static int** alloc_and_load_pads_to_tracks(int nodes_per_chan, int Fc_pad)
 {
-    /* Allocates and loads up a 2D array ([0..io_rat-1][0..Fc_pad-1]) where *
+    /* Allocates and loads up a 2D array ([0..io_ratio-1][0..Fc_pad-1]) where *
      * each entry gives a track number to which that pad connects if it is  *
      * an INPUT pad.  Code below should work for both GLOBAL and DETAILED.  */
     int** pads_to_tracks;
     double step_size;
     int ipad, iconn, itrack;
-    pads_to_tracks = (int**) alloc_matrix(0, io_rat - 1, 0, Fc_pad - 1, sizeof(int));
-    step_size = (double) nodes_per_chan / (double)(Fc_pad * io_rat);
+    pads_to_tracks = (int**) alloc_matrix(0, io_ratio - 1, 0, Fc_pad - 1, sizeof(int));
+    step_size = (double) nodes_per_chan / (double)(Fc_pad * io_ratio);
 
-    for (ipad = 0; ipad < io_rat; ipad++) {
+    for (ipad = 0; ipad < io_ratio; ipad++) {
         for (iconn = 0; iconn < Fc_pad; iconn++) {
             itrack = (int)(ipad * step_size + iconn * (double) nodes_per_chan /
                            (double) Fc_pad);
@@ -1362,7 +1362,7 @@ static vector_t* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
         tracks_to_pads[i].nelem = 0;
     }
 
-    for (ipad = 0; ipad < io_rat; ipad++) {
+    for (ipad = 0; ipad < io_ratio; ipad++) {
         for (iconn = 0; iconn < Fc_pad; iconn++) {
             itrack = pads_to_tracks[ipad][iconn];
             tracks_to_pads[itrack].nelem++;
@@ -1381,7 +1381,7 @@ static vector_t* alloc_and_load_tracks_to_pads(int** pads_to_tracks,
 
     /* Load pass. */
 
-    for (ipad = 0; ipad < io_rat; ipad++) {
+    for (ipad = 0; ipad < io_ratio; ipad++) {
         for (iconn = 0; iconn < Fc_pad; iconn++) {
             itrack = pads_to_tracks[ipad][iconn];
             ioff = tracks_to_pads[itrack].nelem;

@@ -765,7 +765,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
                 ++(clb_grids[pos[choice].x][pos[choice].y].occ);
                 /* In an I/O pad location of FPGA chip, it may accommodate more
                  * than 1 I/O pad. */
-                if (clb_grids[pos[choice].x][pos[choice].y].occ == io_rat) {
+                if (clb_grids[pos[choice].x][pos[choice].y].occ == io_ratio) {
                     /* Ensure randomizer doesn't pick this blocks again */
                     pos[choice] = pos[count - 1]; /* overwrite used blocks position */
                     /* the "choice" location had used, so don't choose it again */
@@ -788,6 +788,8 @@ static void initial_placement(pad_loc_t pad_loc_type,
                     blocks[clb_grids[i][j].u.io_blocks[k]].x = i;
                     blocks[clb_grids[i][j].u.io_blocks[k]].y = j;
                 }
+            } else {
+                /* No operation */
             }
         }
     }
@@ -1493,7 +1495,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
             blocks[from_block].y = y_to;
         }
     } else { /* io pads was selected for moving */
-        io_num = my_irand(io_rat - 1);
+        io_num = my_irand(io_ratio - 1);
         if (io_num >= clb_grids[x_to][y_to].occ) { /* Moving to an empty location, why? TODO:*/
             to_block = EMPTY;
             blocks[from_block].x = x_to;
@@ -2277,18 +2279,18 @@ static int find_affected_nets(int* nets_to_update, int* net_block_moved,
     return (affected_index);
 } /* end of static int find_affected_nets() */
 
+/* Returns the point to which I want to swap, properly range limited.  *
+ * rlim must always be between 1 and num_grid_columns(inclusive) for   *
+ * this routine to  work.                                           */
 static void find_to(int x_from,
                     int y_from,
                     int type,
                     double rlim,
                     int* x_to,
                     int* y_to)
-{
-    /* Returns the point to which I want to swap, properly range limited.  *
-     * rlim must always be between 1 and num_grid_columns(inclusive) for this routine to *
-     * work.                                                               */
-    int rlx = min(num_grid_columns, rlim);  /* x_range_limit, Only needed when num_grid_columns < num_grid_rows. */
-    int rly = min(num_grid_rows, rlim);  /* y_range_limit, Added rly for aspect_ratio != 1 case. */
+{ 
+    const int rlx = min(num_grid_columns, rlim); /* x_range_limit, Only needed when num_grid_columns < num_grid_rows. */
+    const int rly = min(num_grid_rows, rlim);  /* y_range_limit, Added rly for aspect_ratio != 1 case. */
 
 #ifdef DEBUG
     if (rlx < 1 || rlx > num_grid_columns) {
@@ -3425,7 +3427,7 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
     }
 
     /* Step through clb array. Check it against blocks array. */
-    for (i = 0; i <= num_grid_columns + 1; ++i)
+    for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             if (clb_grids[i][j].occ == 0) {
                 continue;
@@ -3453,7 +3455,7 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
 
                 block_done[block_num]++;
             } else { /* IO_TYPE blocks */
-                if (clb_grids[i][j].occ > io_rat) {
+                if (clb_grids[i][j].occ > io_ratio) {
                     printf("Error:  clb(%d,%d) has occupancy of %d\n", i, j,
                            clb_grids[i][j].occ);
                     ++error;
@@ -3476,8 +3478,9 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
 
                     block_done[block_num]++;
                 }
-            }
-        }
+            }  /* end of else IO_TYPE */
+        } /* end of for(j = 0; j <= num_grid_rows + 1; ++j) */
+    }  /* end of for(i = 0; i <= num_grid_columns+1; ++i) */
 
     /* Check that every blocks exists in the clb and blocks arrays somewhere. */
     for (i = 0; i < num_blocks; ++i)

@@ -464,7 +464,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
 
 
 /* Assigns widths to channels(in tracks). The minimum value was one track per    *
- * channel. IO_TYPE channels are io_rat * maximum in interior tracks wide. The channel*
+ * channel. IO_TYPE channels are io_ratio * maximum in interior tracks wide. The channel*
  * tracks wide. The channel distributions read from the architecture file are    *
  * are scaled by cfactor.                                                        *
  * Initial channel_width_x and channel_width_y.                                  */

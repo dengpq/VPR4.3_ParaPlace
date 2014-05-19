@@ -13,7 +13,7 @@
  * format keyword value(s).  The entire file should be lower case.           *
  * The keywords and their arguments are:                                     *
  *                                                                           *
- *   io_rat integer (sets the number of io pads which fit into the           *
+ *   io_ratio integer (sets the number of io pads which fit into the           *
  *                  space one CLB_TYPE would use).                                *
  *   chan_width_io double   (Width of the channels between the pads and       *
  *                          core relative to the widest core channel.)       *
@@ -134,7 +134,7 @@
 /******************** Variables local to this module. **********************/
 
 static int isread[NUMINP];
-static const char* names[NUMINP] = {"io_rat",
+static const char* names[NUMINP] = {"io_ratio",
                                     "chan_width_x", "chan_width_y",
                                     "chan_width_io", "outpin", "inpin",
                                     "subblocks_per_clb", "subblock_lut_size",
@@ -253,8 +253,8 @@ void read_arch(char* arch_file, router_types_t route_type,
         /* This linear compare is getting pretty long.  Could speed up with a hash *
          * table search -- do that if this starts getting slow.                    */
 
-        if (strcmp(ptr, names[0]) == 0) { /* io_rat */
-            io_rat = get_int(ptr, 0, fp_arch, buf, 1);
+        if (strcmp(ptr, names[0]) == 0) { /* io_ratio */
+            io_ratio = get_int(ptr, 0, fp_arch, buf, 1);
             continue;
         }
 
@@ -1427,7 +1427,7 @@ void print_arch(char* arch_file, router_types_t route_type,
     channel_t chan_x_dist = chan_width_dist.chan_x_dist;
     channel_t chan_y_dist = chan_width_dist.chan_y_dist;
     fprintf(fp, "Input netlist file: %s\n\n", arch_file);
-    fprintf(fp, "io_rat: %d.\n", io_rat);
+    fprintf(fp, "io_ratio: %d.\n", io_ratio);
     fprintf(fp, "chan_width_io: %g  pins_per_clb(pins per clb): %d\n",
             chan_width_io, pins_per_clb);
     fprintf(fp, "\n\nChannel Types:  UNIFORM = %d; GAUSSIAN = %d; PULSE = %d;"
@@ -1560,7 +1560,7 @@ void init_arch(double aspect_ratio, boolean user_sized)
      * will fit the circuit.                                             */
     if (user_sized == TRUE) {
         if (num_clbs > num_grid_columns * num_grid_rows || num_primary_inputs + num_primary_outputs >
-                2 * io_rat * (num_grid_columns + num_grid_rows)) {
+                2 * io_ratio * (num_grid_columns + num_grid_rows)) {
             printf("Error:  User-specified size is too small for circuit.\n");
             exit(1);
         }
@@ -1570,7 +1570,7 @@ void init_arch(double aspect_ratio, boolean user_sized)
          * Perimeter = 2 * (num_grid_columns + num_grid_rows) = 2 * num_grid_rows * (1. + aspect_ratio)  */
         num_grid_rows = (int)ceil(sqrt((double)(num_clbs / aspect_ratio)));
         int io_lim = (int)ceil((num_primary_inputs + num_primary_outputs) /
-                                       (2 * io_rat * (1.0 + aspect_ratio)));
+                                       (2 * io_ratio * (1.0 + aspect_ratio)));
         num_grid_rows = max(num_grid_rows, io_lim);
         num_grid_columns = (int)ceil(num_grid_rows * aspect_ratio);
     }
@@ -1610,21 +1610,21 @@ void init_arch(double aspect_ratio, boolean user_sized)
 static void fill_arch(void)
 {
     /* allocate io_blocks arrays. Done this way to save storage */
-    int  i = 2 * io_rat * (num_grid_columns + num_grid_rows);
+    int  i = 2 * io_ratio * (num_grid_columns + num_grid_rows);
     int* index = (int*) my_malloc(i * sizeof(int));
 
     for (i = 1; i <= num_grid_columns; ++i) {
         clb_grids[i][0].u.io_blocks = index;
-        index += io_rat;
+        index += io_ratio;
         clb_grids[i][num_grid_rows + 1].u.io_blocks = index;
-        index += io_rat;
+        index += io_ratio;
     }
 
     for (i = 1; i <= num_grid_rows; ++i) {
         clb_grids[0][i].u.io_blocks = index;
-        index += io_rat;
+        index += io_ratio;
         clb_grids[num_grid_columns + 1][i].u.io_blocks = index;
-        index += io_rat;
+        index += io_ratio;
     }
 
     /* Initialize type, and occupancy. */

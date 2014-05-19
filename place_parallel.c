@@ -1,68 +1,72 @@
+/*#include <stdlib.h> */
+#include <string.h>
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
-#include <string.h>
+#include <time.h>
 #include <pthread.h>
-#include <sys/time.h>
-#include <stdlib.h>
+#include <sys/time.h> //gettimeofday
 
 #include "util.h"
+#include "vpr_types.h"
 #include "globals.h"
+#include "mst.h"
+#include "place.h"
+#include "read_place.h"
+#include "draw.h"
 #include "place_and_route.h"
-#include "timing_place.h"
-#include "place_parallel.h"
-#include "timing_place_lookup.h"
+#include "net_delay.h"
 #include "path_delay.h"
 #include "path_delay2.h"
-#include "net_delay.h"
-#include "read_place.h"
-/* Due to placement parallel use some function in place.c, so
- * include place.h */
-#include "place.h"
-#include "vpr_utils.h"
-#include "draw.h"
-
+#include "timing_place_lookup.h"
+#include "timing_place.h"
+#include "place_stats.h"
 
 #define _XOPEN_SOURCE 600
-#define T_CONSTANT_GENERATOR  -1000  /* Essentially -ve infinity */
-#define PROB  10
-#define TIMING_UPDATE    5
-#define PARITION_UPDATE  80  /* why? */
+#define T_CONSTANT_GENERATOR -1000  /* Essentially -ve infinity */
+#define PROB 10
+#define TIMING_UPDATE 5
+#define PARITION_UPDATE 80  /* why? */
 
 
-/************** Types and defines local to place.c ***************************/
-/* New added data structures for parallel placement */
-/* the grid in architecture will be partition into x_partition(columns) X  *
- * y_partition(rows). For 8-threads, I'd like to set 4x2 regions. */
+/* Partitioning parameter.
+ * The grid will be partitioned into x_partition rows *
+ * and y_partition columns.                *
+ * Feel free to change the numbers below.  *
+ * For 8-threads, I'd like to set 4x2 regions. *
+ * FIXME, when I set regions, the number of horizontal regions
+ * should >= the number of vertical ones. That is *
+ * x_partition[NUM_OF_THREADS] >= y_partition[NUM_OF_THREADS]. */
 int x_partition[64] = {
-    1, 1, 1, 2, 1,   /* 1-5   */
-    3, 0, 4, 3, 5,   /* 6-10  */
-    0, 4, 0, 7, 5,   /* 11-15 */
-    4, 0, 6, 0, 5,   /* 16-20 */
-    7, 11, 0, 6, 5,  /* 21-25 */
-    13, 9, 7, 0, 6,  /* 29-30 */
-    7, 6, 0, 19, 7,  /* 35-40 */
-    0, 7, 0, 11, 9,  /* 41-45 */
-    23, 0, 8, 7, 10, /* 46-50 */
-    0, 0, 0, 9, 11,  /* 51-55 */
-    8, 0, 0, 0, 10,  /* 56-60 */
-    0, 0, 9, 8       /* 61-64 */
+    1, 1, 1, 2, 1, /*  1-5   */
+    0, 0, 4, 3, 0, /*  6-10  */
+    0, 0, 0, 0, 3, /* 11-15  */
+    4, 0, 3, 0, 4, /* 16-20  */
+    0, 2, 0, 4, 5, /* 21-25  */
+    0, 0, 0, 0, 0, /* 26-30  */
+    0, 0, 0, 0, 0, /* 31-35  */
+    6, 0, 0, 0, 0, /* 36-40  */
+    0, 0, 0, 0, 0, /* 41-45  */
+    0, 0, 0, 7, 0, /* 46-50  */
+    0, 0, 0, 0, 0, /* 51-55  */
+    0, 0, 0, 0, 6, /* 56-60  */
+    0, 0, 7, 8   /* 61-64 */
 };
 
 int y_partition[64] = {
-    1, 1, 1, 2, 1,   /* 1-5   */
-    2, 0, 2, 3, 2,   /* 6-10  */
-    0, 3, 0, 2, 3,   /* 11-15 */
-    4, 0, 3, 0, 4,   /* 19-20 */
-    3, 2, 0, 4, 5,   /* 21-25 */
-    2, 3, 4, 0, 5,   /* 29-30 */
-    0, 4, 3, 0, 5,   /* 31-35 */
-    6, 0, 0, 0, 5,   /* 39-40 */
-    0, 6, 0, 4, 5,   /* 41-45 */
-    2, 0, 6, 7, 5,   /* 49-50 */
-    0, 0, 0, 6, 5,   /* 51-55 */
-    7, 0, 0, 0, 6,   /* 59-60 */
-    0, 0, 7, 8       /* 61-64 */
+    1, 2, 3, 2, 5, /*  1-5  */
+    0, 0, 2, 3, 0, /*  6-10 */
+    0, 0, 0, 0, 5, /* 11-15 */
+    4, 0, 6, 0, 5, /* 16-20 */
+    0, 11, 0, 6, 5,/* 21-25 */
+    0, 0, 0, 0, 0, /* 26-30 */
+    0, 0, 0, 0, 0, /* 31-35 */
+    6, 0, 0, 0, 0, /* 36-40 */
+    0, 0, 0, 0, 0, /* 41-45 */
+    0, 0, 0, 7, 0, /* 46-50 */
+    0, 0, 0, 0, 0, /* 51-55 */
+    0, 0, 0, 0, 10,/* 56-60 */
+    0, 0, 9, 8     /* 61-64 */
 };
 
 /* calculates the time difference*/
@@ -81,33 +85,62 @@ double my_difftime2 (struct timeval* start, struct timeval* end)
     return ret;
 }
 
-/************** Types and defines local to place.c ***************************/
-#define  SMALL_NET  4   /* Cut off for incremental bounding box updates. */
-/* 4 is fastest -- I checked.*/
+/*function for data broadcast*/
+static void update_from_global_to_local_hori(local_block_t* local_block,
+                                             grid_tile_t** local_grid,
+                                             int x_start, int x_end,
+                                             int y_start, int y_end);
 
-#define FROM  0  /* What block connected to a net has moved? */
-#define TO    1
+static void update_from_global_to_local_vert(local_block_t* local_block,
+                                             grid_tile_t** local_grid,
+                                             int x_start, int x_end,
+                                             int y_start, int y_end);
+
+static void update_from_local_to_global(local_block_t* local_block,
+                                        grid_tile_t** local_grid,
+                                        int x_start, int x_end,
+                                        int y_start, int y_end);
+
+/************** Types and defines local to place.c ***************************/
+
+#define SMALL_NET 4     /* Cut off for incremental bounding box updates. */
+/* 4 is fastest -- I checked.                    */
+
+
+/* For comp_cost.  NORMAL means use the method that generates updateable  *
+ * bounding boxes for speed.  CHECK means compute all bounding boxes from *
+ * scratch using a very simple routine to allow checks of the other       *
+ * costs.                                                                 */
+
+enum cost_methods {
+    NORMAL,
+    CHECK
+};
+
+#define FROM 0          /* What block connected to a net has moved? */
+#define TO 1
 #define FROM_AND_TO 2
 
-#define ERROR_TOL    0.0025
+#define ERROR_TOL .0025
 #define MAX_MOVES_BEFORE_RECOMPUTE 50000
 
-/****************** Variables local to place_parallel.c ******************/
-/* grid_tile_t** localvert_grid[num_grid_columns+2][num_grid_rows+2] */
+/********************** Variables local to place.c ***************************/
+/* grid_tile_t** localvert_grid[num_of_columns+2][num_of_rows+2] */
 grid_tile_t** localvert_grid = NULL;
+
 
 /* [0..num_nets-1]  0 if net never connects to the same block more than  *
  *  once, otherwise it gives the number of duplicate connections.        */
-static int*  duplicate_pins;
+static int* duplicate_pins;
+
 
 /* [0..num_nets-1][0..num_unique_blocks-1]  Contains a list of blocks with *
  * no duplicated blocks for ONLY those nets that had duplicates.           */
-static int**  unique_pin_list;
+static int** unique_pin_list;
 
 
 /* Cost of a net, and a temporary cost of a net used during move assessment. */
-static double*  net_cost = NULL;
-static double*  temp_net_cost = NULL; /* [0..num_nets-1] */
+static double* net_cost = NULL, *temp_net_cost = NULL;   /* [0..num_nets-1] */
 
 /* [0..num_nets-1][1..num_pins-1]. What is the value of the timing   */
 /* driven portion of the cost function. These arrays will be set to  */
@@ -140,12 +173,10 @@ static bbox_t* bb_num_on_edges = NULL;
  * region in the placement.  Used only by the NONLINEAR_CONG cost        *
  * function.  [0..num_region-1][0..num_region-1].  Place_region_x and    *
  * y give the situation for the x and y directed channels, respectively. */
-static place_region_t**  place_region_x;
-static place_region_t**  place_region_y;
+static struct s_place_region** place_region_x, ** place_region_y;
 
 /* Used only with nonlinear congestion.  [0..num_regions].            */
-static double*  place_region_bounds_x;
-static double*  place_region_bounds_y;
+static double* place_region_bounds_x, *place_region_bounds_y;
 
 /* The arrays below are used to precompute the inverse of the average   *
  * number of tracks per channel between [subhigh] and [sublow].  Access *
@@ -172,29 +203,6 @@ static const double cross_count[50] = {  /* [0..49] */
     2.7933
 };
 
-
-/* functions for threads data broadcast */
-static void update_from_global_to_local_hori(local_block_t*  local_block_ptr,
-                                             grid_tile_t**  local_grid_ptr,
-                                             int x_start,
-                                             int x_end,
-                                             int y_start,
-                                             int y_end);
-
-static void update_from_global_to_local_vert(local_block_t* local_block_ptr,
-                                             grid_tile_t**  local_grid_ptr,
-                                             int x_start,
-                                             int x_end,
-                                             int y_start,
-                                             int y_end);
-
-static void update_from_local_to_global(local_block_t* local_block,
-                                        grid_tile_t**  local_grid,
-                                        int x_start,
-                                        int x_end,
-                                        int y_start,
-                                        int y_end);
-
 /********************* Static subroutines local to place.c *******************/
 static void alloc_and_load_unique_pin_list(void);
 
@@ -206,12 +214,13 @@ static void load_place_regions(int num_regions);
 
 static void free_place_regions(int num_regions);
 
-/* static void alloc_and_load_placement_structs(int place_cost_type,
+static void alloc_and_load_placement_structs(int place_cost_type,
                                              int num_regions,
                                              double place_cost_exp,
                                              double** *old_region_occ_x,
                                              double** *old_region_occ_y,
-                                             placer_opts_t placer_opts); */
+                                             placer_opts_t
+                                             placer_opts);
 
 static void free_placement_structs(int place_cost_type,
                                    int num_regions,
@@ -221,13 +230,18 @@ static void free_placement_structs(int place_cost_type,
 
 static void alloc_and_load_for_fast_cost_update(double place_cost_exp);
 
+static void initial_placement(enum e_pad_loc_type pad_loc_type,
+                              char* pad_loc_file);
+
+double comp_bb_cost_parallel(int start_net,
+                            int end_net);
 
 static double comp_bb_cost(int method,
                           int place_cost_type,
                           int num_regions);
 
 /* using double instead of double to alleviate floating point round-off error */
-/* static int try_swap(double t,
+static int try_swap(double t,
                     double* cost,
                     double* bb_cost,
                     double* timing_cost,
@@ -242,16 +256,34 @@ static double comp_bb_cost(int method,
                     double inverse_prev_bb_cost,
                     double inverse_prev_timing_cost,
                     double* delay_cost,
-                    int* x_lookup); */
+                    int* x_lookup);
 
-/* static double check_place(double bb_cost,
+static double check_place(double bb_cost,
                          double timing_cost,
                          int place_cost_type,
                          int num_regions,
                          enum e_place_algorithm place_algorithm,
-                         double delay_cost); */
+                         double delay_cost);
+
+static double starting_t(double* cost_ptr,
+                        double* bb_cost_ptr,
+                        double* timing_cost_ptr,
+                        int place_cost_type,
+                        double** old_region_occ_x,
+                        double** old_region_occ_y,
+                        int num_regions,
+                        boolean fixed_pins,
+                        struct s_annealing_sched annealing_sched,
+                        int max_moves,
+                        double range_limit,
+                        enum e_place_algorithm place_algorithm,
+                        double timing_tradeoff,
+                        double inverse_prev_bb_cost,
+                        double inverse_prev_timing_cost,
+                        double* delay_cost_ptr);
 
 static void update_t(double* t,
+                     double std_dev,
                      double range_limit,
                      double success_rat,
                      struct s_annealing_sched annealing_sched);
@@ -270,6 +302,10 @@ static int exit_crit(double t,
                      double cost,
                      struct s_annealing_sched annealing_sched);
 
+static int count_connections(void);
+
+static void compute_net_pin_index_values(void);
+
 static double get_std_dev(int n,
                           double sum_x_squared,
                           double av_x);
@@ -281,6 +317,10 @@ static double recompute_bb_cost(int place_cost_type,
 
 static double comp_td_point_to_point_delay(int inet,
                                           int ipin);
+
+double comp_td_point_to_point_delay_parallel(int inet,
+                                            int ipin,
+                                            local_block_t* local_block);
 
 static void update_td_cost(int from_block,
                            int to_block,
@@ -313,7 +353,7 @@ static int assess_swap(double delta_c,
 
 static boolean find_to(int x_from,
                        int y_from,
-                       block_type_ptr type,
+                       t_type_ptr type,
                        double range_limit,
                        int* x_lookup,
                        int* x_to,
@@ -361,241 +401,200 @@ static void get_bb_from_scratch(int inet,
 static double get_net_wirelength_estimate(int inet,
                                           bbox_t* bbptr);
 
-void try_place_by_multi_threads(const char*     netlist_file,
-                                placer_opts_t   placer_opts,
-                                annealing_sched_t  annealing_sched,
-                                chan_width_distr_t chan_width_dist,
-                                router_opts_t      router_opts,
-                                detail_routing_arch_t  det_routing_arch,
-                                segment_info_t*  segment_inf_ptr,
-                                timing_info_t    timing_inf,
-                                subblock_data_t* subblock_data_ptr)
+/***********************************************************************/
+/* RESEARCH TODO: Bounding Box and range_limit need to be redone for    *
+ * heterogeneous to prevent a QoR penalty */
+/* Does almost all the work of placing a circuit. Width_fac gives the   *
+ * width of the widest channel. Place_cost_exp says what exponent the   *
+ * width should be taken to when calculating costs. This allows a       *
+ * greater bias for anisotropic architectures. Place_cost_type          *
+ * determines which cost function is used. num_regions is used only     *
+ * the place_cost_type is NONLINEAR_CONG.                               */
+void try_place(placer_opts_t placer_opts,
+               struct s_annealing_sched annealing_sched,
+               chan_width_distr_t chan_width_dist,
+               router_opts_t router_opts,
+               struct s_det_routing_arch det_routing_arch,
+               t_segment_inf* segment_inf,
+               t_timing_inf timing_inf,
+               t_subblock_data* subblock_data_ptr,
+               enum e_operation operation)
 {
-    /* ATTENTION, WHEN PLACEMENT USING MULTI-THREADS, THE INITIAL PLACEMENT WAS *
-     * SAME WITH PLACEMENT USING SINGLE-THREAD.                                 */
+    /* Allocated here because it goes into timing critical code where each memory allocation is expensive */
+    /* Used to quickly determine valid swap columns */
+    printf("Before placement, Let's print the grid location...\n");
+    print_grid();
 
-    /* Allocated here because  it goes into timing-critical code where
-     * each memory allocation is expensive. */
-    int*  x_lookup = (int*)my_malloc(num_grid_columns * sizeof(int));
+    int* x_lookup = (int*)my_malloc(num_of_columns * sizeof(int));
 
-    /* FIXME, according to "Timing-Driven Placement for FPGAs", before T-VPlace *
-     * run, it allocate the Tdel lookup matrix for path-timing-driven placement */
-    double** net_slack = NULL; /* FIXME */
-    double** net_delay = NULL; /* FIXME */
-    double** remember_net_delay_original_ptr = NULL; /*used to free net_delay if it is re-assigned*/
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-          /* new added for support PATH Timing-Driven Placement */
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE
-          || placer_opts.enable_timing_computations) {
+    /*used to free net_delay if it is re-assigned */
+    double** remember_net_delay_original_ptr = NULL;
+    double** net_slack, **net_delay;
+    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE ||
+        placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE ||
+        placer_opts.enable_timing_computations) {
         /*do this before the initial placement to avoid messing up the initial placement */
-        alloc_and_load_timing_graph(placer_opts,
-                                    timing_inf,
-                                    *subblock_data_ptr);
-        net_slack = alloc_net_slack();
-        assert(net_slack != NULL);
-
-        alloc_delay_lookup_matrixes_and_criticalities(placer_opts,
-                                                      *subblock_data_ptr,
-                                                      chan_width_dist,
-                                                      timing_inf,
-                                                      router_opts,
-                                                      det_routing_arch,
-                                                      segment_inf_ptr,
-                                                      &net_delay);
+        alloc_lookups_and_criticalities(chan_width_dist,
+                                        router_opts,
+                                        det_routing_arch,
+                                        segment_inf,
+                                        timing_inf,
+                                        *subblock_data_ptr,
+                                        &net_delay,
+                                        &net_slack);
         remember_net_delay_original_ptr = net_delay;
-    } /* end of create data structures(timing_graph) needed by TDP */
-
-
-    /***************************************************************************
-     * Due to VPR4.3 had a lot of paramertes, it was so sophiscated that       *
-     * disturbed for a long time. I new added 2 data structure: placer_costs_t *
-     * and placer_paras_t. It will simplified my working.                      *
-     **************************************************************************/
-    placer_paras_t*  placer_paras_ptr = init_placer_paras();
-    placer_paras_ptr->m_width_factor = placer_opts.place_chan_width;
-
-    if (placer_opts.pad_loc_type == FREE) { /* the io pad can place freely */
-        placer_paras_ptr->m_fixed_pins = FALSE;
-    } else {
-        placer_paras_ptr->m_fixed_pins = TRUE;
     }
 
-    init_channel_t(placer_paras_ptr->m_width_factor,
-                   chan_width_dist);
+    int width_fac = placer_opts.place_chan_width;
+    boolean fixed_pins; /* Can pads move or not? */
+    if (placer_opts.pad_loc_type == FREE) {
+        fixed_pins = FALSE;
+    } else {
+        fixed_pins = TRUE;
+    }
 
-    double**  old_region_occ_x = NULL;
-    double**  old_region_occ_y = NULL;
-    alloc_and_load_placement_structs(&placer_opts,
+    init_chan(width_fac, chan_width_dist);
+
+    double** old_region_occ_x, **old_region_occ_y;
+    alloc_and_load_placement_structs(placer_opts.place_cost_type,
+                                     placer_opts.num_regions,
+                                     placer_opts.place_cost_exp,
                                      &old_region_occ_x,
-                                     &old_region_occ_y);
+                                     &old_region_occ_y,
+                                     placer_opts);
 
-    /* FIXME, run initial_placement, I understand it! */
-    initial_placement(placer_opts.pad_loc_type,
-                      placer_opts.pad_loc_file);
+    initial_placement(placer_opts.pad_loc_type, placer_opts.pad_loc_file);
+    init_draw_coords((double)width_fac);
 
-    init_draw_coords((double)placer_paras_ptr->m_width_factor);
-
-    /* Storing the number of pins on each type of blocks makes the swap routine *
+    /* Storing the number of pins on each type of block makes the swap routine *
      * slightly more efficient.                                                */
-    int pins_on_block[3];  /* 0: CLB_TYPE, 1: OUTPAD_TYPE, 2: INPAD_TYPE */
-    pins_on_block[CLB_TYPE] = pins_per_clb;
-    pins_on_block[OUTPAD_TYPE] = 1;
-    pins_on_block[INPAD_TYPE] = 1;
 
-    placer_costs_t*  placer_costs_ptr = init_placer_costs();
-    int  inet = -1;
-    int  ipin = -1;
     /* Gets initial cost and loads bounding boxes. */
-    placer_costs_ptr->m_bb_cost = compute_bb_cost(NORMAL,
-                                                  placer_opts.place_cost_type,
-                                                  placer_opts.num_regions);
-    /*=========   Now compute initial_cost after initial placement    ========*/
-    placer_paras_ptr->m_outer_crit_iter_count = 0;
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-        placer_paras_ptr->m_crit_exponent = placer_opts.td_place_exp_first;
+    double bb_cost = comp_bb_cost(NORMAL,
+                                 placer_opts.place_cost_type,
+                                 placer_opts.num_regions);
+    int num_connections = 0;
+    double crit_exponent = 0.0;
+    double max_delay = 0.0;
+    double place_delay_value = 0.0;
+    double timing_cost, delay_cost;
+    double  inverse_prev_bb_cost = 0.0;
+    double inverse_prev_timing_cost = 0.0;
+    double cost = 0.0;
+    int outer_crit_iter_count = 0;
+    int inet = 0;
+    int ipin = 0;
+    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE ||
+            placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE) {
+        crit_exponent = placer_opts.td_place_exp_first; /*this will be modified when range_limit starts to change */
 
         compute_net_pin_index_values();
 
-        placer_paras_ptr->m_num_connections = count_connections();
-
+        num_connections = count_connections();
         printf("\nThere are %d point to point connections in this circuit\n\n",
-                placer_paras_ptr->m_num_connections);
+                 num_connections);
 
         if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE) {
-            for (inet = 0; inet < num_nets; ++inet) {
-                for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
-                    timing_place_crit[inet][ipin] = 0.0; /*dummy crit values*/
-                } /* <source, sink> */
-            }
-            /* first pass gets delay_cost, which is used in criticality computations *
-             * in the next call to compute_timing_driven_cost_by_orig_algo. */
-            compute_timing_driven_cost_by_orig_algo(&placer_costs_ptr->m_timing_cost,
-                                                    &placer_costs_ptr->m_delay_cost);
-
-            /* Used for computing criticalities, but why did it subdivide *
-             * num_connections? (FIXME)                                   */
-            placer_paras_ptr->m_place_delay_value =
-                placer_costs_ptr->m_delay_cost / placer_paras_ptr->m_num_connections;
-
-            /* For NET_TIMING_DRIVEN_PLACE, all subnets of a net had same Tdel  *
-             * value. so double net_delay[][] had same value for all connections. */
+            for (inet = 0; inet < num_nets; ++inet)
+                for (ipin = 1; ipin <= net[inet].num_sinks; ++ipin) {
+                    timing_place_crit[inet][ipin] = 0;    /*dummy crit values */
+                }
+           /* first pass gets delay_cost, which is used in criticality *
+            * computations in the next call to comp_td_costs. */
+            comp_td_costs(&timing_cost,
+                          &delay_cost);
+            place_delay_value = delay_cost / num_connections; /*used for computing criticalities */
             load_constant_net_delay(net_delay,
-                                    placer_paras_ptr->m_place_delay_value);
+                                    place_delay_value);
         } else {
-            placer_paras_ptr->m_place_delay_value = 0;
+            place_delay_value = 0;
         }
 
-        /* this keeps net_delay up to date with the same values that *
+        if (placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE) {
+        /* This keeps net_delay up to date with the same values that * 
          * the placer is using point_to_point_delay_cost is computed *
-         * each time that compute_timing_driven_cost_by_orig_algo is *
-         * called, and is also updated after any swap is accepted.   *
-         * point_to_point_delay was pin_to_pin_delay.                */
-        if (placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-            net_delay = point_to_point_delay_cost;
+         * each that comp_td_costs is called, and is also updated    *
+         * after any swap is accepted   */
+            net_delay = point_to_point_delay_cost;  
         }
 
-        /* Initialize all edges' Tdel(Tdel) in Timing_Analyze_Graph. */
         load_timing_graph_net_delays(net_delay);
-        /* Compute each vertexes's req_time and arr_time time, and calculate the *
-         * max_delay in critical path.                                           */
-        placer_paras_ptr->m_max_delay =
-            calc_all_vertexs_arr_req_time(placer_paras_ptr->m_place_delay_value);
+        max_delay = load_net_slack(net_slack, 0);
+        load_criticalities(placer_opts, net_slack, max_delay, crit_exponent);
 
-        compute_net_slacks(net_slack);
+        /*now we can properly compute costs  */
+        comp_td_costs(&timing_cost,
+                      &delay_cost);
 
-        compute_timing_driven_cost(&placer_opts,
-                                   placer_paras_ptr,
-                                   net_slack,
-                                   block_pin_to_tnode,
-                                   placer_costs_ptr);
+        inverse_prev_timing_cost = 1 / timing_cost;
+        inverse_prev_bb_cost = 1 / bb_cost;
+        cost = 1; /* our new cost function uses normalized values of  */
+        /*bb_cost and timing_cost, the value of cost will be reset  */
+        /*to 1 at each temperature when *_TIMING_DRIVEN_PLACE is true */
+        outer_crit_iter_count = 1;
+    } else {
+        /*BOUNDING_BOX_PLACE */
+        cost = bb_cost;
+        timing_cost = 0;
+        delay_cost = 0;
+        num_connections = 0;
+        max_delay = 0;
+        place_delay_value = 0;
+        crit_exponent = 0;
 
-        placer_costs_ptr->m_inverse_prev_bb_cost = 1 / placer_costs_ptr->m_bb_cost;
-        placer_costs_ptr->m_inverse_prev_timing_cost =
-                                1 / placer_costs_ptr->m_timing_cost;
+        inverse_prev_timing_cost = 0;   /*inverses not used */
+        inverse_prev_bb_cost = 0;
+        outer_crit_iter_count = 0;
+    }
 
-        /* TODO: How about this variables? */
-        placer_paras_ptr->m_outer_crit_iter_count = 1;
+    int move_lim = (int)(10 * pow(num_blocks, 1.3333));
+    /* Sometimes I want to run the router with a random placement.  Avoid *
+     * using 0 moves to stop division by 0 and 0 length vector problems,  *
+     * by setting move_lim to 1 (which is still too small to do any       *
+     * significant optimization).                                         */
+    if (move_lim <= 0) {
+        move_lim = 1;
+    }
 
-        /* our new cost function uses normalized values of bb_cost and timing_cost,*
-         * the value of cost will be reset to 1 at each temperature when       *
-         * TIMING_DRIVEN_PLACE is true.                                        */
-        placer_costs_ptr->m_total_cost = 1.0;
-    } else { /*BOUNDING_BOX_PLACE*/
-        placer_costs_ptr->m_total_cost = placer_costs_ptr->m_bb_cost;
-        placer_costs_ptr->m_timing_cost = placer_costs_ptr->m_delay_cost = 0.0;
-        placer_costs_ptr->m_inverse_prev_bb_cost = placer_costs_ptr->m_inverse_prev_timing_cost = 0.0;
+    int inner_recompute_limit = 0;
+    if (placer_opts.inner_loop_recompute_divider != 0)
+        inner_recompute_limit = (int)(0.5 + (double)move_lim /
+                                      (double)placer_opts.
+                                      inner_loop_recompute_divider);
+    else {          /*don't do an inner recompute */
+        inner_recompute_limit = move_lim + 1;
+    }
 
-        placer_paras_ptr->m_place_delay_value = placer_paras_ptr->m_max_delay = 0.0;
-        placer_paras_ptr->m_crit_exponent = 0.0;
-        placer_paras_ptr->m_outer_crit_iter_count = placer_paras_ptr->m_num_connections = 0;
-    }  /* end of else */
-
+    double range_limit = (double)max(num_of_columns, num_of_rows);
+    double t = starting_t(&cost, &bb_cost, &timing_cost,
+                         placer_opts.place_cost_type,
+                         old_region_occ_x, old_region_occ_y,
+                         placer_opts.num_regions, fixed_pins, annealing_sched,
+                         move_lim, range_limit, placer_opts.place_algorithm,
+                         placer_opts.timing_tradeoff, inverse_prev_bb_cost,
+                         inverse_prev_timing_cost, &delay_cost);
+    int tot_iter = 0;
     printf("Initial Placement Cost: %g bb_cost: %g td_cost: %g delay_cost: %g\n\n",
-           placer_costs_ptr->m_total_cost,
-           placer_costs_ptr->m_bb_cost,
-           placer_costs_ptr->m_timing_cost,
-           placer_costs_ptr->m_delay_cost);
-    /*-------------    Compute initial placemnt cost end    ---------------- */
-
-    /* move_limit_timis = 10*(num_of_clb+num_of_io)^(4/3), it used to inner loop of VPR */
-    /* Sometimes I want to run the router with a random placement. Avoid using *
-     * 0 moves to stop division by 0 and 0 length vector problems, by setting  *
-     * move_limit to 1 (which is still too small to do any significant optimization).  */
-    placer_paras_ptr->m_move_limit = (int)(annealing_sched.inner_num *
-                                             pow(num_blocks, 1.3333));
-    if (placer_paras_ptr->m_move_limit <= 0) {
-        placer_paras_ptr->m_move_limit = 1;
-    }
-
-    if (placer_opts.inner_loop_recompute_divider != 0) { /* its default value was 0 */
-        placer_paras_ptr->m_inner_recompute_limit =
-                (int)(0.5 + (double)placer_paras_ptr->m_move_limit /
-                              (double)placer_opts.inner_loop_recompute_divider);
-    } else { /*don't do an inner recompute */
-        placer_paras_ptr->m_inner_recompute_limit = placer_paras_ptr->m_move_limit + 1;
-    }
-
-
-    /* range_limit was used in timing-driven placement for exponent computation*/
-    placer_paras_ptr->m_range_limit = (double)max(num_grid_columns,
-                                                  num_grid_rows);
-    const double first_rlim = placer_paras_ptr->m_range_limit;
-    placer_paras_ptr->m_final_rlim = 1.0;
-    placer_paras_ptr->m_inverse_delta_rlim =
-                    1 / (first_rlim - placer_paras_ptr->m_final_rlim);
-
-    /* FIXME: initial start_temperature */
-    placer_paras_ptr->m_temper = starting_temperature(annealing_sched,
-                                                      pins_on_block,
-                                                      placer_opts,
-                                                      placer_paras_ptr,
-                                                      old_region_occ_x,
-                                                      old_region_occ_y,
-                                                      placer_costs_ptr);
+            cost, bb_cost, timing_cost, delay_cost);
 
 #ifndef SPEC
-    printf("%11s  %10s %11s  %11s  %11s %11s  %11s %9s %8s  %7s  %7s  %10s  %7s\n",
-           "T", "Cost", "Av. BB Cost", "Av. TD Cost", "Av Tot Del", "P_to_P Del",
-           "crit_delay", "Ac Rate", "Std Dev", "R limit", "Exp", "Tot. Moves",
-           "Alpha");
-    printf("%11s  %10s %11s  %11s  %11s %11s  %11s %9s %8s  %7s  %7s  %10s  %7s\n",
-           "--------", "----------", "-----------", "-----------", "---------",
-           "----------", "-----", "-------", "-------", "-------", "-------",
-           "----------", "-----");
+    printf
+    ("%11s  %10s %11s  %11s  %11s %11s  %11s %9s %8s  %7s  %7s  %10s  %7s\n",
+     "T", "Cost", "Av. BB Cost", "Av. TD Cost", "Av Tot Del",
+     "P to P Del", "max_delay", "Ac Rate", "Std Dev", "R limit", "Exp",
+     "Tot. Moves", "Alpha");
+    printf
+    ("%11s  %10s %11s  %11s  %11s %11s  %11s %9s %8s  %7s  %7s  %10s  %7s\n",
+     "--------", "----------", "-----------", "-----------",
+     "---------", "----------", "-----", "-------", "-------",
+     "-------", "-------", "----------", "-----");
 #endif
-    char msg[BUFSIZE] = "";
-    sprintf(msg, "Initial Placement.  Cost: %g  BB Cost: %g  TD Cost %g  Delay Cost: %g "
-            "\t max_delay %g Channel Factor: %d",
-            placer_costs_ptr->m_total_cost,
-            placer_costs_ptr->m_bb_cost,
-            placer_costs_ptr->m_timing_cost,
-            placer_costs_ptr->m_delay_cost,
-            placer_paras_ptr->m_max_delay,
-            placer_paras_ptr->m_width_factor);
+
+    char msg[BUFSIZE];
+    sprintf(msg,
+            "Initial Placement.  Cost: %g  BB Cost: %g  TD Cost %g  Delay Cost: %g "
+            "\t max_delay %g Channel Factor: %d", cost, bb_cost, timing_cost,
+            delay_cost, max_delay, width_fac);
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
     clock_t start_cpu = clock();
@@ -603,9 +602,9 @@ void try_place_by_multi_threads(const char*     netlist_file,
     gettimeofday(&start, NULL);
     my_srandom(0);
 
-    /***************   Parallel Placement Starting   *******************/
-    pthread_mutex_init(&global_data_access.m_mutex,
-                       NULL);
+    int inner_iter_num = annealing_sched.inner_num;
+
+    pthread_mutex_init(&global_data_access.mutex, NULL);
     barrier_polling_reset();
 
     /* horizon_regions is regions in horizontal direction, verti_regions is  *
@@ -622,164 +621,170 @@ void try_place_by_multi_threads(const char*     netlist_file,
     /* iSize{X,Y} is the number of cols/rows assigned to each threads.
      * extra_cols is used to distribute the extra rows/cols when {x,y}_part is
      * not evenly divisible by {x,y}_part */
-    const int cols_assign_to_thread = (num_grid_columns + 2) / horizon_regions;
-    const int rows_assign_to_thread = (num_grid_rows + 2) / verti_regions;
+    const int cols_assign_to_thread = (num_of_columns + 2) / horizon_regions;
+    const int rows_assign_to_thread = (num_of_rows + 2) / verti_regions;
     const int extra_cols =
-               (num_grid_columns + 2) - cols_assign_to_thread * horizon_regions;
+                (num_of_columns + 2) - cols_assign_to_thread * horizon_regions;
     const int extra_rows =
-               (num_grid_rows + 2) - rows_assign_to_thread * verti_regions;
+                (num_of_rows + 2) - rows_assign_to_thread * verti_regions;
 
-    int current_row = 0;
-    int current_row2 = 0;
+    int success_sum, exit;
+    double success_rat;
+    double av_cost, av_bb_cost, av_timing_cost, av_delay_cost, sum_of_squares;
+    double std_dev;
+
     pthread_data_t thread_data_array[NUM_OF_THREADS];
     int thread_return_value[NUM_OF_THREADS];
     pthread_t place_threads[NUM_OF_THREADS];
-    int thread_num = -1;
-    for (thread_num = NUM_OF_THREADS - 1; thread_num >= 0 ; --thread_num) {
+    int count = -1;
+    for (count = NUM_OF_THREADS - 1; count >= 0 ; --count) {
         /* for x_start */
-        if (thread_num % horizon_regions ==  0 || horizon_regions == 1) {
-            thread_data_array[thread_num].m_x_start = 0;
-        } else if (thread_num % horizon_regions == 1) {
-            thread_data_array[thread_num].m_x_start = cols_assign_to_thread;
-        } else if (thread_num % horizon_regions < extra_cols + 1) {
-            thread_data_array[thread_num].m_x_start =
-                (thread_num % horizon_regions - 1) * (cols_assign_to_thread + 1)
+        if (count % horizon_regions ==  0 || horizon_regions == 1) {
+            thread_data_array[count].x_start = 0;
+        } else if (count % horizon_regions == 1) {
+            thread_data_array[count].x_start = cols_assign_to_thread;
+        } else if (count % horizon_regions < extra_cols + 1) {
+            thread_data_array[count].x_start =
+                (count % horizon_regions - 1) * (cols_assign_to_thread + 1)
                     + cols_assign_to_thread;
         } else {
-            thread_data_array[thread_num].m_x_start =
-                (thread_num % horizon_regions) * cols_assign_to_thread + extra_cols;
+            thread_data_array[count].x_start =
+                (count % horizon_regions) * cols_assign_to_thread + extra_cols;
         }
         /* for x_end */
-        if (thread_num % horizon_regions == horizon_regions - 1 || horizon_regions == 1) {
-            thread_data_array[thread_num].m_x_end = num_grid_columns + 2;
-        } else if (thread_num % horizon_regions == 0) {
-            thread_data_array[thread_num].m_x_end = cols_assign_to_thread;
-        } else if (thread_num % horizon_regions < extra_cols + 1) {
-            thread_data_array[thread_num].m_x_end =
-                (thread_num % horizon_regions) * (cols_assign_to_thread + 1)
+        if (count % horizon_regions == horizon_regions - 1 || horizon_regions == 1) {
+            thread_data_array[count].x_end = num_of_columns + 2;
+        } else if (count % horizon_regions == 0) {
+            thread_data_array[count].x_end = cols_assign_to_thread;
+        } else if (count % horizon_regions < extra_cols + 1) {
+            thread_data_array[count].x_end =
+                (count % horizon_regions) * (cols_assign_to_thread + 1)
                     + cols_assign_to_thread;
         } else {
-            thread_data_array[thread_num].m_x_end =
-             (thread_num % horizon_regions + 1) * cols_assign_to_thread + extra_cols;
+            thread_data_array[count].x_end =
+             (count % horizon_regions + 1) * cols_assign_to_thread + extra_cols;
         }
         /* for y_start */
-        if (thread_num / horizon_regions == 0 || verti_regions == 1) {
-            thread_data_array[thread_num].m_y_start = 0;
-        } else if (thread_num / horizon_regions == 1) {
-            thread_data_array[thread_num].m_y_start = rows_assign_to_thread;
-        } else if (thread_num / horizon_regions < extra_rows + 1) {
-            thread_data_array[thread_num].m_y_start =
-                (thread_num / horizon_regions - 1) * (rows_assign_to_thread + 1)
+        if (count / horizon_regions == 0 || verti_regions == 1) {
+            thread_data_array[count].y_start = 0;
+        } else if (count / horizon_regions == 1) {
+            thread_data_array[count].y_start = rows_assign_to_thread;
+        } else if (count / horizon_regions < extra_rows + 1) {
+            thread_data_array[count].y_start =
+                (count / horizon_regions - 1) * (rows_assign_to_thread + 1)
                     + rows_assign_to_thread;
         } else {
-            thread_data_array[thread_num].m_y_start =
-                (thread_num / horizon_regions) * rows_assign_to_thread + extra_rows;
+            thread_data_array[count].y_start =
+                (count / horizon_regions) * rows_assign_to_thread + extra_rows;
         }
         /* for y_end */
-        if (thread_num / horizon_regions == verti_regions - 1 || verti_regions == 1) {
-            thread_data_array[thread_num].m_y_end = num_grid_rows + 2;
-        } else if (thread_num / horizon_regions == 0) {
-            thread_data_array[thread_num].m_y_end = rows_assign_to_thread;
-        } else if (thread_num / horizon_regions < extra_rows + 1) {
-            thread_data_array[thread_num].m_y_end =
-                (thread_num / horizon_regions) * (rows_assign_to_thread + 1)
+        if (count / horizon_regions == verti_regions - 1 || verti_regions == 1) {
+            thread_data_array[count].y_end = num_of_rows + 2;
+        } else if (count / horizon_regions == 0) {
+            thread_data_array[count].y_end = rows_assign_to_thread;
+        } else if (count / horizon_regions < extra_rows + 1) {
+            thread_data_array[count].y_end =
+                (count / horizon_regions) * (rows_assign_to_thread + 1)
                      + rows_assign_to_thread;
         } else {
-            thread_data_array[thread_num].m_y_end =
-                ((thread_num / horizon_regions) + 1) * rows_assign_to_thread
-                     + extra_rows;
+            thread_data_array[count].y_end =
+                ((count / horizon_regions) + 1) * rows_assign_to_thread + extra_rows;
         }
         /* Initial region boundary OK */
         /* each region must be at least 8 X 8 */
-        assert(thread_data_array[thread_num].m_x_end -
-                   thread_data_array[thread_num].m_x_start > 8);
-        assert(thread_data_array[thread_num].m_y_end -
-                   thread_data_array[thread_num].m_y_start > 8);
+        assert(thread_data_array[count].x_end - thread_data_array[count].x_start > 8);
+        assert(thread_data_array[count].y_end - thread_data_array[count].y_start > 8);
 
-        thread_data_array[thread_num].m_thread_id = thread_num;
+        thread_data_array[count].thread_id = count;
         /* For each thread, it had these following global varibbles local copy, *
          * so it must synchronous with pthread mutex */
-        thread_data_array[thread_num].m_placer_opts = placer_opts;
-        thread_data_array[thread_num].m_annealing_sched = annealing_sched;
-        thread_data_array[thread_num].m_net_slack = net_slack;
-        thread_data_array[thread_num].m_net_delay = net_delay;
+        thread_data_array[count].placer_opts = placer_opts;
+        thread_data_array[count].annealing_sched = annealing_sched;
+        thread_data_array[count].fixed_pins = fixed_pins;
+        thread_data_array[count].net_slack = net_slack;
+        thread_data_array[count].net_delay = net_delay;
 
-        thread_data_array[thread_num].m_local_place_cost_ptr = placer_costs_ptr;
+        thread_data_array[count].t = &t;
 
-        thread_data_array[thread_num].m_local_place_paras_ptr = placer_paras_ptr;
+        thread_data_array[count].bb_cost = &bb_cost;
+        thread_data_array[count].timing_cost = &timing_cost;
+        thread_data_array[count].delay_cost = &delay_cost;
+        thread_data_array[count].inverse_prev_bb_cost = &inverse_prev_bb_cost;
+        thread_data_array[count].inverse_prev_timing_cost = &inverse_prev_timing_cost;
+        thread_data_array[count].av_cost = &av_cost;
+        thread_data_array[count].av_bb_cost = &av_bb_cost;
+        thread_data_array[count].av_timing_cost = &av_timing_cost;
+        thread_data_array[count].av_delay_cost = &av_delay_cost;
+        thread_data_array[count].cost = &cost;
 
-        thread_data_array[thread_num].m_current_row_ptr = &current_row;
-        thread_data_array[thread_num].m_current_row2_ptr = &current_row2;
+        thread_data_array[count].move_lim = &move_lim;
+        thread_data_array[count].inner_iter_num = &inner_iter_num;
+        thread_data_array[count].tot_iter = &tot_iter;
+        thread_data_array[count].success_sum = &success_sum;
+        thread_data_array[count].success_rat = &success_rat;
+        thread_data_array[count].sum_of_squares = &sum_of_squares;
+        thread_data_array[count].std_dev = &std_dev;
 
-        assert(thread_data_array[thread_num].y_end > thread_data_array[thread_num].y_start);
+        thread_data_array[count].place_delay_value = &place_delay_value;
+        thread_data_array[count].max_delay = &max_delay;
+        thread_data_array[count].num_connections = &num_connections;
 
-        if (thread_num != 0) {
-            thread_return_value[thread_num] = pthread_create(&place_threads[thread_num],
-                                                             NULL,
-                                                             try_place_parallel,
-                                                             (void*)&thread_data_array[thread_num]);
+        thread_data_array[count].crit_exponent = &crit_exponent;
+        thread_data_array[count].exit = &exit;
+        thread_data_array[count].range_limit = &range_limit;
+
+        assert(thread_data_array[count].y_end > thread_data_array[count].y_start);
+
+        if (count != 0) {
+            thread_return_value[count] = pthread_create(&place_threads[count],
+                                                        NULL,
+                                                        try_place_parallel,
+                                                        (void*)&thread_data_array[count]);
         } else {
-            /* Why thread_num == 0, it needn't create pthread? */
-            try_place_parallel(&thread_data_array[thread_num]);
+            /* Why count == 0, it needn't create pthread? */
+            try_place_parallel(&thread_data_array[count]);
         }
-    } /* end of for(thread_num = NUM_OF_THREADS-1; thread_num >= 0; --thread_num) */
-    /***************   Parallel Placement Ending     *******************/
+    } /* end of for(count = NUM_OF_THREADS-1; count >= 0; --count) */
 
-    for (thread_num = NUM_OF_THREADS - 1; thread_num > 0; --thread_num) {
-        pthread_join(place_threads[thread_num], NULL);
+    for (count = NUM_OF_THREADS - 1; count > 0; --count) {
+        pthread_join(place_threads[count], NULL);
     }
-    pthread_mutex_destroy(&global_data_access.m_mutex);
 
-    /* For origin Parallel Placement, there isn't low temperature placement, Now
-     * I new added it for */
-    run_low_temperature_place(placer_opts,
-                              pins_on_block,
-                              placer_paras_ptr,
-                              old_region_occ_x,
-                              old_region_occ_y,
-                              net_slack,
-                              net_delay,
-                              placer_costs_ptr);
+    pthread_mutex_destroy(&global_data_access.mutex);
 
     clock_t finish_cpu = clock();
     struct  timeval finish;
     gettimeofday(&finish, NULL);
-    double bb_cost = check_place(placer_costs_ptr->m_bb_cost,
-                                 placer_costs_ptr->m_timing_cost,
-                                 placer_opts.place_cost_type,
-                                 placer_opts.num_regions,
-                                 placer_opts.place_algorithm,
-                                 placer_costs_ptr->m_delay_cost);
+    bb_cost = check_place(bb_cost,
+                          timing_cost,
+                          placer_opts.place_cost_type,
+                          placer_opts.num_regions,
+                          placer_opts.place_algorithm,
+                          delay_cost);
 
     if (placer_opts.enable_timing_computations &&
             placer_opts.place_algorithm == BOUNDING_BOX_PLACE) {
         /*need this done since the timing data has not been kept up to date*
          *in bounding_box mode */
         for (inet = 0; inet < num_nets; ++inet)
-            for (ipin = 1; ipin <= net[inet].num_pins; ++ipin) {
-                timing_place_crit[inet][ipin] = 0; /*dummy crit values */
+            for (ipin = 1; ipin <= net[inet].num_sinks; ++ipin) {
+                timing_place_crit[inet][ipin] = 0;    /*dummy crit values */
             }
-        /*computes point_to_point_delay_cost */
-        comp_td_costs(&placer_costs_ptr->m_timing_cost,
-                      &placer_costs_ptr->m_delay_cost);
+
+        comp_td_costs(&timing_cost, &delay_cost);   /*computes point_to_point_delay_cost */
     }
 
     double place_est_crit_delay = 0.0;
     if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE ||
             placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE ||
             placer_opts.enable_timing_computations) {
-          /* this makes net_delay up to date with    *
-           * the same values that the placer is using*/
-        net_delay = point_to_point_delay_cost;
-
+        net_delay = point_to_point_delay_cost;  /*this makes net_delay up to date with    *
+                             *the same values that the placer is using*/
         load_timing_graph_net_delays(net_delay);
-
-        place_est_crit_delay = load_net_slack(net_slack,
-                                              0);
+        place_est_crit_delay = load_net_slack(net_slack, 0);
 #ifdef CREATE_ECHO_FILES
-        /* print_sink_delays("placement_sink_delays.echo"); */
-        print_net_slack("placement_net_slacks.echo",
-                        net_slack);
+        /*      print_sink_delays("placement_sink_delays.echo"); */
+        print_net_slack("placement_net_slacks.echo", net_slack);
         print_critical_path("placement_crit_path.echo",
                             *subblock_data_ptr);
 #endif /* CREATE_ECHO_FILES */
@@ -793,45 +798,126 @@ void try_place_by_multi_threads(const char*     netlist_file,
     printf("Placement. Cost: %g  bb_cost: %g  td_cost: %g  delay_cost: %g.\n",
            cost, bb_cost, timing_cost, delay_cost);
 
-    printf("inner loop wall: %f sec, cpu total: %f\n",
-            my_difftime2(&start, &finish),
-            (double)(finish_cpu - start_cpu) / CLOCKS_PER_SEC);
+    printf("inner loop wall: %f sec, cpu total: %f\n", my_difftime2(&start, &finish), (double) (finish_cpu - start_cpu) / CLOCKS_PER_SEC);
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
 #ifdef SPEC
     printf("Total moves attempted: %d.0\n", tot_iter);
 #endif
 
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-          || placer_opts.enable_timing_computations) {
+    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE ||
+            placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE ||
+            placer_opts.enable_timing_computations) {
+
         net_delay = remember_net_delay_original_ptr;
 
         free_placement_structs(placer_opts.place_cost_type,
-                               placer_opts.num_regions,
-                               old_region_occ_x,
-                               old_region_occ_y,
-                               placer_opts);
-
-        free_lookups_and_criticalities(&net_delay,
-                                       &net_slack);
+                               placer_opts.num_regions, old_region_occ_x,
+                               old_region_occ_y, placer_opts);
+        free_lookups_and_criticalities(&net_delay, &net_slack);
     }
 
-    /* After Placement, Don't free memory */
-    free_placer_costs(placer_costs_ptr);
-    free_placer_paras(placer_paras_ptr);
+    /* placement is done - find mst of all nets.
+     * creating mst for each net; this gives me an ordering of sinks
+     * by which I will direct search (A*) for. */
+
+    /* mst not needed for place_only circuits */
+    if (operation != PLACE_ONLY) {
+        if (*mst) {
+            for (inet = 0; inet < num_nets; ++inet) {
+                assert((*mst)[inet]);
+                free((*mst)[inet]);
+            }
+            free(*mst);
+        }
+
+        *mst = (t_mst_edge**) my_malloc(sizeof(t_mst_edge*) * num_nets);
+        for (inet = 0; inet < num_nets; ++inet) {
+            (*mst)[inet] = get_mst_of_net(inet);
+        }
+    }
 
     free(x_lookup);
-}
-static double get_std_dev(int n,
-                          double sum_x_squared,
-                          double av_x)
+}  /* end of try_place() */
+
+void print_grid(void)
 {
+    FILE* print_grid_ptr = fopen("print_grid.txt", "w");
+    int col = 0;
+    int row = 0;
+    for (col = 0; col <= num_of_columns + 1; ++col) {
+        for (row = 0; row <= num_of_rows + 1; ++row) {
+            grid_tile_t grid_tile = grid[col][row];
+            const char* grid_name = grid_tile.type->name;
+            const int  grid_capacity = grid_tile.type->capacity;
+            const int  grid_height = grid_tile.type->height;
+            const int  grid_max_sblks = grid_tile.type->max_subblocks;
+            fprintf(print_grid_ptr, "grid[%d][%d] is: %s, capacity: %d, height: %d, max_sblks: %d.\n",
+                    col, row, grid_name, grid_capacity, grid_height, grid_max_sblks);
+        }
+    }
+    fclose(print_grid_ptr);
+} /* end of print_grid() */
+
+static int count_connections()
+{
+    /*only count non-global connections */
+    int count = 0;
+    int inet = -1;
+    for (inet = 0; inet < num_nets; inet++) {
+        if (net[inet].is_global) {
+            continue;
+        }
+        count += net[inet].num_sinks;
+    }
+
+    return count;
+}
+
+static void compute_net_pin_index_values()
+{
+    /*computes net_pin_index array, this array allows us to quickly */
+    /*find what pin on the net a block pin corresponds to */
+
+    int inet, netpin, blk, iblk, ipin;
+    t_type_ptr type;
+
+    /*initialize values to OPEN */
+    for (iblk = 0; iblk < num_blocks; iblk++) {
+        type = block[iblk].type;
+
+        for (ipin = 0; ipin < type->num_pins; ipin++) {
+            net_pin_index[iblk][ipin] = OPEN;
+        }
+    }
+
+    for (inet = 0; inet < num_nets; inet++) {
+
+        if (net[inet].is_global) {
+            continue;
+        }
+
+        for (netpin = 0; netpin <= net[inet].num_sinks; netpin++) {
+            blk = net[inet].node_block[netpin];
+            net_pin_index[blk][net[inet].node_block_pin[netpin]] =
+                netpin;
+        }
+    }
+}
+
+static double
+get_std_dev(int n,
+            double sum_x_squared,
+            double av_x)
+{
+
     /* Returns the standard deviation of data set x.  There are n sample points, *
      * sum_x_squared is the summation over n of x^2 and av_x is the average x.   *
      * All operations are done in double precision, since round off error can be *
      * a problem in the initial temp. std_dev calculation for big circuits.      */
+
     double std_dev;
+
     if (n <= 1) {
         std_dev = 0.;
     } else {
@@ -848,28 +934,53 @@ static double get_std_dev(int n,
 }
 
 
-static void update_rlim(double* range_limit,
-                        double success_rat)
+static void
+update_rlim(double* range_limit,
+            double success_rat)
 {
+
     /* Update the range limited to keep acceptance prob. near 0.44.  Use *
      * a floating point range_limit to allow gradual transitions at low temps.  */
+
     double upper_lim;
 
     *range_limit = (*range_limit) * (1. - 0.60 + success_rat);
-    upper_lim = max(num_grid_columns, num_grid_rows);
+    upper_lim = max(num_of_columns, num_of_rows);
     *range_limit = min(*range_limit, upper_lim);
     *range_limit = max(*range_limit, 1.);
 }
 
 
-static void update_t(double* t,
-                     double range_limit,
-                     double success_rat,
-                     struct s_annealing_sched annealing_sched)
+static void
+update_t(double* t,
+         double std_dev,
+         double range_limit,
+         double success_rat,
+         struct s_annealing_sched annealing_sched)
 {
+
+    /*  double fac; */
+
     if (annealing_sched.type == USER_SCHED) {
         *t = annealing_sched.alpha_t * (*t);
+    }
+
+    /* Old standard deviation based stuff is below.  This bogs down horribly
+     * for big circuits (alu4 and especially bigkey_mod). */
+    /* #define LAMBDA .7  */
+    /* ------------------------------------ */
+#if 0
+    else if (std_dev == 0.) {
+        *t = 0.;
     } else {
+        fac = exp(-LAMBDA * (*t) / std_dev);
+        fac = max(0.5, fac);
+        *t = (*t) * fac;
+    }
+
+#endif
+    /* ------------------------------------- */
+    else {
         /* AUTO_SCHED */
         if (success_rat > 0.99) {
             *t = (*t) * 0.5;
@@ -880,14 +991,19 @@ static void update_t(double* t,
         } else {
             *t = (*t) * 0.8;
         }
+
     }
 }
 
-/* Return 1 when the exit criterion is met.                        */
-static int exit_crit(double t,
-                     double cost,
-                     struct s_annealing_sched annealing_sched)
+
+static int
+exit_crit(double t,
+          double cost,
+          struct s_annealing_sched annealing_sched)
 {
+
+    /* Return 1 when the exit criterion is met.                        */
+
     if (annealing_sched.type == USER_SCHED) {
         if (t < annealing_sched.exit_t) {
             return (1);
@@ -897,11 +1013,94 @@ static int exit_crit(double t,
     }
 
     /* Automatic annealing schedule */
+
     if (t < 0.005 * cost / num_nets) {
         return (1);
     } else {
         return (0);
     }
+}
+
+
+static double
+starting_t(double* cost_ptr,
+           double* bb_cost_ptr,
+           double* timing_cost_ptr,
+           int place_cost_type,
+           double** old_region_occ_x,
+           double** old_region_occ_y,
+           int num_regions,
+           boolean fixed_pins,
+           struct s_annealing_sched annealing_sched,
+           int max_moves,
+           double range_limit,
+           enum e_place_algorithm place_algorithm,
+           double timing_tradeoff,
+           double inverse_prev_bb_cost,
+           double inverse_prev_timing_cost,
+           double* delay_cost_ptr)
+{
+
+    /* Finds the starting temperature (hot condition).              */
+
+    int i, num_accepted, move_lim;
+    double std_dev, av, sum_of_squares; /* Double important to avoid round off */
+    int* x_lookup;
+
+    x_lookup = (int*)my_malloc(num_of_columns * sizeof(int));
+
+    if (annealing_sched.type == USER_SCHED) {
+        return (annealing_sched.init_t);
+    }
+
+    move_lim = min(max_moves, num_blocks);
+
+    num_accepted = 0;
+    av = 0.;
+    sum_of_squares = 0.;
+
+    /* Try one move per block.  Set t high so essentially all accepted. */
+    for (i = 0; i < move_lim; i++) {
+        if (try_swap(1.e30, cost_ptr, bb_cost_ptr, timing_cost_ptr, range_limit,
+                     place_cost_type,
+                     old_region_occ_x, old_region_occ_y, num_regions,
+                     fixed_pins, place_algorithm, timing_tradeoff,
+                     inverse_prev_bb_cost, inverse_prev_timing_cost,
+                     delay_cost_ptr, x_lookup) == 1) {
+            num_accepted++;
+            av += *cost_ptr;
+            sum_of_squares += *cost_ptr * (*cost_ptr);
+        }
+    }
+
+    if (num_accepted != 0) {
+        av /= num_accepted;
+    } else {
+        av = 0.;
+    }
+
+    std_dev = get_std_dev(num_accepted, sum_of_squares, av);
+
+#ifdef DEBUG
+
+    if (num_accepted != move_lim) {
+        printf
+        ("Warning:  Starting t: %d of %d configurations accepted.\n",
+         num_accepted, move_lim);
+    }
+
+#endif
+
+#ifdef VERBOSE
+    printf("std_dev: %g, average cost: %g, starting temp: %g\n",
+           std_dev, av, 20. * std_dev);
+#endif
+
+    free(x_lookup);
+
+    /* Set the initial temperature to 20 times the standard of deviation */
+    /* so that the initial temperature adjusts according to the circuit */
+    return (20. * std_dev);
 }
 
 /* Picks some block and moves it to another spot.  If this spot is   *
@@ -1279,7 +1478,7 @@ static int find_affected_nets(int* nets_to_update,
 static boolean
 find_to(int x_from,
         int y_from,
-        block_type_ptr type,
+        t_type_ptr type,
         double range_limit,
         int* x_lookup,
         int* x_to,
@@ -1287,20 +1486,20 @@ find_to(int x_from,
 {
 
     /* Returns the point to which I want to swap, properly range limited.
-     * range_limit must always be between 1 and num_grid_columns (inclusive) for this routine
+     * range_limit must always be between 1 and num_of_columns (inclusive) for this routine
      * to work.  Assumes that a column only contains blocks of the same type.
      */
 
     int x_rel, y_rel, iside, iplace, rlx, rly, min_x, max_x, min_y, max_y;
     int num_col_same_type, i, j;
 
-    rlx = min(num_grid_columns, range_limit);    /* Only needed when num_grid_columns < num_grid_rows. */
-    rly = min(num_grid_rows, range_limit);   /* Added rly for aspect_ratio != 1 case. */
+    rlx = min(num_of_columns, range_limit);    /* Only needed when num_of_columns < num_of_rows. */
+    rly = min(num_of_rows, range_limit);   /* Added rly for aspect_ratio != 1 case. */
 
     min_x = max(1, x_from - rlx);
-    max_x = min(num_grid_columns, x_from + rlx);
+    max_x = min(num_of_columns, x_from + rlx);
     min_y = max(1, y_from - rly);
-    max_y = min(num_grid_rows, y_from + rly);
+    max_y = min(num_of_rows, y_from + rly);
 
     num_col_same_type = 0;
     j = 0;
@@ -1318,14 +1517,14 @@ find_to(int x_from,
 
         if (num_col_same_type == 1 &&
                 ((((max_y - min_y) / type->height) - 1) <= 0
-                 || type->height > (num_grid_rows / 2))) {
+                 || type->height > (num_of_rows / 2))) {
             return FALSE;
         }
     }
 
 #ifdef DEBUG
 
-    if (rlx < 1 || rlx > num_grid_columns) {
+    if (rlx < 1 || rlx > num_of_columns) {
         printf("Error in find_to: rlx = %d\n", rlx);
         exit(1);
     }
@@ -1336,7 +1535,7 @@ find_to(int x_from,
         /* Until (x_to, y_to) different from (x_from, y_from) */
         if (type == IO_TYPE) {
             /* io_block to be moved. */
-            if (rlx >= num_grid_columns) {
+            if (rlx >= num_of_columns) {
                 iside = my_irand(3);
 
                 /*                              *
@@ -1350,25 +1549,25 @@ find_to(int x_from,
                  *                              */
                 switch (iside) {
                     case 0:
-                        iplace = my_irand(num_grid_rows - 1) + 1;
+                        iplace = my_irand(num_of_rows - 1) + 1;
                         *x_to = 0;
                         *y_to = iplace;
                         break;
 
                     case 1:
-                        iplace = my_irand(num_grid_columns - 1) + 1;
+                        iplace = my_irand(num_of_columns - 1) + 1;
                         *x_to = iplace;
-                        *y_to = num_grid_rows + 1;
+                        *y_to = num_of_rows + 1;
                         break;
 
                     case 2:
-                        iplace = my_irand(num_grid_rows - 1) + 1;
-                        *x_to = num_grid_columns + 1;
+                        iplace = my_irand(num_of_rows - 1) + 1;
+                        *x_to = num_of_columns + 1;
                         *y_to = iplace;
                         break;
 
                     case 3:
-                        iplace = my_irand(num_grid_columns - 1) + 1;
+                        iplace = my_irand(num_of_columns - 1) + 1;
                         *x_to = iplace;
                         *y_to = 0;
                         break;
@@ -1385,49 +1584,49 @@ find_to(int x_from,
                     *y_to = y_from - rly + iplace;
                     *x_to = x_from;
 
-                    if (*y_to > num_grid_rows) {
-                        *y_to = num_grid_rows + 1;
+                    if (*y_to > num_of_rows) {
+                        *y_to = num_of_rows + 1;
                         *x_to = my_irand(rlx - 1) + 1;
                     } else if (*y_to < 1) {
                         *y_to = 0;
                         *x_to = my_irand(rlx - 1) + 1;
                     }
-                } else if (x_from == num_grid_columns + 1) {
+                } else if (x_from == num_of_columns + 1) {
                     iplace = my_irand(2 * rly);
                     *y_to = y_from - rly + iplace;
                     *x_to = x_from;
 
-                    if (*y_to > num_grid_rows) {
-                        *y_to = num_grid_rows + 1;
-                        *x_to = num_grid_columns - my_irand(rlx - 1);
+                    if (*y_to > num_of_rows) {
+                        *y_to = num_of_rows + 1;
+                        *x_to = num_of_columns - my_irand(rlx - 1);
                     } else if (*y_to < 1) {
                         *y_to = 0;
-                        *x_to = num_grid_columns - my_irand(rlx - 1);
+                        *x_to = num_of_columns - my_irand(rlx - 1);
                     }
                 } else if (y_from == 0) {
                     iplace = my_irand(2 * rlx);
                     *x_to = x_from - rlx + iplace;
                     *y_to = y_from;
 
-                    if (*x_to > num_grid_columns) {
-                        *x_to = num_grid_columns + 1;
+                    if (*x_to > num_of_columns) {
+                        *x_to = num_of_columns + 1;
                         *y_to = my_irand(rly - 1) + 1;
                     } else if (*x_to < 1) {
                         *x_to = 0;
                         *y_to = my_irand(rly - 1) + 1;
                     }
                 } else {
-                    /* *y_from == num_grid_rows + 1 */
+                    /* *y_from == num_of_rows + 1 */
                     iplace = my_irand(2 * rlx);
                     *x_to = x_from - rlx + iplace;
                     *y_to = y_from;
 
-                    if (*x_to > num_grid_columns) {
-                        *x_to = num_grid_columns + 1;
-                        *y_to = num_grid_rows - my_irand(rly - 1);
+                    if (*x_to > num_of_columns) {
+                        *x_to = num_of_columns + 1;
+                        *y_to = num_of_rows - my_irand(rly - 1);
                     } else if (*x_to < 1) {
                         *x_to = 0;
-                        *y_to = num_grid_rows - my_irand(rly - 1);
+                        *y_to = num_of_rows - my_irand(rly - 1);
                     }
                 }
             }   /* End rlx if */
@@ -1440,14 +1639,14 @@ find_to(int x_from,
             *x_to = x_lookup[x_rel];
             *y_to = min_y + y_rel * type->height;
             *y_to = (*y_to) - grid[*x_to][*y_to].offset;    /* align it */
-            assert(*x_to >= 1 && *x_to <= num_grid_columns);
-            assert(*y_to >= 1 && *y_to <= num_grid_rows);
+            assert(*x_to >= 1 && *x_to <= num_of_columns);
+            assert(*y_to >= 1 && *y_to <= num_of_rows);
         }
     } while ((x_from == *x_to) && (y_from == *y_to));
 
 #ifdef DEBUG
 
-    if (*x_to < 0 || *x_to > num_grid_columns + 1 || *y_to < 0 || *y_to > num_grid_rows + 1) {
+    if (*x_to < 0 || *x_to > num_of_columns + 1 || *y_to < 0 || *y_to > num_of_rows + 1) {
         printf("Error in routine find_to:  (x_to,y_to) = (%d,%d)\n",
                *x_to, *y_to);
         exit(1);
@@ -1556,8 +1755,8 @@ static double comp_td_point_to_point_delay(int inet,
 
     const int source_block = net[inet].node_block[0];
     const int sink_block = net[inet].node_block[ipin];
-    const block_type_ptr sink_type = block[sink_block].type;
-    const block_type_ptr source_type = block[source_block].type;
+    const t_type_ptr sink_type = block[sink_block].type;
+    const t_type_ptr source_type = block[source_block].type;
     assert(source_type != NULL && sink_type != NULL);
 
     const int delta_x = abs(block[sink_block].x - block[source_block].x);
@@ -2022,13 +2221,13 @@ update_region_occ(int inet,
 
     /* I could precompute the two values below.  Should consider this. */
 
-    inv_region_len = (double)num_regions / (double)num_grid_columns;
-    inv_region_height = (double)num_regions / (double)num_grid_rows;
+    inv_region_len = (double)num_regions / (double)num_of_columns;
+    inv_region_height = (double)num_regions / (double)num_of_rows;
 
     /* Get integer coordinates defining the rectangular area in which the *
      * subregions have to be updated.  Formula is as follows:  subtract   *
-     * 0.5 from net_xmin, etc. to get numbers from 0 to num_grid_columns or num_grid_rows;         *
-     * divide by num_grid_columns or num_grid_rows to scale between 0 and 1; multiply by           *
+     * 0.5 from net_xmin, etc. to get numbers from 0 to num_of_columns or num_of_rows;         *
+     * divide by num_of_columns or num_of_rows to scale between 0 and 1; multiply by           *
      * num_regions to scale between 0 and num_regions; and truncate to    *
      * get the final answer.                                              */
 
@@ -2213,7 +2412,7 @@ static void alloc_and_load_placement_structs(int place_cost_type,
         for (inet = 0; inet < num_nets; ++inet) {
             /* in the following, subract one so index starts at *
              * 1 instead of 0 */
-            point_to_point_delay_cost[inet] =
+            point_to_point_delay_cost[inet] = 
                     (double*)my_malloc(net[inet].num_sinks * sizeof(double));
             --(point_to_point_delay_cost[inet]);
 
@@ -2315,13 +2514,13 @@ load_place_regions(int num_regions)
 
     for (j = 0; j < num_regions; j++) {
         capacity = 0.;
-        low_lim = (double)j / (double)num_regions * num_grid_rows + 1.;
-        high_lim = (double)(j + 1) / (double)num_regions * num_grid_rows;
+        low_lim = (double)j / (double)num_regions * num_of_rows + 1.;
+        high_lim = (double)(j + 1) / (double)num_regions * num_of_rows;
 
         low_block = floor(low_lim);
         low_block = max(1, low_block);  /* Watch for weird roundoff effects. */
         high_block = ceil(high_lim);
-        high_block = min(high_block, num_grid_rows);
+        high_block = min(high_block, num_of_rows);
 
         block_capacity = (chan_width_x[low_block - 1] +
                           chan_width_x[low_block]) / 2.;
@@ -2342,8 +2541,8 @@ load_place_regions(int num_regions)
         block_capacity = (chan_width_x[high_block - 1] +
                           chan_width_x[high_block]) / 2.;
 
-        if (high_block == num_grid_rows) {
-            block_capacity += chan_width_x[num_grid_rows] / 2.;
+        if (high_block == num_of_rows) {
+            block_capacity += chan_width_x[num_of_rows] / 2.;
         }
 
         fac = 1. - (high_block - high_lim);
@@ -2361,13 +2560,13 @@ load_place_regions(int num_regions)
 
     for (i = 0; i < num_regions; i++) {
         capacity = 0.;
-        low_lim = (double)i / (double)num_regions * num_grid_columns + 1.;
-        high_lim = (double)(i + 1) / (double)num_regions * num_grid_columns;
+        low_lim = (double)i / (double)num_regions * num_of_columns + 1.;
+        high_lim = (double)(i + 1) / (double)num_regions * num_of_columns;
 
         low_block = floor(low_lim);
         low_block = max(1, low_block);  /* Watch for weird roundoff effects. */
         high_block = ceil(high_lim);
-        high_block = min(high_block, num_grid_columns);
+        high_block = min(high_block, num_of_columns);
 
         block_capacity = (chan_width_y[low_block - 1] +
                           chan_width_y[low_block]) / 2.;
@@ -2388,8 +2587,8 @@ load_place_regions(int num_regions)
         block_capacity = (chan_width_y[high_block - 1] +
                           chan_width_y[high_block]) / 2.;
 
-        if (high_block == num_grid_columns) {
-            block_capacity += chan_width_y[num_grid_columns] / 2.;
+        if (high_block == num_of_columns) {
+            block_capacity += chan_width_y[num_of_columns] / 2.;
         }
 
         fac = 1. - (high_block - high_lim);
@@ -2406,8 +2605,8 @@ load_place_regions(int num_regions)
     /* Finally set up the arrays indicating the limits of each of the *
      * placement subregions.                                          */
 
-    len_fac = (double)num_grid_columns / (double)num_regions;
-    height_fac = (double)num_grid_rows / (double)num_regions;
+    len_fac = (double)num_of_columns / (double)num_regions;
+    height_fac = (double)num_of_rows / (double)num_regions;
 
     place_region_bounds_x[0] = 0.5;
     place_region_bounds_y[0] = 0.5;
@@ -2540,8 +2739,8 @@ get_bb_from_scratch(int inet,
     x = block[plist[0]].x;
     y = block[plist[0]].y;
 
-    x = max(min(x, num_grid_columns), 1);
-    y = max(min(y, num_grid_rows), 1);
+    x = max(min(x, num_of_columns), 1);
+    y = max(min(y, num_of_rows), 1);
 
     xmin = x;
     ymin = y;
@@ -2558,15 +2757,15 @@ get_bb_from_scratch(int inet,
         x = block[block_num].x;
         y = block[block_num].y;
 
-        /* Code below counts IO blocks as being within the 1..num_grid_columns, 1..num_grid_rows clb array. *
-         * This is because channels do not go out of the 0..num_grid_columns, 0..num_grid_rows range, and   *
+        /* Code below counts IO blocks as being within the 1..num_of_columns, 1..num_of_rows clb array. *
+         * This is because channels do not go out of the 0..num_of_columns, 0..num_of_rows range, and   *
          * I always take all channels impinging on the bounding box to be within   *
          * that bounding box.  Hence, this "movement" of IO blocks does not affect *
          * the which channels are included within the bounding box, and it         *
          * simplifies the code a lot.                                              */
 
-        x = max(min(x, num_grid_columns), 1);
-        y = max(min(y, num_grid_rows), 1);
+        x = max(min(x, num_of_columns), 1);
+        y = max(min(y, num_of_rows), 1);
 
         if (x == xmin) {
             xmin_edge++;
@@ -2722,15 +2921,15 @@ static void get_non_updateable_bb(int inet,
     }  /* end of for(k = 1;... ) */
 
     /* Now I've found the coordinates of the bounding-box. There are no channels *
-     * beyond num_grid_columns and num_grid_rows, so I want to clip to that. As well,*
+     * beyond num_of_columns and num_of_rows, so I want to clip to that. As well,*
      * since I'll always include the channel immediately below and the channel   *
      * immediately to the left of the bounding-box, I want to clip to 1 in both *
      * directions as well(since minimum channel index is 0). See route.c for a  *
      * channel diagram.                        */
-    bb_coord_new->xmin = max(min(xmin, num_grid_columns), 1);
-    bb_coord_new->ymin = max(min(ymin, num_grid_rows), 1);
-    bb_coord_new->xmax = max(min(xmax, num_grid_columns), 1);
-    bb_coord_new->ymax = max(min(ymax, num_grid_rows), 1);
+    bb_coord_new->xmin = max(min(xmin, num_of_columns), 1);
+    bb_coord_new->ymin = max(min(ymin, num_of_rows), 1);
+    bb_coord_new->xmax = max(min(xmax, num_of_columns), 1);
+    bb_coord_new->ymax = max(min(ymax, num_of_rows), 1);
 }  /* end of static void get_non_updateable_bb(int inet,) */
 
 /* Updates the bounding box of a net by storing its coordinates in    *
@@ -2750,10 +2949,10 @@ static void update_bb(int inet,
                       int xnew, int ynew)
 {
     /* IO blocks are considered to be one cell in for simplicity.*/
-    xnew = max(min(xnew, num_grid_columns), 1);
-    ynew = max(min(ynew, num_grid_rows), 1);
-    xold = max(min(xold, num_grid_columns), 1);
-    yold = max(min(yold, num_grid_rows), 1);
+    xnew = max(min(xnew, num_of_columns), 1);
+    ynew = max(min(ynew, num_of_rows), 1);
+    xold = max(min(xold, num_of_columns), 1);
+    yold = max(min(yold, num_of_rows), 1);
 
     /* Check if I can update the bounding box incrementally. */
     if (xnew < xold) {
@@ -2934,8 +3133,8 @@ initial_placement(enum e_pad_loc_type pad_loc_type,
 
     /* Initialize all occupancy to zero. */
 
-    for (i = 0; i <= num_grid_columns + 1; i++) {
-        for (j = 0; j <= num_grid_rows + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             grid[i][j].usage = 0;
 
             for (k = 0; k < grid[i][j].type->capacity; k++) {
@@ -2953,8 +3152,8 @@ initial_placement(enum e_pad_loc_type pad_loc_type,
             (struct s_pos*)my_malloc(count[i] * sizeof(struct s_pos));
     }
 
-    for (i = 0; i <= num_grid_columns + 1; i++) {
-        for (j = 0; j <= num_grid_rows + 1; j++) {
+    for (i = 0; i <= num_of_columns + 1; i++) {
+        for (j = 0; j <= num_of_rows + 1; j++) {
             for (k = 0; k < grid[i][j].type->capacity; k++) {
                 if (grid[i][j].offset == 0) {
                     type_index = grid[i][j].type->index;
@@ -2992,8 +3191,8 @@ initial_placement(enum e_pad_loc_type pad_loc_type,
     /* All the blocks are placed now.  Make the block array agree with the    *
      * clb array.                                                             */
 
-    for (i = 0; i <= (num_grid_columns + 1); i++) {
-        for (j = 0; j <= (num_grid_rows + 1); j++) {
+    for (i = 0; i <= (num_of_columns + 1); i++) {
+        for (j = 0; j <= (num_of_rows + 1); j++) {
             for (k = 0; k < grid[i][j].type->capacity; k++) {
                 assert(grid[i][j].blocks != NULL);
                 iblk = grid[i][j].blocks[k];
@@ -3031,18 +3230,18 @@ free_fast_cost_update_structs(void)
 
     int i;
 
-    for (i = 0; i <= num_grid_rows; i++) {
+    for (i = 0; i <= num_of_rows; i++) {
         free(chanx_place_cost_fac[i]);
     }
 
     free(chanx_place_cost_fac);
 
-    for (i = 0; i <= num_grid_columns; i++) {
+    for (i = 0; i <= num_of_columns; i++) {
         free(chany_place_cost_fac[i]);
     }
 
     free(chany_place_cost_fac);
-}
+} 
 
 /* Allocates and loads the chanx_place_cost_fac and chany_place_cost_fac *
  * arrays with the inverse of the average number of tracks per channel   *
@@ -3055,19 +3254,20 @@ free_fast_cost_update_structs(void)
  * you do any placement cost determination.  The place_cost_exp factor   *
  * specifies to what power the width of the channel should be taken --   *
  * larger numbers make narrower channels more expensive.                 */
-static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
-{
+static void
+alloc_and_load_for_fast_cost_update(double place_cost_exp)
+{    
     /* Access arrays below as chan?_place_cost_fac[subhigh][sublow].  Since   *
      * subhigh must be greater than or equal to sublow, we only need to       *
      * allocate storage for the lower half of a matrix.                       */
     int low, high, i;
-    chanx_place_cost_fac = (double**)my_malloc((num_grid_rows + 1) * sizeof(double*));
-    for (i = 0; i <= num_grid_rows; i++) {
+    chanx_place_cost_fac = (double**)my_malloc((num_of_rows + 1) * sizeof(double*));
+    for (i = 0; i <= num_of_rows; i++) {
         chanx_place_cost_fac[i] = (double*)my_malloc((i + 1) * sizeof(double));
     }
 
-    chany_place_cost_fac = (double**)my_malloc((num_grid_columns + 1) * sizeof(double*));
-    for (i = 0; i <= num_grid_columns; i++) {
+    chany_place_cost_fac = (double**)my_malloc((num_of_columns + 1) * sizeof(double*));
+    for (i = 0; i <= num_of_columns; i++) {
         chany_place_cost_fac[i] = (double*)my_malloc((i + 1) * sizeof(double));
     }
 
@@ -3075,7 +3275,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
     /* First compute the number of tracks between channel high and channel *
      * low, inclusive, in an efficient manner.                             */
     chanx_place_cost_fac[0][0] = chan_width_x[0];
-    for (high = 1; high <= num_grid_rows; high++) {
+    for (high = 1; high <= num_of_rows; high++) {
         chanx_place_cost_fac[high][high] = chan_width_x[high];
 
         for (low = 0; low < high; low++) {
@@ -3092,7 +3292,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
      * place_cost_exp power -- numbers other than one mean this is no      *
      * longer a simple "average number of tracks"; it is some power of     *
      * that, allowing greater penalization of narrow channels.             */
-    for (high = 0; high <= num_grid_rows; high++)
+    for (high = 0; high <= num_of_rows; high++)
         for (low = 0; low <= high; low++) {
             chanx_place_cost_fac[high][low] = (high - low + 1.) /
                                               chanx_place_cost_fac[high][low];
@@ -3104,7 +3304,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
     /* Now do the same thing for the y-directed channels.  First get the  *
      * number of tracks between channel high and channel low, inclusive.  */
     chany_place_cost_fac[0][0] = chan_width_y[0];
-    for (high = 1; high <= num_grid_columns; high++) {
+    for (high = 1; high <= num_of_columns; high++) {
         chany_place_cost_fac[high][high] = chan_width_y[high];
 
         for (low = 0; low < high; low++) {
@@ -3117,7 +3317,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
     /* Now compute the inverse of the average number of tracks per channel *
      * between high and low.  Take to specified power.                     */
 
-    for (high = 0; high <= num_grid_columns; high++)
+    for (high = 0; high <= num_of_columns; high++)
         for (low = 0; low <= high; low++) {
             chany_place_cost_fac[high][low] = (high - low + 1.) /
                                               chany_place_cost_fac[high][low];
@@ -3139,6 +3339,7 @@ static double check_place(double bb_cost,
                          enum e_place_algorithm place_algorithm,
                          double delay_cost)
 {
+    static int* bdone;
     int i, j, k, error = 0, block_num;
     int usage_check;
     double timing_cost_check, delay_cost_check;
@@ -3150,8 +3351,34 @@ static double check_place(double bb_cost,
                bb_cost_check, bb_cost);
         //error++;
     }
- 
-    static int* bdone;
+
+    /*
+    //timing checking is not done here, since it will be recomputed - ie, it will be wrong for sure
+    if(place_algorithm == NET_TIMING_DRIVEN_PLACE ||
+    place_algorithm == PATH_TIMING_DRIVEN_PLACE)
+    {
+    comp_td_costs(&timing_cost_check, &delay_cost_check);
+    printf("timing_cost recomputed from scratch is %g. \n",
+    timing_cost_check);
+    if(fabs(timing_cost_check - timing_cost) >
+    timing_cost * ERROR_TOL)
+    {
+    printf("Error:  timing_cost_check: %g and timing_cost: "
+    "%g differ in check_place.\n",
+    timing_cost_check, timing_cost);
+    //error++;
+    }
+    printf("delay_cost recomputed from scratch is %g. \n",
+    delay_cost_check);
+    if(fabs(delay_cost_check - delay_cost) > delay_cost * ERROR_TOL)
+    {
+    printf("Error:  delay_cost_check: %g and delay_cost: "
+    "%g differ in check_place.\n",
+    delay_cost_check, delay_cost);
+    //error++;
+    }
+    }
+     */
     bdone = (int*)my_malloc(num_blocks * sizeof(int));
 
     for (i = 0; i < num_blocks; i++) {
@@ -3159,8 +3386,8 @@ static double check_place(double bb_cost,
     }
 
     /* Step through grid array. Check it against block array. */
-    for (i = 0; i <= (num_grid_columns + 1); i++)
-        for (j = 0; j <= (num_grid_rows + 1); j++) {
+    for (i = 0; i <= (num_of_columns + 1); i++)
+        for (j = 0; j <= (num_of_rows + 1); j++) {
             if (grid[i][j].usage > grid[i][j].type->capacity) {
                 printf
                 ("Error:  block at grid location (%d,%d) overused. "
@@ -3246,55 +3473,55 @@ static double check_place(double bb_cost,
  */
 void barrier_polling(int thread_id)
 {
-    ++(g_barrier[thread_id].m_entry);
+    ++(barrier1[thread_id].entry);
 
-    const int local_entry = (g_barrier[thread_id].m_entry ) % 2;
+    const int local_entry = (barrier1[thread_id].entry ) % 2;
     if (NUM_OF_THREADS == 1) {
         return;
     } else if (thread_id == 0) {
         /* wait for thread_id 1 finished */
-        while (g_barrier[1].m_arrived != local_entry) {};
+        while (barrier1[1].arrived != local_entry) {};
 
-        g_barrier[1].m_proceed = local_entry;
+        barrier1[1].proceed = local_entry;
     } else if (thread_id == 1) {
         /* wait for children finished */
         if (NUM_OF_THREADS > 3) {
-            while (g_barrier[2].m_arrived != local_entry || g_barrier[3].m_arrived != local_entry) {};
+            while (barrier1[2].arrived != local_entry || barrier1[3].arrived != local_entry) {};
         } else if (NUM_OF_THREADS > 2) {
-            while (g_barrier[2].m_arrived != local_entry) {};
+            while (barrier1[2].arrived != local_entry) {};
         }
 
         /* signal my arrival */
-        g_barrier[thread_id].m_arrived = local_entry;
+        barrier1[thread_id].arrived = local_entry;
 
-        while (g_barrier[thread_id].m_proceed != local_entry) {};
+        while (barrier1[thread_id].proceed != local_entry) {};
 
         //release children
         if (NUM_OF_THREADS > 3) {
-            g_barrier[2].m_proceed = g_barrier[3].m_proceed = local_entry;
+            barrier1[2].proceed = barrier1[3].proceed = local_entry;
         } else if (NUM_OF_THREADS > 2) {
-            g_barrier[2].m_proceed = local_entry;
+            barrier1[2].proceed = local_entry;
         }
     } else { /* thread_id > 1 */
         /* wait for children finished! */
         if (NUM_OF_THREADS > thread_id * 2 + 1) {
-            while (g_barrier[thread_id * 2].m_arrived != local_entry
-                    || g_barrier[thread_id * 2 + 1].m_arrived != local_entry) {};
+            while (barrier1[thread_id * 2].arrived != local_entry
+                    || barrier1[thread_id * 2 + 1].arrived != local_entry) {};
         } else if (NUM_OF_THREADS > thread_id * 2) {
-            while (g_barrier[thread_id * 2].m_arrived != local_entry) {};
+            while (barrier1[thread_id * 2].arrived != local_entry) {};
         }
 
         //signal my arrival
-        g_barrier[thread_id].m_arrived = local_entry;
+        barrier1[thread_id].arrived = local_entry;
 
-        while (g_barrier[thread_id].m_proceed != local_entry) {};
+        while (barrier1[thread_id].proceed != local_entry) {};
 
         //release children
         if (NUM_OF_THREADS > thread_id * 2 + 1) {
-            g_barrier[thread_id * 2].m_proceed =
-                g_barrier[thread_id * 2 + 1].m_proceed = local_entry;
+            barrier1[thread_id * 2].proceed =
+                barrier1[thread_id * 2 + 1].proceed = local_entry;
         } else if (NUM_OF_THREADS > thread_id * 2) {
-            g_barrier[thread_id * 2].m_proceed = local_entry;
+            barrier1[thread_id * 2].proceed = local_entry;
         }
     } /* end of else */
 }  /* end of void barrier_polling(int thread_id) */
@@ -3303,20 +3530,18 @@ void barrier_polling_reset()
 {
     int x = -1;
     for (x = 0; x < NUM_OF_THREADS; ++x) {
-        g_barrier[x].m_arrived = 0;
-        g_barrier[x].m_proceed = 0;
-        g_barrier[x].m_entry = 0;
+        barrier1[x].arrived = 0;
+        barrier1[x].proceed = 0;
+        barrier1[x].entry = 0;
     }
 }
 
 /*partition nets evenly based on number of edges each net is connected to(that is sub-connections). */
 void balance_two_consecutive_threads_edge(int thread_id)
 {
-    ++(start_finish_nets[thread_id].m_counter_edge);
-    unsigned long work_in_this_region =
-            start_finish_nets[thread_id].m_edges_in_this_partition;
-    unsigned long work_in_next_region =
-            start_finish_nets[thread_id + 1].m_edges_in_this_partition;
+    ++(start_finish_nets[thread_id].counter_edge);
+    unsigned long work_in_this_region = start_finish_nets[thread_id].edges_in_this_partition;
+    unsigned long work_in_next_region = start_finish_nets[thread_id + 1].edges_in_this_partition;
 
     /*if next partition has more work (edges)
      *adjust the boundary according to % of difference */
@@ -3324,48 +3549,43 @@ void balance_two_consecutive_threads_edge(int thread_id)
     double exceed_ratio = 0.0;
     int edge_partition_size = 0;
     if (work_in_this_region < work_in_next_region) {
-        exceed_ratio =
-            (work_in_next_region - work_in_this_region) / work_in_this_region;
-        edge_partition_size =
-            start_finish_nets[thread_id + 1].m_edge_partition_size;
+        exceed_ratio = (work_in_next_region - work_in_this_region) / work_in_this_region;
+        edge_partition_size = start_finish_nets[thread_id + 1].edge_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * edge_partition_size * 0.25);
 
-        if (net_shift == 0
-              && (start_finish_nets[thread_id + 1].m_edge_partition_size >= 2)) {
+        if (net_shift == 0 && (start_finish_nets[thread_id + 1].edge_partition_size >= 2)) {
             net_shift = 1;
         }
 
-        start_finish_nets[thread_id].m_finish_edge += net_shift;
-        start_finish_nets[thread_id + 1].m_start_edge += net_shift;
+        start_finish_nets[thread_id].finish_edge += net_shift;
+        start_finish_nets[thread_id + 1].start_edge += net_shift;
     } else if (work_in_this_region > work_in_next_region) {
         /* if this partition has more edges
          * adjust the boundary according to % of difference */
         exceed_ratio = (work_in_this_region - work_in_next_region) / work_in_next_region;
-        edge_partition_size = start_finish_nets[thread_id].m_edge_partition_size;
+        edge_partition_size = start_finish_nets[thread_id].edge_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * edge_partition_size * 0.25);
 
-        if (net_shift == 0 && start_finish_nets[thread_id].m_edge_partition_size >= 2) {
+        if (net_shift == 0 && start_finish_nets[thread_id].edge_partition_size >= 2) {
             net_shift = 1;
         }
 
-        start_finish_nets[thread_id].m_finish_edge -= net_shift;
-        start_finish_nets[thread_id + 1].m_start_edge -= net_shift;
+        start_finish_nets[thread_id].finish_edge -= net_shift;
+        start_finish_nets[thread_id + 1].start_edge -= net_shift;
     } else {
         /* No operations */
     }
 
-    assert(start_finish_nets[thread_id].m_finish_edge
-             > start_finish_nets[thread_id].m_start_edge);
+    assert(start_finish_nets[thread_id].finish_edge
+             > start_finish_nets[thread_id].start_edge);
 } /* end of void balance_two_consecutive_threads_edge(int thread_id)  */
 
 /*partition nets evenly based on number of sinks each net is connected to*/
 void balance_two_consecutive_threads_sinks(int thread_id)
 {
-    ++(start_finish_nets[thread_id].m_counter_sink);
-    unsigned long work_in_this_region = 
-                    start_finish_nets[thread_id].m_sinks_in_this_partition;
-    unsigned long work_in_next_region =
-                    start_finish_nets[thread_id + 1].m_sinks_in_this_partition;
+    ++(start_finish_nets[thread_id].counter_sink);
+    unsigned long work_in_this_region = start_finish_nets[thread_id].sinks_in_this_partition;
+    unsigned long work_in_next_region = start_finish_nets[thread_id + 1].sinks_in_this_partition;
 
     /*if next partition has more edges
      *adjust the boundary according to % of difference */
@@ -3373,45 +3593,41 @@ void balance_two_consecutive_threads_sinks(int thread_id)
     double exceed_ratio = 0.0;
     int sink_partition_size = 0;
     if (work_in_this_region < work_in_next_region) {
-        exceed_ratio =
-            (work_in_next_region - work_in_this_region) / work_in_this_region;
-        sink_partition_size =
-            start_finish_nets[thread_id + 1].m_sink_partition_size;
+        exceed_ratio = (work_in_next_region - work_in_this_region) / work_in_this_region;
+        sink_partition_size = start_finish_nets[thread_id + 1].sink_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * sink_partition_size * 0.25);
 
-        start_finish_nets[thread_id].m_finish_sinks += net_shift;
-        start_finish_nets[thread_id + 1].m_start_sinks += net_shift;
+        start_finish_nets[thread_id].finish_sinks += net_shift;
+        start_finish_nets[thread_id + 1].start_sinks += net_shift;
     } else if (work_in_this_region > work_in_next_region) {
         /*if this partition has more edges
          *adjust the boundary according to % of difference */
-        exceed_ratio =
-            (work_in_this_region - work_in_next_region) / work_in_next_region;
-        sink_partition_size =
-            start_finish_nets[thread_id].m_sink_partition_size;
+        exceed_ratio = (work_in_this_region - work_in_next_region) / work_in_next_region;
+        sink_partition_size = start_finish_nets[thread_id].sink_partition_size;
         net_shift = (int)(min(1, exceed_ratio) * sink_partition_size * 0.25);
 
-        start_finish_nets[thread_id].m_finish_sinks -= net_shift;
-        start_finish_nets[thread_id + 1].m_start_sinks -= net_shift;
+        start_finish_nets[thread_id].finish_sinks -= net_shift;
+        start_finish_nets[thread_id + 1].start_sinks -= net_shift;
     } else {
         /* No operations */
     }
 
-    assert (start_finish_nets[thread_id].m_finish_sinks
-              > start_finish_nets[thread_id].m_start_sinks);
+    assert (start_finish_nets[thread_id].finish_sinks
+              > start_finish_nets[thread_id].start_sinks);
 }  /* end of void balance_two_consecutive_threads_sinks(int thread_id) */
 
 /* Placement using multi-threads parallely */
-void* try_place_parallel(pthread_data_t* input_args)
+void* try_place_parallel(void* args)
 {
-    /* pthread_data_t* input_args = (pthread_data_t*)args; */
-    int core_affinity = pow(2,
-                            input_args->m_thread_id);
+    pthread_data_t* input_args = (pthread_data_t*)args;
+
+    int core_affinity = pow(2, input_args->thread_id);
     /*core affinity - locking threads to a particular core*/
     if (pthread_setaffinity_np(pthread_self(),
                                sizeof(core_affinity),
                                &core_affinity) < 0) {
         printf("core affinity error: thread-%d couldn't get Core-%d\n",
-               input_args->m_thread_id, core_affinity);
+               input_args->thread_id, core_affinity);
         exit(-1);
     }
 
@@ -3428,8 +3644,7 @@ void* try_place_parallel(pthread_data_t* input_args)
     double first_rlim, final_rlim, inverse_delta_rlim;
     double place_delay_value, max_delay;
     int num_connections;
-    double**  net_slack = NULL;
-    double**  net_delay = NULL;
+    double** net_slack, **net_delay;
     /* tp_initialize() initial all thread_data variables */
     tp_initialize(input_args, &thread_id,
                   &y_start, &y_end, &x_start, &x_end,
@@ -3497,13 +3712,13 @@ void* try_place_parallel(pthread_data_t* input_args)
     int prob = PROB; /* 10 */
     int timing_update_threshold = TIMING_UPDATE; /* 5 */
     /* ensures timing update will occurduring first iteration */
-    int freq = timing_update_threshold;
+    int freq = timing_update_threshold; 
 
     /*=========    NOW STARTING MAIN PLACEMENT  =======*/
     while (t != 0.0) {
         /*  First update parameters that used for controlloing placement! */
-        t = input_args->m_local_place_paras_ptr->m_temper;
-        inner_iter_num = input_args->m_local_place_paras_ptr->m_inner_iter_num;
+        t = *(input_args->t);
+        inner_iter_num = *(input_args->inner_iter_num);
         crit_exponent = *(input_args->crit_exponent);
         success_rat = *(input_args->success_rat);
         range_limit = *(input_args->range_limit);
@@ -3630,9 +3845,9 @@ void* try_place_parallel(pthread_data_t* input_args)
                                                       bb_coord_new, bb_edge_new,
                                                       thread_id,
                                                       max(region_x_boundary[row] - 2, 0),
-                                                      min(region_x_boundary[row + 1] + 1, num_grid_columns + 1), /* x direction range */
+                                                      min(region_x_boundary[row + 1] + 1, num_of_columns + 1), /* x direction range */
                                                       max(region_y_boundary[col] - 2, 0),
-                                                      min(region_y_boundary[col + 1] + 1, num_grid_rows + 1), /* y direction range */
+                                                      min(region_y_boundary[col + 1] + 1, num_of_rows + 1), /* y direction range */
                                                       range_limit);
                                     if (retval == 1) {
                                         success_sum++;
@@ -3651,10 +3866,10 @@ void* try_place_parallel(pthread_data_t* input_args)
                     update_from_local_to_global(local_block,
                                                 local_grid,
                                                 max(0, region_x_boundary[row] - 2),
-                                                min(num_grid_columns + 2,
+                                                min(num_of_columns + 2,
                                                     region_x_boundary[row + 1] + 2),
                                                 max(0, region_y_boundary[col] - 2),
-                                                min(num_grid_rows + 2,
+                                                min(num_of_rows + 2,
                                                     region_y_boundary[col + 1] + 2));
                 }
             }
@@ -3770,7 +3985,7 @@ static void update_from_local_to_global(local_block_t* local_block,
                         /*block has been moved*/
                         block_moved = local_grid[x][y].blocks[z];
 
-                        //if (y_end - y < 5 && y_end != num_grid_rows + 1 || y - y_start < 5 && y_start != 0)
+                        //if (y_end - y < 5 && y_end != num_of_rows + 1 || y - y_start < 5 && y_start != 0)
                         if (y_end - y < 5 || y - y_start < 5) {
                             localvert_grid[y][x].blocks[z] = block_moved;
                         }
@@ -3931,7 +4146,7 @@ void tp_initialize(pthread_data_t* input, int* thread_id,
     start_finish_nets[*thread_id].counter_edge = 0;
 
     /* other initializations */
-    *first_rlim = (double)max(num_grid_columns, num_grid_rows);
+    *first_rlim = (double)max(num_of_columns, num_of_rows);
     *range_limit = *first_rlim;
     *final_rlim = 1;
     *inverse_delta_rlim = 1 / (*first_rlim - *final_rlim);
@@ -3971,8 +4186,8 @@ void tp_alloc_mem(int max_pins_per_fb, placer_opts_t placer_opts,
     *net_block_moved = (int*)my_malloc(2 * max_pins_per_fb * sizeof(int));
 
     /* local_grid[col][row] */
-    *local_grid = (grid_tile_t**)alloc_matrix(0, (num_grid_columns + 1),
-                                              0, (num_grid_rows + 1),
+    *local_grid = (grid_tile_t**)alloc_matrix(0, (num_of_columns + 1),
+                                              0, (num_of_rows + 1),
                                               sizeof(grid_tile_t));
 
     *local_block = (local_block_t*)malloc(num_blocks * sizeof(local_block_t)) ;
@@ -4006,12 +4221,12 @@ void tp_init_localvert_grid()
 {
     /* grid[col][row] was column-based, but localvert_grid[col][row] was
      * row-based, it vertical to grid. */
-    localvert_grid = (grid_tile_t**)alloc_matrix(0, (num_grid_columns + 1),
-                                                 0, (num_grid_rows + 1),
+    localvert_grid = (grid_tile_t**)alloc_matrix(0, (num_of_columns + 1),
+                                                 0, (num_of_rows + 1),
                                                  sizeof(grid_tile_t));
     int col, row, cap;
-    for (col = 0; col < (num_grid_columns + 2); ++col) {
-        for (row = 0; row < (num_grid_rows + 2); ++row) {
+    for (col = 0; col < (num_of_columns + 2); ++col) {
+        for (row = 0; row < (num_of_rows + 2); ++row) {
             localvert_grid[row][col].type = grid[col][row].type;
             localvert_grid[row][col].usage = grid[col][row].usage;
             localvert_grid[row][col].offset = grid[col][row].offset;
@@ -4044,13 +4259,13 @@ void tp_init_local(bbox_t* local_bb_edge, bbox_t* local_bb_coord,
 
     /* extend sub-region[start_boundary-2..end_boundary_x+2] */
     for (x = region_x_boundary[0] - 2;
-            x < region_x_boundary[2] + 2 && x < (num_grid_columns + 2); ++x) {
+            x < region_x_boundary[2] + 2 && x < (num_of_columns + 2); ++x) {
         /*  takes care of proc #1, where start_end_boundary = 0 */
         if (x < 0) {
             x = 0;
         }
         /* Why not set y as Extend-SubRegion[region_y_boundary-2..region_y_boundary+2] */
-        for (y = 0; y <= (num_grid_rows + 1); ++y) {
+        for (y = 0; y <= (num_of_rows + 1); ++y) {
             local_grid[x][y].type = grid[x][y].type;
             local_grid[x][y].usage = grid[x][y].usage;
             local_grid[x][y].offset = grid[x][y].offset;
@@ -4071,7 +4286,7 @@ void tp_init_local(bbox_t* local_bb_edge, bbox_t* local_bb_coord,
     }
 }  /* end of void tp_init_local(bbox_t* local_bb_edge,...) */
 
-/* FIXME, important for update timing parallel */
+/* FIXME, important for update timing parallel */ 
 void tp_timing_update_full(int thread_id,
                            double*** net_delay,
                            pthread_data_t* input,
@@ -4222,7 +4437,7 @@ void tp_compute_net_slack(int thread_id,
     if (thread_id != NUM_OF_THREADS - 1
           && thread_counter_edge < (num_nets / PARITION_UPDATE)) {
         /* update and balance the thread and (thread + 1)'s start_edge and
-         * finish_edge */
+         * finish_edge */ 
         balance_two_consecutive_threads_edge(thread_id);
     }
 
@@ -4349,7 +4564,7 @@ void tp_iter_data_update(int thread_id,
                                               region_x_boundary[0] + 2,
                                               max(region_y_boundary[0] - 2 , 0),
                                               min(region_y_boundary[2] + 2,
-                                                  num_grid_rows + 2));
+                                                  num_of_rows + 2));
     }
 
     const int thread_start_block_index =
@@ -4395,7 +4610,7 @@ void tp_local_data_update(int* region_x_boundary,
                           local_block_t* local_block,
                           int row, int col)
 {
-    /* update local grid information, first was horizontal direction,
+    /* update local grid information, first was horizontal direction, 
      * then was vertical direction. */
     if (row == 0) {
         if (col == 0) {
@@ -4420,7 +4635,7 @@ void tp_local_data_update(int* region_x_boundary,
                                              max(2, region_x_boundary[0] - 2),
                                              region_x_boundary[0] + 2,
                                              region_y_boundary[1] + 2,
-                                             min(num_grid_rows + 2,
+                                             min(num_of_rows + 2,
                                                  region_y_boundary[2] + 2));
             //update right side of the strip
             update_from_global_to_local_vert(local_block,
@@ -4428,7 +4643,7 @@ void tp_local_data_update(int* region_x_boundary,
                                              max(0, region_x_boundary[0] - 2),
                                              region_x_boundary[1] + 2,
                                              region_y_boundary[2] - 2,
-                                             min(num_grid_rows - 2,
+                                             min(num_of_rows - 2,
                                                  region_y_boundary[2] + 2));
         } else {
             printf("incorrect row/col combination in inner loop: (%d,%d)", row, col);
@@ -4439,15 +4654,15 @@ void tp_local_data_update(int* region_x_boundary,
             update_from_global_to_local_hori(local_block,
                                              local_grid,
                                              region_x_boundary[2] - 2,
-                                             min(num_grid_columns - 2,
+                                             min(num_of_columns - 2,
                                                  region_x_boundary[2] + 2),
                                              max(0, region_y_boundary[0] + 2),
                                              region_y_boundary[1] + 2);
             //update left side strip
             update_from_global_to_local_vert(local_block,
                                              local_grid,
-                                             region_x_boundary[1] - 2,
-                                             min(num_grid_columns + 2,
+                                             region_x_boundary[1] - 2, 
+                                             min(num_of_columns + 2,
                                                  region_x_boundary[2] + 2),
                                              max(0, region_y_boundary[0] - 2),
                                              region_y_boundary[0] + 2);
@@ -4456,19 +4671,19 @@ void tp_local_data_update(int* region_x_boundary,
             update_from_global_to_local_hori(local_block,
                                              local_grid,
                                              region_x_boundary[2] - 2,
-                                             min(num_grid_columns - 2,
+                                             min(num_of_columns - 2,
                                                  region_x_boundary[2] + 2),
                                              region_y_boundary[1] + 2,
-                                             min(num_grid_columns + 2,
+                                             min(num_of_columns + 2,
                                                  region_y_boundary[2] + 2));
             //update right side strip
             update_from_global_to_local_vert(local_block,
                                              local_grid,
                                              region_x_boundary[1] - 2,
-                                             min(num_grid_columns + 2,
+                                             min(num_of_columns + 2,
                                                  region_x_boundary[2] + 2),
                                              region_y_boundary[2] - 2,
-                                             min(num_grid_rows - 2,
+                                             min(num_of_rows - 2,
                                                  region_y_boundary[2] + 2));
         } else {
         }
@@ -4745,7 +4960,7 @@ int assess_swap_parallel(double delta_c,
 
 boolean find_to_block_parallel(int x_from,
                                int y_from,
-                               block_type_ptr type,
+                               t_type_ptr type,
                                int* x_to,
                                int* y_to,
                                int thread_id,
@@ -4772,52 +4987,52 @@ boolean find_to_block_parallel(int x_from,
                     *x_to = max(1, test);
                     *y_to = 0;
                 }
-            } else if (xmax == num_grid_columns + 1 && ymin == 0) {
+            } else if (xmax == num_of_columns + 1 && ymin == 0) {
                 /* For Bottom-Right corner*/
                 /*the target is either located on x = 0 or y = 0*/
                 if (my_irand_parallel(1, thread_id)) {
-                    /*target is located on x = num_grid_columns + 1*/
-                    *x_to = num_grid_columns + 1;
+                    /*target is located on x = num_of_columns + 1*/
+                    *x_to = num_of_columns + 1;
                     test = my_irand_parallel(ymax - ymin, thread_id);
                     *y_to = max(1, test);
                 } else {
                     /*target is located on y = 0*/
                     test = xmin + my_irand_parallel(xmax - xmin, thread_id);
-                    *x_to = min(num_grid_columns, test);
+                    *x_to = min(num_of_columns, test);
                     *y_to = 0;
                 }
-            } else if (xmin == 0 && ymax == num_grid_rows + 1) {
+            } else if (xmin == 0 && ymax == num_of_rows + 1) {
                 /* For Top-Left corner*/
                 /*the target is either located on x = 0 or y = 0*/
                 if (my_irand_parallel(1, thread_id)) {
                     /*target is located on x = 0*/
                     *x_to = 0;
                     test = ymin + my_irand_parallel(ymax - ymin, thread_id);
-                    *y_to = min(num_grid_rows, test);
+                    *y_to = min(num_of_rows, test);
                 } else {
-                    /*target is located on y = num_grid_rows+1*/
+                    /*target is located on y = num_of_rows+1*/
                     test = my_irand_parallel(xmax - xmin, thread_id);
                     *x_to = max(1, test);
-                    *y_to = num_grid_rows + 1;
+                    *y_to = num_of_rows + 1;
                 }
-            } else if (xmax == num_grid_columns + 1 && ymax == num_grid_rows + 1) {
+            } else if (xmax == num_of_columns + 1 && ymax == num_of_rows + 1) {
                 /* For Top-Right corner*/
                 /*the target is either located on x = 0 or y = 0*/
                 if (my_irand_parallel(1, thread_id)) {
-                    /*target is located on x = num_grid_columns + 1*/
-                    *x_to = num_grid_columns + 1;
+                    /*target is located on x = num_of_columns + 1*/
+                    *x_to = num_of_columns + 1;
                     test = ymin + my_irand_parallel(ymax - ymin, thread_id);
-                    *y_to = min(num_grid_rows, test);
+                    *y_to = min(num_of_rows, test);
                 } else {
                     /*target is located on y = 0*/
                     test = xmin + my_irand_parallel(xmax - xmin, thread_id);
-                    *x_to = min(num_grid_columns, test);
-                    *y_to = num_grid_rows + 1;
+                    *x_to = min(num_of_columns, test);
+                    *y_to = num_of_rows + 1;
                 }
-            } else if (xmin == 0 || xmax == num_grid_columns + 1) {
+            } else if (xmin == 0 || xmax == num_of_columns + 1) {
                 *x_to = x_from;
                 *y_to = ymin + my_irand_parallel(ymax - ymin, thread_id);
-            } else if (ymin == 0 || ymax == num_grid_rows + 1) {
+            } else if (ymin == 0 || ymax == num_of_rows + 1) {
                 *x_to = xmin + my_irand_parallel(xmax - xmin, thread_id);
                 *y_to = y_from;
             } else {
@@ -4838,12 +5053,12 @@ boolean find_to_block_parallel(int x_from,
 
             /* make sure the destination is not an IO */
             *x_to = max(1, *x_to);
-            *x_to = min(num_grid_columns, *x_to);
+            *x_to = min(num_of_columns, *x_to);
             *y_to = max(1, *y_to);
-            *y_to = min(num_grid_rows, *y_to);
+            *y_to = min(num_of_rows, *y_to);
 
-            assert(*x_to >= 1 && *x_to <= num_grid_columns);
-            assert(*y_to >= 1 && *y_to <= num_grid_rows);
+            assert(*x_to >= 1 && *x_to <= num_of_columns);
+            assert(*y_to >= 1 && *y_to <= num_of_rows);
         }
     } while ((x_from == *x_to) && (y_from == *y_to));
 
@@ -4858,7 +5073,7 @@ double comp_td_point_to_point_delay_parallel(int inet,
     /*returns the Tdel of one point to point connection */
     int source_block, sink_block;
     int delta_x, delta_y;
-    block_type_ptr source_type, sink_type;
+    t_type_ptr source_type, sink_type;
     double delay_source_to_sink;
 
     delay_source_to_sink = 0.;
@@ -5186,15 +5401,15 @@ void get_bb_from_scratch_parallel(int inet,
         n_pins = (net[inet].num_sinks + 1) - duplicate_pins[inet];
     }
 
-    int loc_x = local_block[plist[0]].x;
-    int loc_y = local_block[plist[0]].y;
-    loc_x = max(min(loc_x, num_grid_columns), 1);
-    loc_y = max(min(loc_y, num_grid_rows), 1);
+    int x = local_block[plist[0]].x;
+    int y = local_block[plist[0]].y;
+    x = max(min(x, num_of_columns), 1);
+    y = max(min(y, num_of_rows), 1);
 
-    int xmin = loc_x;
-    int ymin = loc_y;
-    int xmax = loc_x;
-    int ymax = loc_y;
+    int xmin = x;
+    int ymin = y;
+    int xmax = x;
+    int ymax = y;
     int xmin_edge = 1;
     int ymin_edge = 1;
     int xmax_edge = 1;
@@ -5204,43 +5419,43 @@ void get_bb_from_scratch_parallel(int inet,
     int block_num = 0;
     for (ipin = 1; ipin < n_pins; ++ipin) {
         block_num = plist[ipin];
-        loc_x = local_block[block_num].x;
-        loc_y = local_block[block_num].y;
+        x = local_block[block_num].x;
+        y = local_block[block_num].y;
 
-        /* Code below counts IO blocks as being within the 1..num_grid_columns,
-         * 1..num_grid_rows clb array. *
-         * This is because channels do not go out of the 0..num_grid_columns,  *
-         * 0..num_grid_rows range, and I always take all channels impinging on *
+        /* Code below counts IO blocks as being within the 1..num_of_columns,
+         * 1..num_of_rows clb array. *
+         * This is because channels do not go out of the 0..num_of_columns,  *
+         * 0..num_of_rows range, and I always take all channels impinging on *
          * the bounding box to be within that bounding box. Hence, this      *
          * "movement" of IO blocks does not affect the which channels are    *
          * included within the bounding box, and it simplifies the code a lot.*/
-        loc_x = max(min(x, num_grid_columns), 1);
-        loc_y = max(min(y, num_grid_rows), 1);
+        x = max(min(x, num_of_columns), 1);
+        y = max(min(y, num_of_rows), 1);
 
-        if (loc_x == xmin) {
+        if (x == xmin) {
             ++xmin_edge;
         }
-        if (loc_x == xmax) {
+        if (x == xmax) {
             /* Recall that xmin could equal xmax -- don't use else */
             ++xmax_edge;
-        } else if (loc_x < xmin) {
-            xmin = loc_x;
+        } else if (x < xmin) {
+            xmin = x;
             xmin_edge = 1;
-        } else if (loc_x > xmax) {
-            xmax = loc_x;
+        } else if (x > xmax) {
+            xmax = x;
             xmax_edge = 1;
         }
 
-        if (loc_y == ymin) {
+        if (y == ymin) {
             ++ymin_edge;
         }
-        if (loc_y == ymax) {
+        if (y == ymax) {
             ++ymax_edge;
-        } else if (loc_y < ymin) {
-            ymin = loc_y;
+        } else if (y < ymin) {
+            ymin = y;
             ymin_edge = 1;
-        } else if (loc_y > ymax) {
-            ymax = loc_y;
+        } else if (y > ymax) {
+            ymax = y;
             ymax_edge = 1;
         }
     } /*end of for (ipin = 1; ipin < num_pins; ++ipin) */
@@ -5298,15 +5513,15 @@ void get_non_updateable_bb_parallel(int inet,
     }
 
     /* Now I've found the coordinates of the bounding box. There are no  *
-     * channels beyond num_grid_columns and num_grid_rows, so I want to clip *
+     * channels beyond num_of_columns and num_of_rows, so I want to clip *
      * to that. As well, since I'll always include the channel immediately *
      * below and the channel immediately to the left of the bounding box, *
      * I want to clip to 1 in both directions as well(since minimum channel *
      * index is 0). See route.c for a channel diagram.                     */
-    bb_coord_new_ptr->xmin = max(min(xmin, num_grid_columns), 1);
-    bb_coord_new_ptr->ymin = max(min(ymin, num_grid_rows), 1);
-    bb_coord_new_ptr->xmax = max(min(xmax, num_grid_columns), 1);
-    bb_coord_new_ptr->ymax = max(min(ymax, num_grid_rows), 1);
+    bb_coord_new_ptr->xmin = max(min(xmin, num_of_columns), 1);
+    bb_coord_new_ptr->ymin = max(min(ymin, num_of_rows), 1);
+    bb_coord_new_ptr->xmax = max(min(xmax, num_of_columns), 1);
+    bb_coord_new_ptr->ymax = max(min(ymax, num_of_rows), 1);
 }  /* end of void get_non_updateable_bb_parallel(int inet, ) */
 
 
@@ -5330,10 +5545,10 @@ void update_bb_parallel(int inet,
                         local_block_t* local_block)
 {
     /* IO blocks are considered to be one cell in for simplicity. */
-    xnew = max(min(xnew, num_grid_columns), 1);
-    ynew = max(min(ynew, num_grid_rows), 1);
-    xold = max(min(xold, num_grid_columns), 1);
-    yold = max(min(yold, num_grid_rows), 1);
+    xnew = max(min(xnew, num_of_columns), 1);
+    ynew = max(min(ynew, num_of_rows), 1);
+    xold = max(min(xold, num_of_columns), 1);
+    yold = max(min(yold, num_of_rows), 1);
 
     /*======   First update x-coordinate, then update y-coordinate like ======*
      *======     x-coordinate                                           ======*/
@@ -5579,7 +5794,7 @@ void try_swap_parallel(double t,
 
     /*------------------------  Third, compute the swap cost ----------------*/
     /* Change in cost due to this swap. */
-    data.delta_c = 0;
+    data.delta_c = 0; 
     data.bb_delta_c = 0;
     data.timing_delta_c = 0;
 
@@ -5642,7 +5857,7 @@ void try_swap_parallel(double t,
     /* (3.3) Calcualte the timing_cost parallel */
     if (place_algorithm == NET_TIMING_DRIVEN_PLACE ||
             place_algorithm == PATH_TIMING_DRIVEN_PLACE) {
-        /* When compute timing_driven_cost(no matteer parallel or sequential),
+        /* When compute timing_driven_cost(no matteer parallel or sequential), 
          * It should distinguish the driver_pin and not driver_pins */
         comp_delta_td_cost_parallel(from_block,
                                     data.to_block,
@@ -5720,5 +5935,4 @@ void try_swap_parallel(double t,
 
     *retval = data.keep_switch;
 }  /* end of void try_swap_parallel(double t,) */
-
 

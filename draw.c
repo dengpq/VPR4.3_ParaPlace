@@ -347,7 +347,7 @@ void init_draw_coords(double clb_width_val)
 
     clb_width = clb_width_val;
     pin_size = clb_width / (4. * pins_per_clb);
-    pin_size = min(pin_size, clb_width / (4. * io_rat));
+    pin_size = min(pin_size, clb_width / (4. * io_ratio));
     pin_size = min(pin_size, 0.3);
     x_clb_left[0] = 0.;
 
@@ -370,7 +370,7 @@ static void drawplace(void)
 {
     /* Draws the blocks placed on the proper clbs.  Occupied clbs are light *
      * grey, while empty ones are left white and have a dashed border.      */
-    double io_step = clb_width / io_rat;
+    double io_step = clb_width / io_ratio;
     double x1, y1, x2, y2;
     int i, j, k, block_num;
     /* Draw the IO_TYPE Pads first. Want each subblock to border on core. */
@@ -398,7 +398,7 @@ static void drawplace(void)
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb_grids[i][j].occ; k < io_rat; k++) {
+            for (k = clb_grids[i][j].occ; k < io_ratio; k++) {
                 x1 = x_clb_left[i] + k * io_step;
                 x2 = x1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -427,7 +427,7 @@ static void drawplace(void)
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb_grids[i][j].occ; k < io_rat; k++) {
+            for (k = clb_grids[i][j].occ; k < io_ratio; k++) {
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -517,9 +517,9 @@ static void get_block_center(int block_num, double* x, double* y)
 
         if (i == 0 || i == num_grid_columns + 1) {   /* clb split vertically */
             *x = x_clb_left[i] + clb_width / 2.;
-            *y = y_clb_bottom[j] + (k + 0.5) * clb_width / (double) io_rat;
+            *y = y_clb_bottom[j] + (k + 0.5) * clb_width / (double) io_ratio;
         } else {                       /* clb split horizontally */
-            *x = x_clb_left[i] + (k + 0.5) * clb_width / (double) io_rat;
+            *x = x_clb_left[i] + (k + 0.5) * clb_width / (double) io_ratio;
             *y = y_clb_bottom[j] + clb_width / 2.;
         }
     }
@@ -1074,13 +1074,13 @@ static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,
         offset = (ipin + 1.) * step_size;
     } else {                                      /* IO_TYPE pad. */
         ipad = rr_node[ivex].ptc_num;
-        step_size = clb_width / (double) io_rat;
-        offset = ipad * step_size + clb_width / (3. * io_rat);
+        step_size = clb_width / (double) io_ratio;
+        offset = ipad * step_size + clb_width / (3. * io_ratio);
 
         /* Pads have both an IPIN and an OPIN.  Stagger them. */
 
         if (rr_node[ivex].type == IPIN) {
-            offset += clb_width / (3. * io_rat);
+            offset += clb_width / (3. * io_ratio);
         }
     }
 
@@ -1319,7 +1319,7 @@ static void highlight_blocks(double x, double y)
     int class;
     double io_step;
     char msg[BUFSIZE];
-    io_step = clb_width / io_rat;
+    io_step = clb_width / io_ratio;
     deselect_all();
     hit = 0;
 

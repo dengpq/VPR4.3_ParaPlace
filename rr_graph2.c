@@ -536,7 +536,7 @@ static int load_chany_rr_indices(segment_details_t* seg_details_y, int
  * is.  All ioffs start at 0 and go up to pins_per_clb-1 or the equivalent. *
  * The order within a clb is:  SOURCEs + SINKs (num_pin_class of them); IPINs,  *
  * and OPINs (pins_per_clb of them); CHANX; and CHANY (nodes_per_chan of    *
- * each).  For (i,j) locations that point at pads the order is:  io_rat     *
+ * each).  For (i,j) locations that point at pads the order is:  io_ratio     *
  * occurances of SOURCE, SINK, OPIN, IPIN (one for each pad), then one      *
  * associated channel (if there is a channel at (i,j)).  All IO_TYPE pads are    *
  * bidirectional, so while each will be used only as an INPAD_TYPE or as an      *
@@ -607,22 +607,22 @@ int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
         case IO_TYPE:
             switch (rr_type) {
                 case SOURCE:
-                    assert(ioff < io_rat);
+                    assert(ioff < io_ratio);
                     index += 4 * ioff;
                     return (index);
 
                 case SINK:
-                    assert(ioff < io_rat);
+                    assert(ioff < io_ratio);
                     index += 4 * ioff + 1;
                     return (index);
 
                 case OPIN:
-                    assert(ioff < io_rat);
+                    assert(ioff < io_ratio);
                     index += 4 * ioff + 2;
                     return (index);
 
                 case IPIN:
-                    assert(ioff < io_rat);
+                    assert(ioff < io_ratio);
                     index += 4 * ioff + 3;
                     return (index);
 

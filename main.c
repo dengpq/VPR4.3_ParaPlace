@@ -32,7 +32,7 @@ double ground_num;
 /********** Physical architecture stuff ****************/
 int num_grid_columns;  /* num_of_block_columns */
 int num_grid_rows;  /* num_of_block_rows */
-int io_rat;
+int io_ratio;
 int pins_per_clb;
 /* Pinloc[0..3][0..pins_per_clb-1].  For each pin pinloc[0..3][i] is 1 if    *
  * pin[i] exists on that side of the clb. See vpr_types.h for correspondence *
@@ -1340,7 +1340,7 @@ static void get_input(char* netlist_file,
               chan_width_dist_ptr);
     printf("Successfully read %s.\n", arch_file);
     printf("Pins per clb: %d.  Pads per row/column: %d.\n",
-            pins_per_clb,io_rat);
+            pins_per_clb,io_ratio);
     printf("Subblocks per clb: %d.  Subblock LUT size: %d.\n",
            subblock_data_ptr->max_subblocks_per_block,
            subblock_data_ptr->subblock_lut_size);

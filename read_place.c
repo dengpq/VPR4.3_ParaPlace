@@ -34,7 +34,7 @@ void read_user_pad_loc(char* pad_loc_file)
     for (i = 0; i <= num_grid_columns + 1; i++) {
         for (j = 0; j <= num_grid_rows + 1; j++) {
             if (clb_grids[i][j].type == IO_TYPE) {
-                for (isubblk = 0; isubblk < io_rat; isubblk++) {
+                for (isubblk = 0; isubblk < io_ratio; isubblk++) {
                     clb_grids[i][j].u.io_blocks[isubblk] = OPEN;    /* Flag for err. check */
                 }
             }
@@ -116,7 +116,7 @@ void read_user_pad_loc(char* pad_loc_file)
             exit(1);
         }
 
-        if (isubblk >= io_rat || isubblk < 0) {
+        if (isubblk >= io_ratio || isubblk < 0) {
             printf("Error:  Block %s subblock number (%d) on line %d is out of "
                    "range.\n", bname, isubblk, linenum);
             exit(1);
@@ -232,7 +232,7 @@ static int get_subblock(int i, int j, int block_num)
      * subblock containing blocks block_num at location (i,j).                     */
     int k;
 
-    for (k = 0; k < io_rat; k++) {
+    for (k = 0; k < io_ratio; k++) {
         if (clb_grids[i][j].u.io_blocks[k] == block_num) {
             return (k);
         }
@@ -262,7 +262,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
             clb_grids[i][j].occ = 0;
 
             if (clb_grids[i][j].type == IO_TYPE) {
-                for (isubblock = 0; isubblock < io_rat; isubblock++) {
+                for (isubblock = 0; isubblock < io_ratio; isubblock++) {
                     clb_grids[i][j].u.io_blocks[isubblock] = OPEN;
                 }
             }
@@ -366,7 +366,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
                 exit(1);
             }
 
-            if (isubblock >= io_rat || isubblock < 0) {
+            if (isubblock >= io_ratio || isubblock < 0) {
                 printf("Error:  Block %s subblock number (%d) on line %d is out of "
                        "range.\n", bname, isubblock, linenum);
                 exit(1);

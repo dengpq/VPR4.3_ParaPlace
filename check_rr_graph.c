@@ -257,7 +257,7 @@ void check_node(int ivex, router_types_t route_type)
                     exit(1);
                 }
             } else { /* IO_TYPE blocks */
-                if (ptc_num >= io_rat) {
+                if (ptc_num >= io_ratio) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
@@ -286,7 +286,7 @@ void check_node(int ivex, router_types_t route_type)
                     exit(1);
                 }
             } else { /* IO_TYPE blocks */
-                if (ptc_num >= io_rat) {
+                if (ptc_num >= io_ratio) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
@@ -310,7 +310,7 @@ void check_node(int ivex, router_types_t route_type)
                     exit(1);
                 }
             } else { /* IO_TYPE blocks */
-                if (ptc_num >= io_rat) {
+                if (ptc_num >= io_ratio) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
@@ -334,7 +334,7 @@ void check_node(int ivex, router_types_t route_type)
                     exit(1);
                 }
             } else { /* IO_TYPE blocks */
-                if (ptc_num >= io_rat) {
+                if (ptc_num >= io_ratio) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
                     exit(1);
