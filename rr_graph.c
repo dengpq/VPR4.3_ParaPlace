@@ -507,7 +507,7 @@ static int which_io_block(int iblk)
         exit(1);
     }
 
-    for (ipad = 0; ipad < clb_grids[i][j].occ; ipad++) {
+    for (ipad = 0; ipad < clb_grids[i][j].m_usage; ipad++) {
         test_blk = clb_grids[i][j].u.io_blocks[ipad];
 
         if (test_blk == iblk) {
@@ -580,7 +580,7 @@ static void build_rr_clb(int** rr_node_indices, int Fc_output, int** *
         }
 
         /* Things common to both SOURCEs and SINKs.   */
-        rr_node[ivex].occ = 0;
+        rr_node[ivex].m_usage = 0;
         rr_node[ivex].xlow = i;
         rr_node[ivex].xhigh = i;
         rr_node[ivex].ylow = j;
@@ -623,7 +623,7 @@ static void build_rr_clb(int** rr_node_indices, int Fc_output, int** *
 
         /* Things that are common to both OPINs and IPINs.  */
         rr_node[ivex].capacity = 1;
-        rr_node[ivex].occ = 0;
+        rr_node[ivex].m_usage = 0;
         rr_node[ivex].xlow = i;
         rr_node[ivex].xhigh = i;
         rr_node[ivex].ylow = j;
@@ -679,7 +679,7 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
         ivex = s_node;
 
         for (iloop = 1; iloop <= 2; iloop++) { /* for both SOURCE or SINK and pin */
-            rr_node[ivex].occ = 0;
+            rr_node[ivex].m_usage = 0;
             rr_node[ivex].capacity = 1;
             rr_node[ivex].xlow = i;
             rr_node[ivex].xhigh = i;
@@ -715,7 +715,7 @@ static void build_rr_pads(int** rr_node_indices, int Fc_pad, int
         ivex = s_node;
 
         for (iloop = 1; iloop <= 2; iloop++) { /* for both SOURCE or SINK and pin */
-            rr_node[ivex].occ = 0;
+            rr_node[ivex].m_usage = 0;
             rr_node[ivex].capacity = 1;
             rr_node[ivex].xlow = i;
             rr_node[ivex].xhigh = i;
@@ -810,7 +810,7 @@ static void build_rr_xchan(int** rr_node_indices, router_types_t
         /* Edge arrays have now been built up.  Do everything else.  */
         seg_index = seg_details_x[itrack].index;
         rr_node[ivex].cost_index = cost_index_offset + seg_index;
-        rr_node[ivex].occ = 0;
+        rr_node[ivex].m_usage = 0;
 
         if (route_type == DETAILED) {
             rr_node[ivex].capacity = 1;
@@ -911,7 +911,7 @@ static void build_rr_ychan(int** rr_node_indices, router_types_t
         /* Edge arrays have now been built up.  Do everything else.  */
         seg_index = seg_details_y[itrack].index;
         rr_node[ivex].cost_index = cost_index_offset + seg_index;
-        rr_node[ivex].occ = 0;
+        rr_node[ivex].m_usage = 0;
 
         if (route_type == DETAILED) {
             rr_node[ivex].capacity = 1;
@@ -1399,10 +1399,9 @@ void dump_rr_graph(char* file_name)
     /* A utility routine to dump the contents of the routing resource graph   *
      * (everything -- connectivity, occupancy, cost, etc.) into a file.  Used *
      * only for debugging.                                                    */
-    int ivex, index;
-    FILE* fp;
-    fp = my_fopen(file_name, "w", 0);
+    FILE* fp = my_fopen(file_name, "w");
 
+    int ivex, index;
     for (ivex = 0; ivex < num_rr_nodes; ivex++) {
         prinrr_node_t(fp, ivex);
         fprintf(fp, "\n");
@@ -1454,7 +1453,7 @@ void prinrr_node_t(FILE* fp, int ivex)
     }
 
     fprintf(fp, "\n");
-    fprintf(fp, "Occ: %d  Capacity: %d.\n", rr_node[ivex].occ,
+    fprintf(fp, "Occ: %d  Capacity: %d.\n", rr_node[ivex].m_usage,
             rr_node[ivex].capacity);
     fprintf(fp, "R: %g  C: %g\n", rr_node[ivex].R, rr_node[ivex].C);
     fprintf(fp, "Cost_index: %d\n", rr_node[ivex].cost_index);

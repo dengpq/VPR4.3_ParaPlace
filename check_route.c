@@ -239,7 +239,7 @@ static void check_source(int ivex, int inet)
                    ptc_num);
             exit(1);
         }
-    } else {  /* IO_TYPE Pad.  NB:  check_node ensured ptc_num < occ of this pad.  */
+    } else {  /* IO_TYPE Pad.  NB:  check_node ensured ptc_num < m_usage of this pad.  */
         if (clb_grids[i][j].u.io_blocks[ptc_num] != block_num) {
             printf("Error in check_source:  net SOURCE is at wrong pad (pad #%d)."
                    "\n", ptc_num);
@@ -522,7 +522,7 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
 
 static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally)
 {
-    /* This routine updates the occ field in the rr_node structure according to *
+    /* This routine updates the m_usage field in the rr_node structure according to *
      * the resource usage of the current routing.  It does a brute force        *
      * recompute from scratch that is useful for sanity checking.               */
     int ivex, inet, iblk, iclass, ipin, num_local_opins;
@@ -531,7 +531,7 @@ static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally)
     /* First set the occupancy of everything to zero. */
 
     for (ivex = 0; ivex < num_rr_nodes; ivex++) {
-        rr_node[ivex].occ = 0;
+        rr_node[ivex].m_usage = 0;
     }
 
     /* Now go through each net and count the tracks and pins used everywhere */
@@ -549,7 +549,7 @@ static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally)
 
         while (1) {
             ivex = tptr->index;
-            rr_node[ivex].occ++;
+            rr_node[ivex].m_usage++;
 
             if (rr_node[ivex].type == SINK) {
                 tptr = tptr->next;                /* Skip next segment. */
@@ -574,7 +574,7 @@ static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally)
             /* Will always be 0 for pads or SINK classes. */
             for (ipin = 0; ipin < num_local_opins; ipin++) {
                 ivex = clb_opins_used_locally[iblk][iclass].list[ipin];
-                rr_node[ivex].occ++;
+                rr_node[ivex].m_usage++;
             }
         }
     }

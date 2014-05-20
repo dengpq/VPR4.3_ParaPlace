@@ -122,7 +122,7 @@ static void gechannel_tnel_occupancy_stats(void)
     chany_occ = (int**) alloc_matrix(0, num_grid_columns, 1, num_grid_rows, sizeof(int));
     load_channel_occupancies(chanx_occ, chany_occ);
     printf("\nX - Directed channels:\n\n");
-    printf("j\tmax occ\tav_occ\t\tcapacity\n");
+    printf("j\tmax m_usage\tav_occ\t\tcapacity\n");
     total_x = 0;
 
     for (j = 0; j <= num_grid_rows; j++) {
@@ -140,7 +140,7 @@ static void gechannel_tnel_occupancy_stats(void)
     }
 
     printf("\nY - Directed channels:\n\n");
-    printf("i\tmax occ\tav_occ\t\tcapacity\n");
+    printf("i\tmax m_usage\tav_occ\t\tcapacity\n");
     total_y = 0;
 
     for (i = 0; i <= num_grid_columns; i++) {

@@ -701,7 +701,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int j = -1;
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            clb_grids[i][j].occ = 0;
+            clb_grids[i][j].m_usage = 0;
         } /* clb[rows][columns] described FPGA Architecture */
     }  /* clb[0~(1-num_grid_columns)~num_grid_columns+1][0~(1-num_grid_rows)~num_grid_rows+1] */
 
@@ -720,7 +720,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
         if (blocks[iblk].type == CLB_TYPE) { /* only place CLBs in center */
             int choice = my_irand(count - 1); /* choice >= 1 && choice <= count-1*/
             clb_grids[pos[choice].x][pos[choice].y].u.blocks = iblk;
-            clb_grids[pos[choice].x][pos[choice].y].occ = 1;
+            clb_grids[pos[choice].x][pos[choice].y].m_usage = 1;
 
             /* Ensure randomizer doesn't pick this blocks again */
             pos[choice] = pos[count - 1]; /* overwrite used blocks position */
@@ -759,13 +759,13 @@ static void initial_placement(pad_loc_t pad_loc_type,
             if (blocks[iblk].type == INPAD_TYPE || blocks[iblk].type == OUTPAD_TYPE) {
                 int choice = my_irand(count - 1);
 
-                int isubblk = clb_grids[pos[choice].x][pos[choice].y].occ;
+                int isubblk = clb_grids[pos[choice].x][pos[choice].y].m_usage;
 
                 clb_grids[pos[choice].x][pos[choice].y].u.io_blocks[isubblk] = iblk;
-                ++(clb_grids[pos[choice].x][pos[choice].y].occ);
+                ++(clb_grids[pos[choice].x][pos[choice].y].m_usage);
                 /* In an I/O pad location of FPGA chip, it may accommodate more
                  * than 1 I/O pad. */
-                if (clb_grids[pos[choice].x][pos[choice].y].occ == io_ratio) {
+                if (clb_grids[pos[choice].x][pos[choice].y].m_usage == io_ratio) {
                     /* Ensure randomizer doesn't pick this blocks again */
                     pos[choice] = pos[count - 1]; /* overwrite used blocks position */
                     /* the "choice" location had used, so don't choose it again */
@@ -780,11 +780,11 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int k = 0;
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].type == CLB_TYPE && clb_grids[i][j].occ == 1) {
+            if (clb_grids[i][j].type == CLB_TYPE && clb_grids[i][j].m_usage == 1) {
                 blocks[clb_grids[i][j].u.blocks].x = i;
                 blocks[clb_grids[i][j].u.blocks].y = j;
             } else if (clb_grids[i][j].type == IO_TYPE) {
-                for (k = 0; k < clb_grids[i][j].occ; ++k) {
+                for (k = 0; k < clb_grids[i][j].m_usage; ++k) {
                     blocks[clb_grids[i][j].u.io_blocks[k]].x = i;
                     blocks[clb_grids[i][j].u.io_blocks[k]].y = j;
                 }
@@ -1482,7 +1482,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     int io_num = 0;
     int to_block = 0;
     if (blocks[from_block].type == CLB_TYPE) {
-        if (clb_grids[x_to][y_to].occ == 1) { /* target clb location had occupied -- do a switch */
+        if (clb_grids[x_to][y_to].m_usage == 1) { /* target clb location had occupied -- do a switch */
             /* then swap (x_from, y_from) and (x_to, y_to) coordinate. */
             to_block = clb_grids[x_to][y_to].u.blocks;
             blocks[from_block].x = x_to;
@@ -1496,7 +1496,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         }
     } else { /* io pads was selected for moving */
         io_num = my_irand(io_ratio - 1);
-        if (io_num >= clb_grids[x_to][y_to].occ) { /* Moving to an empty location, why? TODO:*/
+        if (io_num >= clb_grids[x_to][y_to].m_usage) { /* Moving to an empty location, why? TODO:*/
             to_block = EMPTY;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
@@ -1671,8 +1671,8 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
                 clb_grids[x_to][y_to].u.blocks = from_block;
             } else {
                 clb_grids[x_to][y_to].u.blocks = from_block;
-                clb_grids[x_to][y_to].occ = 1;
-                clb_grids[x_from][y_from].occ = 0;
+                clb_grids[x_to][y_to].m_usage = 1;
+                clb_grids[x_from][y_from].m_usage = 0;
             }
         } else {   /* io blocks was selected for moving */
             /* Get the "sub_block" number of the from_block blocks. */
@@ -1686,15 +1686,15 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
                 clb_grids[x_to][y_to].u.io_blocks[io_num] = from_block;
                 clb_grids[x_from][y_from].u.io_blocks[off_from] = to_block;
             } else {             /* Moved to an empty location */
-                clb_grids[x_to][y_to].u.io_blocks[clb_grids[x_to][y_to].occ] = from_block;
-                ++(clb_grids[x_to][y_to].occ);
+                clb_grids[x_to][y_to].u.io_blocks[clb_grids[x_to][y_to].m_usage] = from_block;
+                ++(clb_grids[x_to][y_to].m_usage);
 
-                for (k = off_from; k < clb_grids[x_from][y_from].occ-1; ++k) { /* prevent gap  */
+                for (k = off_from; k < clb_grids[x_from][y_from].m_usage-1; ++k) { /* prevent gap  */
                     clb_grids[x_from][y_from].u.io_blocks[k] =   /* in io_blocks */
                         clb_grids[x_from][y_from].u.io_blocks[k + 1];
                 }
 
-                --(clb_grids[x_from][y_from].occ);
+                --(clb_grids[x_from][y_from].m_usage);
             }
         } /* end of selecting move io_block */
     } else {  /* Move was rejected.  */
@@ -3429,7 +3429,7 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
     /* Step through clb array. Check it against blocks array. */
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].occ == 0) {
+            if (clb_grids[i][j].m_usage == 0) {
                 continue;
             }
 
@@ -3447,21 +3447,21 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                     ++error;
                 }
 
-                if (clb_grids[i][j].occ > 1) {
+                if (clb_grids[i][j].m_usage > 1) {
                     printf("Error: clb(%d,%d) has occupancy of %d\n",
-                           i, j, clb_grids[i][j].occ);
+                           i, j, clb_grids[i][j].m_usage);
                     ++error;
                 }
 
                 block_done[block_num]++;
             } else { /* IO_TYPE blocks */
-                if (clb_grids[i][j].occ > io_ratio) {
+                if (clb_grids[i][j].m_usage > io_ratio) {
                     printf("Error:  clb(%d,%d) has occupancy of %d\n", i, j,
-                           clb_grids[i][j].occ);
+                           clb_grids[i][j].m_usage);
                     ++error;
                 }
 
-                for (k = 0; k < clb_grids[i][j].occ; ++k) {
+                for (k = 0; k < clb_grids[i][j].m_usage; ++k) {
                     int block_num = clb_grids[i][j].u.io_blocks[k];
 
                     if ((blocks[block_num].type != INPAD_TYPE) && blocks[block_num].type != OUTPAD_TYPE) {

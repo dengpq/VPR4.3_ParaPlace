@@ -1279,11 +1279,10 @@ void free_timing_graph(double** net_slack)
 void print_net_slack(char* fname, double** net_slack)
 {
     /* Prints the net slacks into a file.                                     */
-    int inet, ipin;
-    FILE* fp;
-    fp = my_fopen(fname, "w", 0);
+    FILE* fp = my_fopen(fname, "w");
     fprintf(fp, "Net #\tSlacks\n\n");
 
+    int inet, ipin;
     for (inet = 0; inet < num_nets; inet++) {
         fprintf(fp, "%5d", inet);
 
@@ -1311,7 +1310,7 @@ void print_timing_graph(char* fname)
                                 "FF_SINK",
                                 "FF_SOURCE",
                                 "CONSTANT_GEN_SOURCE"};
-    FILE* fp = my_fopen(fname, "w", 0);
+    FILE* fp = my_fopen(fname, "w");
     fprintf(fp, "num_of_vertexs: %d\n", num_of_vertexs);
     fprintf(fp, "Node #\tType\t\tipin\tisubblk\tiblk\t# edges\t"
             "Edges (to_node, Tdel)\n\n");
@@ -1490,7 +1489,7 @@ void compute_net_slacks(double** net_slack)
 void print_critical_path(char* fname)
 {
     /* Prints out the critical path to a file.  */
-    FILE* fp = my_fopen(fname, "w", 0);
+    FILE* fp = my_fopen(fname, "w");
 
     int iblk = -1;
     int inet = -1;

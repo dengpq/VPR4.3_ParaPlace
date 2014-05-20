@@ -3,7 +3,7 @@
 #include "globals.h"
 #include "place_and_route.h"
 #include "place.h"
-#include "place_parallel.h"
+/* #include "place_parallel.h" */
 #include "read_place.h"
 #include "route_export.h"
 #include "draw.h"

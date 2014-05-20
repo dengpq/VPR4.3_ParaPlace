@@ -243,7 +243,7 @@ static void init_occ(void)
     int i, j;
     for (i = 0; i <= num_grid_columns + 1; i++) {
         for (j = 0; j <= num_grid_rows + 1; j++) {
-            clb_grids[i][j].occ = 0;
+            clb_grids[i][j].m_usage = 0;
         }
     }
 }
@@ -388,23 +388,23 @@ static void assign_locations(block_types_t source_type,
     if (source_type == CLB_TYPE) {
         net[NET_USED].blk_pin[NET_USED_SOURCE_BLOCK] = get_first_pin(DRIVER);
         clb_grids[source_x_loc][source_y_loc].u.blocks = SOURCE_BLOCK;
-        clb_grids[source_x_loc][source_y_loc].occ += 1;
+        clb_grids[source_x_loc][source_y_loc].m_usage += 1;
     } else {
         net[NET_USED].blk_pin[NET_USED_SOURCE_BLOCK] = OPEN;
-        isubblk = clb_grids[source_x_loc][source_y_loc].occ;
+        isubblk = clb_grids[source_x_loc][source_y_loc].m_usage;
         clb_grids[source_x_loc][source_y_loc].u.io_blocks[isubblk] = SOURCE_BLOCK;
-        clb_grids[source_x_loc][source_y_loc].occ += 1;
+        clb_grids[source_x_loc][source_y_loc].m_usage += 1;
     }
 
     if (sink_type == CLB_TYPE) {
         net[NET_USED].blk_pin[NET_USED_SINK_BLOCK] = get_first_pin(RECEIVER);
         clb_grids[sink_x_loc][sink_y_loc].u.blocks = SINK_BLOCK;
-        clb_grids[sink_x_loc][sink_y_loc].occ += 1;
+        clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
     } else {
         net[NET_USED].blk_pin[NET_USED_SINK_BLOCK] = OPEN;
-        isubblk = clb_grids[sink_x_loc][sink_y_loc].occ;
+        isubblk = clb_grids[sink_x_loc][sink_y_loc].m_usage;
         clb_grids[sink_x_loc][sink_y_loc].u.io_blocks[isubblk] = SINK_BLOCK;
-        clb_grids[sink_x_loc][sink_y_loc].occ += 1;
+        clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
     }
 }
 
@@ -448,8 +448,8 @@ static double assign_blocks_and_route_net(block_types_t source_type,
                                                    T_crit,
                                                    net_delay[NET_USED]);
     net_delay_value = net_delay[NET_USED][NET_USED_SINK_BLOCK];
-    clb_grids[source_x_loc][source_y_loc].occ = 0;
-    clb_grids[sink_x_loc][sink_y_loc].occ = 0;
+    clb_grids[source_x_loc][source_y_loc].m_usage = 0;
+    clb_grids[sink_x_loc][sink_y_loc].m_usage = 0;
     return net_delay_value;
 }
 
@@ -963,7 +963,7 @@ static void compute_delta_arrays(router_opts_t router_opts,   /* FIXME */
     printf("Computing delta_inpad_to_outpad lookup matrix OK!\n");
 
 #ifdef PRINT_ARRAYS
-    lookup_dump = my_fopen(DUMPFILE, "w", 0);
+    lookup_dump = my_fopen(DUMPFILE, "w");
 
     fprintf(lookup_dump, "\n\nprinting delta_clb_to_clb\n");
     print_array(delta_clb_to_clb, 0 , num_grid_columns - 1, 0, num_grid_rows - 1);

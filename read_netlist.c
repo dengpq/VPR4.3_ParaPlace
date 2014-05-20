@@ -64,7 +64,6 @@
 /*************************** Variables local to this module *****************/
 
 /* Temporary storage used during parsing. */
-
 static int* num_driver, *temp_num_pins;
 static hash_t** hash_table;
 static int temp_block_storage;
@@ -128,7 +127,7 @@ void read_netlist(char* net_file,
      * too lazy to pass them all over the place.                              */
     max_subblocks_per_block = subblock_data_ptr->max_subblocks_per_block; /* static int */
     subblock_lut_size = subblock_data_ptr->subblock_lut_size; /* static int */
-    FILE* fp_net = my_fopen(net_file, "r", 0);
+    FILE* fp_net = my_fopen(net_file, "r");
 
     /* First pass builds the symbol table and counts the number of pins  *
      * on each net.  Then I allocate exactly the right amount of storage *

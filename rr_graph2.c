@@ -198,10 +198,9 @@ void dump_seg_details(segment_details_t* seg_details, int nodes_per_chan, char
 {
     /* Dumps out an array of seg_details structures to file fname.  Used only   *
      * for debugging.                                                           */
-    FILE* fp;
-    int i, j;
-    fp = my_fopen(fname, "w", 0);
+    FILE* fp = my_fopen(fname, "w");
 
+    int i, j;
     for (i = 0; i < nodes_per_chan; i++) {
         fprintf(fp, "Track: %d.\n", i);
         fprintf(fp, "Length: %d,  Start: %d,  Long line: %d  wire_switch: %d  "

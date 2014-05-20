@@ -51,9 +51,9 @@ void get_segment_usage_stats(int num_segment, segment_info_t* segment_inf)
                 length = LONGLINE;
             }
 
-            seg_occ_by_length[length] += rr_node[ivex].occ;
+            seg_occ_by_length[length] += rr_node[ivex].m_usage;
             seg_cap_by_length[length] += rr_node[ivex].capacity;
-            seg_occ_by_type[seg_type] += rr_node[ivex].occ;
+            seg_occ_by_type[seg_type] += rr_node[ivex].m_usage;
             seg_cap_by_type[seg_type] += rr_node[ivex].capacity;
         }
     }

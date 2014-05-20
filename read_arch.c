@@ -216,7 +216,7 @@ void read_arch(char* arch_file, router_types_t route_type,
 {
     char* ptr, buf[BUFSIZE];
     T_subblock_t* next_T_subblock_ptr;
-    FILE* fp_arch = my_fopen(arch_file, "r", 0);
+    FILE* fp_arch = my_fopen(arch_file, "r");
     countpass(fp_arch, route_type, segment_inf_ptr, det_routing_arch,
               timing_inf_ptr);
     rewind(fp_arch);
@@ -1256,20 +1256,17 @@ static void gechannel_t(char* ptr, channel_t* chan, int inp_num, FILE* fp_arch,
 }
 
 
-static void check_arch(char* arch_file, router_types_t route_type,
-                       detail_routing_arch_t det_routing_arch, segment_info_t* segment_inf,
-                       timing_info_t timing_inf, int max_subblocks_per_block,
+/* This routine checks that the input architecture file makes sense and *
+ * specifies all the needed parameters.  The parameters must also be    *
+ * self-consistent and make sense.                                      */
+static void check_arch(char* arch_file,
+                       router_types_t route_type,
+                       detail_routing_arch_t det_routing_arch,
+                       segment_info_t* segment_inf,
+                       timing_info_t timing_inf,
+                       int max_subblocks_per_block,
                        chan_width_distr_t chan_width_dist)
 {
-    /* This routine checks that the input architecture file makes sense and *
-     * specifies all the needed parameters.  The parameters must also be    *
-     * self-consistent and make sense.                                      */
-    int i, fatal, opin_switch;
-    double total_segment_freq, chan_width_io;
-    boolean must_be_set[NUMINP];
-    channel_t chan_x_dist, chan_y_dist;
-    fatal = 0;
-
     /* NUMINP parameters can be set in the architecture file.  The first      *
      * NUM_REQUIRED are always mandatory.  The next NUM_DETAILED ones are     *
      * needed only if detailed routing is going to be performed.  The last    *
@@ -1277,7 +1274,8 @@ static void check_arch(char* arch_file, router_types_t route_type,
      * performed.  Expect the corresponding isread for each parameter to be   *
      * 1, except isread[4] (outpin), isread[5] (inpin), isread[13] (segment)  *
      * and isread[14] (switch)  which should all be greater than 0.           */
-
+    boolean must_be_set[NUMINP];
+    int i = -1;
     for (i = 0; i < NUM_REQUIRED; i++) {
         must_be_set[i] = TRUE;
     }
@@ -1298,6 +1296,7 @@ static void check_arch(char* arch_file, router_types_t route_type,
         }
     }
 
+    int fatal = 0;
     for (i = 0; i < NUMINP; i++) {
         if (!must_be_set[i]) {
             continue;
@@ -1332,8 +1331,8 @@ static void check_arch(char* arch_file, router_types_t route_type,
     }
 
     /* Segment info is used for both GLOBAL and DETAILED routing. */
-    total_segment_freq = 0.;
-
+    double total_segment_freq = 0.0;
+    int  opin_switch = 0;
     for (i = 0; i < det_routing_arch.num_segment; i++) {
         total_segment_freq += segment_inf[i].frequency;
         opin_switch = segment_inf[i].opin_switch;
@@ -1355,7 +1354,8 @@ static void check_arch(char* arch_file, router_types_t route_type,
      * widths the same for now.  The router could handle non-uniform widths, *
      * but the routing resource graph generator doesn't build the rr_graph   *
      * for the nonuniform case as yet.                                       */
-
+    channel_t chan_x_dist, chan_y_dist;
+    double chan_width_io = 0.0;
     if (route_type == DETAILED) {
         chan_width_io = chan_width_dist.chan_width_io;
         chan_x_dist = chan_width_dist.chan_x_dist;
@@ -1413,16 +1413,19 @@ static void check_arch(char* arch_file, router_types_t route_type,
 }
 
 
-void print_arch(char* arch_file, router_types_t route_type,
-                detail_routing_arch_t det_routing_arch, segment_info_t* segment_inf,
-                timing_info_t timing_inf, subblock_data_t subblock_data,
+void print_arch(char* arch_file,
+                router_types_t route_type,
+                detail_routing_arch_t det_routing_arch,
+                segment_info_t* segment_inf,
+                timing_info_t timing_inf,
+                subblock_data_t subblock_data,
                 chan_width_distr_t chan_width_dist)
 {
     /* Prints out the architectural parameters for verification in the  *
      * file "arch.echo."  The name of the architecture file is passed   *
      * in and is printed out as well.                                   */
     int i, j;
-    FILE* fp = my_fopen("arch.echo", "w", 0);
+    FILE* fp = my_fopen("arch.echo", "w");
     double chan_width_io = chan_width_dist.chan_width_io;
     channel_t chan_x_dist = chan_width_dist.chan_x_dist;
     channel_t chan_y_dist = chan_width_dist.chan_y_dist;
@@ -1597,9 +1600,9 @@ void init_arch(double aspect_ratio, boolean user_sized)
         exit(1);
     }
 
-    clb_grids = (clb_t**)alloc_matrix(0, num_grid_columns + 1,
+    clb_grids = (grid_tile_t**)alloc_matrix(0, num_grid_columns + 1,
                                       0, num_grid_rows + 1,
-                                      sizeof(clb_t));
+                                      sizeof(grid_tile_t));
     chan_width_x = (int*)my_malloc((num_grid_rows + 1) * sizeof(int));
     chan_width_y = (int*)my_malloc((num_grid_columns + 1) * sizeof(int));
 

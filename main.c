@@ -58,7 +58,7 @@ int num_pin_class; /* Number of different classes.  */
 
 int* chan_width_x, *chan_width_y; /* [0..num_grid_rows] and [0..num_grid_columns] respectively  */
 
-clb_t** clb_grids;   /* Architecture blocks list */
+grid_tile_t** clb_grids;   /* Architecture blocks list */
 
 
 /******** Structures defining the routing ***********/

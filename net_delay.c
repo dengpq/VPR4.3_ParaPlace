@@ -557,10 +557,9 @@ static void free_rc_edge_free_list(t_linked_rc_edge* rc_edge_free_list)
 void print_net_delay(double** net_delay, char* fname)
 {
     /* Dumps the net Tdels into file fname.   */
-    FILE* fp;
-    int inet, ipin;
-    fp = my_fopen(fname, "w", 0);
+    FILE* fp = my_fopen(fname, "w");
 
+    int inet, ipin;
     for (inet = 0; inet < num_nets; inet++) {
         fprintf(fp, "Net: %d.\n", inet);
         fprintf(fp, "Delays:");

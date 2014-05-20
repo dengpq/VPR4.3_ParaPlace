@@ -247,7 +247,7 @@ static void toggle_congestion(void (*drawscreen_ptr)(void))
         num_congested = 0;
 
         for (ivex = 0; ivex < num_rr_nodes; ivex++) {
-            if (rr_node[ivex].occ > rr_node[ivex].capacity) {
+            if (rr_node[ivex].m_usage > rr_node[ivex].capacity) {
                 num_congested++;
             }
         }
@@ -382,7 +382,7 @@ static void drawplace(void)
             y2 = y1 + clb_width;
             setlinestyle(SOLID);
 
-            for (k = 0; k < clb_grids[i][j].occ; k++) {
+            for (k = 0; k < clb_grids[i][j].m_usage; k++) {
                 block_num = clb_grids[i][j].u.io_blocks[k];
                 setcolor(block_color[block_num]);
                 x1 = x_clb_left[i] + k * io_step;
@@ -398,7 +398,7 @@ static void drawplace(void)
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb_grids[i][j].occ; k < io_ratio; k++) {
+            for (k = clb_grids[i][j].m_usage; k < io_ratio; k++) {
                 x1 = x_clb_left[i] + k * io_step;
                 x2 = x1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -412,7 +412,7 @@ static void drawplace(void)
             x2 = x1 + clb_width;
             setlinestyle(SOLID);
 
-            for (k = 0; k < clb_grids[i][j].occ; k++) {
+            for (k = 0; k < clb_grids[i][j].m_usage; k++) {
                 block_num = clb_grids[i][j].u.io_blocks[k];
                 setcolor(block_color[block_num]);
                 y1 = y_clb_bottom[j] + k * io_step;
@@ -427,7 +427,7 @@ static void drawplace(void)
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb_grids[i][j].occ; k < io_ratio; k++) {
+            for (k = clb_grids[i][j].m_usage; k < io_ratio; k++) {
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -445,7 +445,7 @@ static void drawplace(void)
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
 
-            if (clb_grids[i][j].occ != 0) {
+            if (clb_grids[i][j].m_usage != 0) {
                 setlinestyle(SOLID);
                 block_num = clb_grids[i][j].u.blocks;
                 setcolor(block_color[block_num]);
@@ -510,7 +510,7 @@ static void get_block_center(int block_num, double* x, double* y)
         *y = y_clb_bottom[j] + clb_width / 2.;
     } else {  /* IO_TYPE clb.  Have to figure out which subblock it is. */
         int k = -1;
-        for (k = 0; k < clb_grids[i][j].occ; k++)
+        for (k = 0; k < clb_grids[i][j].m_usage; k++)
             if (clb_grids[i][j].u.io_blocks[k] == block_num) {
                 break;
             }
@@ -534,7 +534,7 @@ static void draw_congestion(void)
     setlinewidth(2);
 
     for (ivex = 0; ivex < num_rr_nodes; ivex++) {
-        if (rr_node[ivex].occ > rr_node[ivex].capacity) {
+        if (rr_node[ivex].m_usage > rr_node[ivex].capacity) {
             switch (rr_node[ivex].type) {
                 case CHANX:
                     itrack = rr_node[ivex].ptc_num;
@@ -1359,7 +1359,7 @@ static void highlight_blocks(double x, double y)
 
     /* The user selected the clb at location (i,j). */
     if (clb_grids[i][j].type == CLB_TYPE) {
-        if (clb_grids[i][j].occ == 0) {
+        if (clb_grids[i][j].m_usage == 0) {
             update_message(default_message);
             drawscreen();
             return;
@@ -1373,7 +1373,7 @@ static void highlight_blocks(double x, double y)
             k = (int)((x - x_clb_left[i]) / io_step);
         }
 
-        if (k >= clb_grids[i][j].occ) {   /* Empty spot */
+        if (k >= clb_grids[i][j].m_usage) {   /* Empty spot */
             update_message(default_message);
             drawscreen();
             return;

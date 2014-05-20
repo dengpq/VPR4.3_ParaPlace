@@ -172,18 +172,18 @@ typedef struct s_block {
 
 /* FIXME: Data Structure about clb in FPGA chip architecture.        */
 /* type: CLB_TYPE, IO_TYPE or ILLEGAL.                                         *
- * occ:  number of logical blocks in this physical group.            *
+ * m_usage:  number of logical blocks in this physical group.            *
  * u.blocks: number of the blocks occupying this group if it is a CLB_TYPE. *
  * u.io_blocks[]: numbers of other blocks occupying groups (for      *
- *                IO_TYPE's), up to u.io_blocks[occ-1]                   */
+ *                IO_TYPE's), up to u.io_blocks[m_usage-1]                   */
 typedef struct s_clb {
     block_types_t type;
-    int  occ;
+    int  m_usage;
     union {
         int   blocks;
         int*  io_blocks;
     } u;
-} clb_t;
+} grid_tile_t;
 
 typedef enum e_grid_loc_type {
     BOUNDARY = 0,
@@ -248,13 +248,13 @@ typedef  struct s_type_descriptor {
 } type_descriptor_t;
 typedef const type_descriptor_t*  block_type_ptr;
 
-/* the grid_tile_t was similar with clb_t */
+/* the grid_tile_t was similar with grid_tile_t 
 typedef struct s_grid_tile {
     block_type_ptr  m_type;
     int   m_offset;
     int   m_usage;
     int*  m_blocks;
-} grid_tile_t; /* clb_t */
+} grid_tile_t; */
 
 /* Stores the bounding box of a net in terms of the minimum and  *
  * maximum coordinates of the blocks forming the net, clipped to *
@@ -731,7 +731,7 @@ struct s_trace {
  *             data (this indirection allows quick dynamic changes of rr     *
  *             base costs, and some memory storage savings for fields that   *
  *             have only a few distinct values).                             *
- * occ:        Current occupancy (usage) of this node.                       *
+ * m_usage:        Current occupancy (usage) of this node.                       *
  * capacity:   Capacity of this node (number of routes that can use it).     *
  * num_edges:  Number of edges exiting this node.  That is, the number       *
  *             of nodes to which it connects.                                *
@@ -755,7 +755,7 @@ typedef struct t_rr_node {
     short yhigh;
     short ptc_num;
     short cost_index;
-    short occ;
+    short m_usage;
     short capacity;
     short num_edges;
     rr_types_t type;

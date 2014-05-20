@@ -95,7 +95,7 @@ static void free_crit(linked_vptr_t** chunk_list_head_ptr)
 /**************************************/
 void print_sink_delays(char* fname)
 {
-    FILE* fp = my_fopen(fname, "w", 0);
+    FILE* fp = my_fopen(fname, "w");
     int ilevel = -1;
     for (ilevel = num_tnode_levels - 1; ilevel >= 0; --ilevel) {
         int num_at_level = tnodes_at_level[ilevel].nelem;

@@ -16,7 +16,7 @@ void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)
     /* Prints out the netlist related data structures into the file    *
      * fname.                                                          */
     int i, j, ipin, max_pin;
-    FILE* fp = my_fopen(foutput, "w", 0);
+    FILE* fp = my_fopen(foutput, "w");
     fprintf(fp, "Input netlist file: %s\n", net_file);
     fprintf(fp, "num_primary_inputs: %d, num_primary_outputs: %d, num_clbs: %d\n",
             num_primary_inputs, num_primary_outputs, num_clbs);

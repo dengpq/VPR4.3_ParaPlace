@@ -254,7 +254,7 @@ boolean feasible_routing(void)
     int ivex;
 
     for (ivex = 0; ivex < num_rr_nodes; ivex++)
-        if (rr_node[ivex].occ > rr_node[ivex].capacity) {
+        if (rr_node[ivex].m_usage > rr_node[ivex].capacity) {
             return (FALSE);
         }
 
@@ -273,7 +273,7 @@ void pathfinder_update_one_cost(struct s_trace* route_segment_start,
      * net is added to the routing.  The size of pres_fac determines how severly *
      * oversubscribed rr_nodes are penalized.                                    */
     struct s_trace* tptr;
-    int ivex, occ, capacity;
+    int ivex, m_usage, capacity;
     tptr = route_segment_start;
 
     if (tptr == NULL) {      /* No routing yet. */
@@ -282,18 +282,18 @@ void pathfinder_update_one_cost(struct s_trace* route_segment_start,
 
     while (1) {
         ivex = tptr->index;
-        occ = rr_node[ivex].occ + add_or_sub;
+        m_usage = rr_node[ivex].m_usage + add_or_sub;
         capacity = rr_node[ivex].capacity;
-        rr_node[ivex].occ = occ;
+        rr_node[ivex].m_usage = m_usage;
 
         /* pres_cost is Pn in the Pathfinder paper. I set my pres_cost according to *
          * the overuse that would result from having ONE MORE net use this routing  *
          * node.                                                                    */
 
-        if (occ < capacity) {
+        if (m_usage < capacity) {
             rr_node_route_inf[ivex].pres_cost = 1.;
         } else {
-            rr_node_route_inf[ivex].pres_cost = 1. + (occ + 1 - capacity) *
+            rr_node_route_inf[ivex].pres_cost = 1. + (m_usage + 1 - capacity) *
                                                  pres_fac;
         }
 
@@ -319,20 +319,20 @@ void pathfinder_update_cost(double pres_fac, double acc_fac)
      * times acc_fac.  It also updates pres_cost, since pres_fac may have        *
      * changed.  THIS ROUTINE ASSUMES THE OCCUPANCY VALUES IN RR_NODE ARE UP TO  *
      * DATE.                                                                     */
-    int ivex, occ, capacity;
+    int ivex, m_usage, capacity;
 
     for (ivex = 0; ivex < num_rr_nodes; ivex++) {
-        occ = rr_node[ivex].occ;
+        m_usage = rr_node[ivex].m_usage;
         capacity = rr_node[ivex].capacity;
 
-        if (occ > capacity) {
-            rr_node_route_inf[ivex].acc_cost += (occ - capacity) * acc_fac;
-            rr_node_route_inf[ivex].pres_cost = 1. + (occ + 1 - capacity) *
+        if (m_usage > capacity) {
+            rr_node_route_inf[ivex].acc_cost += (m_usage - capacity) * acc_fac;
+            rr_node_route_inf[ivex].pres_cost = 1. + (m_usage + 1 - capacity) *
                                                  pres_fac;
         }
-        /* If occ == capacity, we don't need to increase acc_cost, but a change    *
+        /* If m_usage == capacity, we don't need to increase acc_cost, but a change    *
          * in pres_fac could have made it necessary to recompute the cost anyway.  */
-        else if (occ == capacity) {
+        else if (m_usage == capacity) {
             rr_node_route_inf[ivex].pres_cost = 1. + pres_fac;
         }
     }
@@ -1018,7 +1018,7 @@ void print_route(char* route_file)
     rr_types_t rr_type;
     struct s_trace* tptr;
     char* name_type[] = {"SOURCE", "SINK", "IPIN", "OPIN", "CHANX", "CHANY"};
-    FILE* fp = my_fopen(route_file, "w", 0);
+    FILE* fp = my_fopen(route_file, "w");
     fprintf(fp, "Array size: %d x %d logic blocks.\n", num_grid_columns, num_grid_rows);
     fprintf(fp, "\nRouting:");
 
@@ -1102,7 +1102,7 @@ void print_route(char* route_file)
 
     fclose(fp);
 #ifdef DEBUG
-    fp = my_fopen("mem.echo", "w", 0);
+    fp = my_fopen("mem.echo", "w");
     fprintf(fp, "\nNum_heap_allocated: %d   Num_trace_allocated: %d\n",
             num_heap_allocated, num_trace_allocated);
     fprintf(fp, "Num_linked_f_pointer_allocated: %d\n",
@@ -1176,15 +1176,15 @@ static void adjust_one_rr_occ_and_pcost(int ivex, int add_or_sub, double
 {
     /* Increments or decrements (depending on add_or_sub) the occupancy of    *
      * one rr_node, and adjusts the present cost of that node appropriately.  */
-    int occ, capacity;
-    occ = rr_node[ivex].occ + add_or_sub;
+    int m_usage, capacity;
+    m_usage = rr_node[ivex].m_usage + add_or_sub;
     capacity = rr_node[ivex].capacity;
-    rr_node[ivex].occ = occ;
+    rr_node[ivex].m_usage = m_usage;
 
-    if (occ < capacity) {
+    if (m_usage < capacity) {
         rr_node_route_inf[ivex].pres_cost = 1.;
     } else {
-        rr_node_route_inf[ivex].pres_cost = 1. + (occ + 1 - capacity) *
+        rr_node_route_inf[ivex].pres_cost = 1. + (m_usage + 1 - capacity) *
                                              pres_fac;
     }
 }
