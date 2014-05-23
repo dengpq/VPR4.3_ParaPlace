@@ -45,8 +45,7 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
     int  error = 0;
     int* num_uses_of_clb_pin = (int*)my_malloc(pins_per_clb * sizeof(int));
     int* num_uses_of_sblk_opin = (int*)my_malloc(
-                                    subblock_data_ptr->max_subblocks_per_block
-                                      * sizeof(int));
+                    subblock_data_ptr->max_subblocks_per_block * sizeof(int));
 
     /* Check that nets fanout and have a driver. */
     int net_index = -1;

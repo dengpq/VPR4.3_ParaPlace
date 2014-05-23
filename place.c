@@ -470,9 +470,7 @@ void try_place(const char*         netlist_file,
         placer_costs_ptr->m_inverse_prev_timing_cost =
                                 1 / placer_costs_ptr->m_timing_cost;
 
-        /* TODO: How about this variables? */
         placer_paras_ptr->m_outer_crit_iter_count = 1;
-
         /* our new cost function uses normalized values of bb_cost and timing_cost,*
          * the value of cost will be reset to 1 at each temperature when       *
          * TIMING_DRIVEN_PLACE is true.                                        */
@@ -693,7 +691,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
 {
     /* Randomly places the blocks to create an initial placement. */
     int max_value = max(num_grid_columns * num_grid_rows,
-                      2 * (num_grid_columns + num_grid_rows));
+                          2 * (num_grid_columns + num_grid_rows));
     pos = (struct s_pos*)my_malloc(max_value * sizeof(struct s_pos));
 
     /* Initialize all occupancy to zero. */
@@ -830,10 +828,15 @@ static void run_main_placement(const placer_opts_t  placer_opts,
         placer_paras_ptr->m_sum_of_squares = placer_paras_ptr->m_success_sum = 0;
 
         /*------   First running timing_analyze before try_swap() in outer loop ------*/
-        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
+        /* for timing_driven_placement, outer_crit_iter_count initial as 1 */
+        const int kouter_crit_iter_count = placer_paras_ptr->m_outer_crit_iter_count;
+        const int krecompute_crit_iter = placer_opts.recompute_crit_iter;
+        if ((placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
               || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
               /* new added for supporting PATH Timing-Driven Placement */
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE)
+              && (kouter_crit_iter_count >= krecompute_crit_iter
+                    || placer_opts.inner_loop_recompute_divider != 0)) {
             perform_timing_analyze(&placer_opts,
                                    net_slack,
                                    net_delay,
@@ -841,6 +844,12 @@ static void run_main_placement(const placer_opts_t  placer_opts,
                                    placer_costs_ptr);
         } /* end of placement_algorithm == TIMING_DRIVEN_PLACE */
         /*----   Run Timing Analyze before try_swap() in Outer Loop OK! -----*/
+
+        ++(placer_paras_ptr->m_outer_crit_iter_count);
+        /* at each temperature change, we update these values to be used  *
+         * for normalizing the tradeoff between timing and wirelength(bb) */
+        placer_costs_ptr->m_inverse_prev_bb_cost = 1 / placer_costs_ptr->m_bb_cost;
+        placer_costs_ptr->m_inverse_prev_timing_cost = 1 / placer_costs_ptr->m_timing_cost;
 
         placer_paras_ptr->m_inner_crit_iter_count = 1;
         const int move_limit = placer_paras_ptr->m_move_limit;
@@ -889,9 +898,10 @@ static void run_main_placement(const placer_opts_t  placer_opts,
         } /* end of INNER LOOP OF VPR */
 
         /* Lines below prevent too much round-off error from accumulating *
-         * in the cost over many iterations.  This round-off can lead to  *
+         * in the cost over many iterations. This round-off can lead to   *
          * error checks failing because the cost is different from what   *
-         * you get when you recompute from scratch.                       */
+         * you get when you recompute from scratch.Update both wirelength *
+         * cost and timing_cost.                                          */
         moves_since_cost_recompute += move_limit;
         if (moves_since_cost_recompute > MAX_MOVES_BEFORE_RECOMPUTE) { /* > 10^6 */
             update_place_cost_after_max_move_times(&placer_opts,
@@ -961,12 +971,16 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
     placer_paras_ptr->m_success_sum = placer_paras_ptr->m_sum_of_squares = 0.0;
 
     /* before run low-temperature placement, it should do timing_analyze! */
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
+    const int kouter_crit_iter_count = placer_paras_ptr->m_outer_crit_iter_count;
+    const int krecompute_crit_iter = placer_opts.recompute_crit_iter; /* 1 */
+    if ((placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
           || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
           /* new added for supporting PATH timing-driven placement */
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
-        /*at each temperature change we update these values to be used     */
-        /*for normalizing the tradeoff between timing and wirelength (bb)  */
+          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE)
+          && (kouter_crit_iter_count >= krecompute_crit_iter
+                || placer_opts.inner_loop_recompute_divider != 0)) {
+            /*at each temperature change we update these values to be used   */
+            /*for normalizing the tradeoff between timing and wirelength(bb) */
         perform_timing_analyze(&placer_opts,
                                net_slack,
                                net_delay,
@@ -974,8 +988,13 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
                                placer_costs_ptr);
     } /* end of running timing-analyze before low-temperature SA-based placement */
 
+    ++(placer_paras_ptr->m_outer_crit_iter_count);
+
+    placer_costs_ptr->m_inverse_prev_bb_cost = 1 / placer_costs_ptr->m_bb_cost;
+    placer_costs_ptr->m_inverse_prev_timing_cost = 1 / placer_costs_ptr->m_timing_cost;
+
     printf("Now low-temperature SA-Based Placement......\n");
-    placer_paras_ptr->m_inner_crit_iter_count = 1;
+    placer_paras_ptr->m_inner_crit_iter_count = 1; /* count running inner-loop times */
     /* TODO Q: After SA-based loop finished, why did the loop occurred here? */
     const int move_limit = placer_paras_ptr->m_move_limit;
     int  inner_iter = -1;
@@ -1023,50 +1042,39 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
 
 
 static void perform_timing_analyze(const placer_opts_t* placer_opts_ptr,
-                                    double**  net_slack,
-                                    double**  net_delay,
-                                    placer_paras_t*  placer_paras_ptr,
-                                    placer_costs_t*  placer_costs_ptr)
+                                   double**  net_slack,
+                                   double**  net_delay,
+                                   placer_paras_t*  placer_paras_ptr,
+                                   placer_costs_t*  placer_costs_ptr)
 {
-    int outer_crit_iter_count = placer_paras_ptr->m_outer_crit_iter_count;
-    if (outer_crit_iter_count >= placer_opts_ptr->recompute_crit_iter
-          || placer_opts_ptr->inner_loop_recompute_divider != 0) {
 #ifdef VERBOSE
-        printf("Outer Loop Recompute Criticalities\n");
+    printf("Outer Loop Recompute Criticalities\n");
 #endif
-        placer_paras_ptr->m_place_delay_value =
-          placer_costs_ptr->m_delay_cost / placer_paras_ptr->m_num_connections;
-        /* For NET_TIMING_DRIVEN_PLACE, all subnets(or connections) will *
-         * set the same and constant Tdel value.                        */
-        if (placer_opts_ptr->place_algorithm == NET_TIMING_DRIVEN_PLACE) {
-            /* delay_cost was total_delay_cost after Timing_Analyze_Graph *
-             * analysis the circuit.                                      */
-            load_constant_net_delay(net_delay,
-                                    placer_paras_ptr->m_place_delay_value);
-        }
+    placer_paras_ptr->m_place_delay_value =
+        placer_costs_ptr->m_delay_cost / placer_paras_ptr->m_num_connections;
+    /* For NET_TIMING_DRIVEN_PLACE, all subnets(or connections) will *
+     * set the same and constant Tdel value.                        */
+    if (placer_opts_ptr->place_algorithm == NET_TIMING_DRIVEN_PLACE) {
+        /* delay_cost was total_delay_cost after Timing_Analyze_Graph *
+         * analysis the circuit.                                      */
+        load_constant_net_delay(net_delay,
+                                placer_paras_ptr->m_place_delay_value);
+    }
 
-        /*note, for path_based, the net Tdel is not updated since it is current,
-         *because it accesses point_to_point_delay array. */
-        load_timing_graph_net_delays(net_delay);
-        /* Compute each vertexes's req_time and arr_time time, and calculate *
-         * the max_delay in critical path.                          */
-        placer_paras_ptr->m_max_delay = calc_all_vertexs_arr_req_time(0);
-        compute_net_slacks(net_slack);
+    /*note, for path_based, the net Tdel is not updated since it is current,
+     *because it accesses point_to_point_delay array. */
+    load_timing_graph_net_delays(net_delay);
+    /* Compute each vertexes's req_time and arr_time time, and calculate *
+     * the max_delay in critical path.                          */
+    placer_paras_ptr->m_max_delay = calc_all_vertexs_arr_req_time(0);
+    compute_net_slacks(net_slack);
 
-        compute_timing_driven_cost(placer_opts_ptr,
-                                   placer_paras_ptr,
-                                   net_slack,
-                                   block_pin_to_tnode,
-                                   placer_costs_ptr);
-        placer_paras_ptr->m_outer_crit_iter_count = 0;
-    } /* end of update timing_cost in TIMING_DRIVEN_PLACE */
-
-    ++(placer_paras_ptr->m_outer_crit_iter_count);
-
-    /* at each temperature change, we update these values to be used  *
-     * for normalizing the tradeoff between timing and wirelength(bb) */
-    placer_costs_ptr->m_inverse_prev_bb_cost = 1 / placer_costs_ptr->m_bb_cost;
-    placer_costs_ptr->m_inverse_prev_timing_cost = 1 / placer_costs_ptr->m_timing_cost;
+    compute_timing_driven_cost(placer_opts_ptr,
+                               placer_paras_ptr,
+                               net_slack,
+                               block_pin_to_tnode,
+                               placer_costs_ptr);
+    placer_paras_ptr->m_outer_crit_iter_count = 0;
 }  /* end of void perform_timing_analyze() */
 
 static void  recompute_td_cost_after_swap_certain_times(const placer_opts_t* placer_opts_ptr,
@@ -1091,7 +1099,8 @@ static void  recompute_td_cost_after_swap_certain_times(const placer_opts_t* pla
             load_constant_net_delay(net_delay,
                                     placer_paras_ptr->m_place_delay_value);
         }
-
+        /* First, load all nets' delay, then calculate all timing-node arr_time,
+         * req_time and max_delay. Last compute timing_cost */
         load_timing_graph_net_delays(net_delay);
         placer_paras_ptr->m_max_delay = calc_all_vertexs_arr_req_time(0);
         compute_net_slacks(net_slack);
@@ -1272,25 +1281,27 @@ static void compute_net_pin_index_values(void)  /* FIXME */
  * sum_x_squared is the summation over n of x^2 and av_x is the average x.   *
  * All operations are done in double precision, since round off error can be *
  * a problem in the initial temp. std_dev calculation for big circuits.      */
-static double get_std_dev(int n,
-                          double sum_x_squared,
-                          double av_x)
+static double get_std_dev(int success_sum,
+                          double sum_of_square,
+                          double av_cost)
 {
     double std_dev = 0.0;
-    if (n <= 1) {
-        std_dev = 0.;
+    if (success_sum <= 1) {
+        std_dev = 0.0;
     } else {
-        std_dev = (sum_x_squared - n * av_x * av_x) / (double)(n - 1);
+        std_dev = (sum_of_square - success_sum * av_cost * av_cost) /
+                    (double)(success_sum - 1);
     }
 
-    if (std_dev > 0.) {      /* Very small variances sometimes round negative */
+    /* Very small variances sometimes round negative */
+    if (std_dev > 0.0) {
         std_dev = sqrt(std_dev);
     } else {
-        std_dev = 0.;
+        std_dev = 0.0;
     }
 
-    return (std_dev);
-}  /* end of static double get_std_dev(int n, */
+    return std_dev;
+}  /* end of static double get_std_dev(int success_sum, */
 
 static double starting_temperature(const annealing_sched_t annealing_sched,
                                    const int*  pins_on_block,
@@ -2484,7 +2495,6 @@ static double recompute_bb_cost(int place_cost_type,
                                 int num_regions)
 {
     double cost = 0;
-
     /* Initialize occupancies to zero if regions are being used. */
     int i, j, inet;
     if (place_cost_type == NONLINEAR_CONG) {
@@ -2498,12 +2508,14 @@ static double recompute_bb_cost(int place_cost_type,
 
     for (inet = 0; inet < num_nets; ++inet) { /* for each net ... */
         if (is_global[inet] == FALSE) {    /* Do only if not global. */
-
             /* Bounding boxes don't have to be recomputed; they're correct. */
             if (place_cost_type != NONLINEAR_CONG) {
                 cost += net_cost[inet];
             } else {    /* Must be nonlinear_cong case. */
-                update_region_occ(inet, &bb_coords[inet], 1, num_regions);
+                update_region_occ(inet,
+                                  &bb_coords[inet],
+                                  1,
+                                  num_regions);
             }
         }
     }

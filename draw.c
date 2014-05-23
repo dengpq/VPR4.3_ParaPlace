@@ -1402,13 +1402,11 @@ static void highlight_blocks(double x, double y)
     } else {     /* CLB_TYPE blocks. */
         for (k = 0; k < pins_per_clb; k++) { /* Each pin on a CLB_TYPE */
             netnum = blocks[block_num].nets[k];
-
             if (netnum == OPEN) {
                 continue;
             }
 
             class = clb_pin_class[k];
-
             if (class_inf[class].type == DRIVER) {  /* Fanout */
                 net_color[netnum] = RED;
 

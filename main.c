@@ -17,7 +17,7 @@
 /******************** Global variables *************************/
 /********** Netlist to be mapped stuff ****************/
 int  num_nets;
-int  num_blocks;
+int  num_blocks; /* num_blocks = num_clbs + num_primary_inputs + num_primary_outputs */
 int  num_primary_inputs; /* maybe it was num_of_primary_inputs */
 int  num_primary_outputs; /* maybe it was num_of_primary_outputs */
 int  num_clbs;
@@ -34,14 +34,14 @@ int num_grid_columns;  /* num_of_block_columns */
 int num_grid_rows;  /* num_of_block_rows */
 int io_ratio;
 int pins_per_clb;
+
 /* Pinloc[0..3][0..pins_per_clb-1].  For each pin pinloc[0..3][i] is 1 if    *
  * pin[i] exists on that side of the clb. See vpr_types.h for correspondence *
  * between the first index and the clb side.                                 */
-
 int** pinloc;
 
-int* clb_pin_class;  /* clb_pin_class[0..pins_per_clb-1].  Gives the class  *
-                      * number of each pin on a clb.                        */
+/* clb_pin_class[0..pins_per_clb-1]. Gives the class number of each pin on a clb. */
+int* clb_pin_class;
 
 /* TRUE if this is a global clb pin -- an input pin to which the netlist can *
  * connect global signals, but which does not connect into the normal        *
@@ -49,7 +49,6 @@ int* clb_pin_class;  /* clb_pin_class[0..pins_per_clb-1].  Gives the class  *
  * stops them from screwing up the input switch pattern in the rr_graph      *
  * generator and from creating extra switches that the area model would      *
  * count.                                                                    */
-
 boolean* is_global_clb_pin; /* [0..pins_per_clb-1]. */
 
 pin_class_t* class_inf;   /* class_inf[0..num_pin_class-1].  Provides   *
@@ -408,7 +407,7 @@ static void parse_command(int argc,
         }
 
         if (strcmp(argv[i], "-recompute_crit_iter") == 0) {
-            placer_opts->recompute_crit_iter = read_int_option(argc, argv, i);
+            placer_opts->recompute_crit_iter = read_int_option(argc, argv, i); /* 0 */
 
             if (placer_opts->recompute_crit_iter < 1) {
                 printf("Error: -recompute_crit_iter must be 1 or more \n");

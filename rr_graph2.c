@@ -445,7 +445,7 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
                 if (i == 0)    /* Leftmost column */
                     index = load_chany_rr_indices(seg_details_y, nodes_per_chan,
                                                   index, i, j);
-            } else if (clb_grids[i][j].type != ILLEGAL_TYPE) {
+            } else if (clb_grids[i][j].type != EMPTY_TYPE) {
                 printf("Error in alloc_and_load_rr_node_indices.  Unexpected clb"
                        " type.\n");
                 exit(1);

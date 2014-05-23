@@ -22,7 +22,7 @@ typedef enum e_block_types {
     OUTPAD_TYPE,
     INPAD_TYPE,
     IO_TYPE,
-    ILLEGAL_TYPE
+    EMPTY_TYPE
 } block_types_t;
 
 /* Gives the Tdels through a subblock.                                    *
@@ -156,35 +156,6 @@ typedef struct s_net {
     int*  blk_pin;
 } net_t;
 
-/* FIXME: Data Structure about clbs or io pads in circuit netlist.   */
-/* name:  Taken from the net which it drives.                        *
- * type:  CLB_TYPE, INPAD_TYPE or OUTPAD_TYPE                                       *
- * nets[]:  List of nets connected to this blocks.  If nets[i] = OPEN *
-            no net is connected to pin i.                            *
- * x,y:  physical location of the placed blocks.                      */
-typedef struct s_block {
-    char* name;
-    enum  e_block_types type; /* CLB_TYPE,INPAD_TYPE,OUTPAD_TYPE,IO_TYPE,ILLEGAL */
-    int*  nets; /* [0..pins_per_clb-1] */
-    int   x;
-    int   y;
-} block_t;
-
-/* FIXME: Data Structure about clb in FPGA chip architecture.        */
-/* type: CLB_TYPE, IO_TYPE or ILLEGAL.                                         *
- * m_usage:  number of logical blocks in this physical group.            *
- * u.blocks: number of the blocks occupying this group if it is a CLB_TYPE. *
- * u.io_blocks[]: numbers of other blocks occupying groups (for      *
- *                IO_TYPE's), up to u.io_blocks[m_usage-1]                   */
-typedef struct s_clb {
-    block_types_t type;
-    int  m_usage;
-    union {
-        int   blocks;
-        int*  io_blocks;
-    } u;
-} grid_tile_t;
-
 typedef enum e_grid_loc_type {
     BOUNDARY = 0,
     FILL,
@@ -232,7 +203,7 @@ typedef  struct s_type_descriptor {
     int  m_max_subblocks_outputs;
 
     /* grid_location info */
-    struct s_grid_loc_def* m_grid_loc_def;
+    grid_loc_def_t* m_grid_loc_def;
     int    m_num_grid_loc_def;
 
     /* timing info */
@@ -247,6 +218,36 @@ typedef  struct s_type_descriptor {
     int  m_index;
 } type_descriptor_t;
 typedef const type_descriptor_t*  block_type_ptr;
+
+
+/* FIXME: Data Structure about clbs or io pads in circuit netlist.   */
+/* name:  Taken from the net which it drives.                        *
+ * type:  CLB_TYPE, INPAD_TYPE or OUTPAD_TYPE                                       *
+ * nets[]:  List of nets connected to this blocks.  If nets[i] = OPEN *
+            no net is connected to pin i.                            *
+ * x,y:  physical location of the placed blocks.                      */
+typedef struct s_block {
+    char* name;
+    enum  e_block_types type; /* CLB_TYPE,INPAD_TYPE,OUTPAD_TYPE,IO_TYPE,ILLEGAL */
+    int*  nets; /* [0..pins_per_clb-1] */
+    int   x;
+    int   y;
+} block_t;
+
+/* FIXME: Data Structure about clb in FPGA chip architecture.        */
+/* type: CLB_TYPE, IO_TYPE or ILLEGAL.                                         *
+ * m_usage:  number of logical blocks in this physical group.            *
+ * u.blocks: number of the blocks occupying this group if it is a CLB_TYPE. *
+ * u.io_blocks[]: numbers of other blocks occupying groups (for      *
+ *                IO_TYPE's), up to u.io_blocks[m_usage-1]                   */
+typedef struct s_clb {
+    block_types_t type;
+    int  m_usage;
+    union {
+        int   blocks;
+        int*  io_blocks;
+    } u;
+} grid_tile_t;
 
 /* the grid_tile_t was similar with grid_tile_t 
 typedef struct s_grid_tile {
@@ -422,9 +423,9 @@ typedef struct s_placer_opts {
     char*              pad_loc_file;
     enum pfreq         place_freq;
     int                num_regions;
-    int                recompute_crit_iter;
+    int                recompute_crit_iter; /* 1 */
     boolean            enable_timing_computations;
-    int                inner_loop_recompute_divider;
+    int                inner_loop_recompute_divider; /* 0 */
     double             td_place_exp_first; /* 1.0 */
     double             td_place_exp_last;  /* 8.0 */
     /* New added for support para_place */
@@ -454,17 +455,16 @@ typedef  struct s_placer_paras {
     boolean   m_fixed_pins;
     int       m_width_factor;
 
-    /* sum_of_squares = total_cost * total_cost; */
-    double    m_sum_of_squares;
     int       m_num_connections;
     double    m_place_delay_value;
     /* crit_exponent was depend on range_limit */
     double    m_max_delay;
     double    m_crit_exponent;
 
-    int       m_outer_crit_iter_count;
+    /* recompute_crit_iter in placer_opts */
+    int       m_outer_crit_iter_count; /* recompute_crit_iter */
     int       m_move_limit;
-    int       m_inner_crit_iter_count;
+    int       m_inner_crit_iter_count; /* inner_crit_iter_count >= inner_recompute_limit */
     int       m_inner_recompute_limit;
     /* update temperature range_limit was depend on sucess_ratio*/
     double    m_range_limit;
@@ -476,6 +476,8 @@ typedef  struct s_placer_paras {
     int       m_total_iter;    /* total_iter += move_limit */
     int       m_success_sum;   /* ++success_sum */
     double    m_success_ratio; /* ratio = success_sum / total_iter */
+    /* sum_of_squares = total_cost * total_cost; */
+    double    m_sum_of_squares;
     double    m_std_dev;
 } placer_paras_t;  /* totally 19 items */
 /******************************************************************************

@@ -370,7 +370,7 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                    tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
                                    wire_to_ipin_switch, seg_details_x, seg_details_y,
                                    CHANX_COST_INDEX_START + num_segment);
-            } else if (clb_grids[i][j].type != ILLEGAL_TYPE) {
+            } else if (clb_grids[i][j].type != EMPTY_TYPE) {
                 printf("Error in alloc_and_load_rr_graph.\n"
                        "Block at (%d, %d) has unknown type (%d).\n", i, j,
                        clb_grids[i][j].type);

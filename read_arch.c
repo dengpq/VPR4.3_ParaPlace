@@ -6,25 +6,25 @@
 #include "globals.h"
 #include "read_arch.h"
 
-/* This source file reads in the architectural description of an FPGA.       *
- * A # symbol anywhere in the input file denotes a comment to the end        *
- * of the line.  Put a \ at the end of a line if you want to continue        *
- * a command across multiple lines.   Non-comment lines are in the           *
- * format keyword value(s).  The entire file should be lower case.           *
- * The keywords and their arguments are:                                     *
- *                                                                           *
- *   io_ratio integer (sets the number of io pads which fit into the           *
- *                  space one CLB_TYPE would use).                                *
- *   chan_width_io double   (Width of the channels between the pads and       *
- *                          core relative to the widest core channel.)       *
- *   chan_width_x [gaussian|uniform|pulse] peak <width> <xpeak> <dc>.        *
- *       (<> bracketed quantities needed only for pulse and gaussian.        *
- *       Width and xpeak values from 0 to 1.  Sets the distribution of       *
- *       tracks for the x-directed channels.)                                *
- *       Other possibility:  delta peak xpeak dc.                            *
- *   chan_width_y [gaussian|uniform|pulse] peak <width> <xpeak> <dc>.        *
- *       (Sets the distribution of tracks for the y-directed channels.)      *
- *   outpin class: integer [top|bottom|left|right] [top|bottom|left|         *
+/* This source file reads in the architectural description of an FPGA.     *
+ * A # symbol anywhere in the input file denotes a comment to the end      *
+ * of the line.  Put a \ at the end of a line if you want to continue      *
+ * a command across multiple lines. Non-comment lines are in the           *
+ * format keyword value(s).  The entire file should be lower case.         *
+ * The keywords and their arguments are:                                   *
+ *                                                                         *
+ *   io_ratio integer(sets the number of io pads which fit into the        *
+ *                    space one CLB_TYPE would use).                       *
+ *   chan_width_io double(Width of the channels between the pads and       *
+ *                        core relative to the widest core channel.)       *
+ *   chan_width_x [gaussian|uniform|pulse] peak <width> <xpeak> <dc>.      *
+ *       (<> bracketed quantities needed only for pulse and gaussian.      *
+ *       Width and xpeak values from 0 to 1.  Sets the distribution of     *
+ *       tracks for the x-directed channels.)                              *
+ *       Other possibility:  delta peak xpeak dc.                          *
+ *   chan_width_y [gaussian|uniform|pulse] peak <width> <xpeak> <dc>.      *
+ *       (Sets the distribution of tracks for the y-directed channels.)    *
+ *   outpin class: integer [top|bottom|left|right] [top|bottom|left|       *
  *       right] ...                                                          *
  *       (Sets the class to which each pin belongs and the side(s) of        *
  *       CLBs on which the physical output pin connection(s) is (are).       *
@@ -116,11 +116,8 @@
  *      subblocks in your architecture.  The first line gives the Tdels for *
  *      subblock 0 (first one listed for each logic blocks in the netlist     *
  *      file) and so on.                                                     */
-
-
 /******************* Defines and types local to this module *****************/
-
-#define NUM_REQUIRED 8    /* Number of parameters that are always required. */
+#define NUM_REQUIRED 8  /* Number of parameters that are always required. */
 #define NUM_DETAILED 9  /* Number needed only if detailed routing used. */
 #define NUM_TIMING 8   /* Number needed only if timing analysis used.  */
 
@@ -132,34 +129,38 @@
 
 
 /******************** Variables local to this module. **********************/
-
 static int isread[NUMINP];
 static const char* names[NUMINP] = {"io_ratio",
-                                    "chan_width_x", "chan_width_y",
-                                    "chan_width_io", "outpin", "inpin",
-                                    "subblocks_per_clb", "subblock_lut_size",
+                                    "chan_width_x",
+                                    "chan_width_y",
+                                    "chan_width_io",
+                                    "outpin",
+                                    "inpin",
+                                    "subblocks_per_clb",
+                                    "subblock_lut_size",
                                     "Fc_output", "Fc_input", "Fc_pad", "Fc_type",
-                                    "switch_block_type",
-                                    "segment", "switch", "R_minW_nmos",
-                                    "R_minW_pmos", "C_ipin_cblock",
+                                    "switch_block_type", "segment", "switch",
+                                    "R_minW_nmos", "R_minW_pmos", "C_ipin_cblock",
                                     "T_ipin_cblock", "T_sblk_opin_to_sblk_ipin",
-                                    "T_clb_ipin_to_sblk_ipin", "T_sblk_opin_to_clb_opin",
-                                    "T_ipad", "T_opad", "T_subblock" };
+                                    "T_clb_ipin_to_sblk_ipin",
+                                    "T_sblk_opin_to_clb_opin",
+                                    "T_ipad", "T_opad", "T_subblock"};
 
 
 /********************** Subroutines local to this module. ******************/
-
 static double get_double(char* ptr, int inp_num, double llim, double ulim,
-                       FILE* fp_arch, char* buf);
+                         FILE* fp_arch, char* buf);
 
 static double get_one_double(char* ptr, int inp_num, double low_lim,
-                           double upp_lim, FILE* fp_arch, char* buf);
+                             double upp_lim, FILE* fp_arch, char* buf);
 
 static int get_int(char* ptr, int inp_num, FILE* fp_arch, char* buf,
                    int min_val);
 
 static char* get_middle_token(FILE* fp, char* buf);
+
 static char* get_last_token(FILE* fp, char* buf);
+
 static void check_keyword(FILE* fp, char* buf, const char* keyword);
 
 static void check_arch(char* arch_file, router_types_t route_type,
@@ -171,15 +172,19 @@ static void check_arch(char* arch_file, router_types_t route_type,
 
 static void fill_arch(void);
 
-static void gechannel_t(char* ptr, channel_t* chan, int inp_num, FILE* fp_arch,
+static void gechannel_t(char* ptr,
+                        channel_t* chan,
+                        int inp_num,
+                        FILE* fp_arch,
                         char* buf);
 
 static void get_pin(char* ptr, int pinnum, pin_types_t type,
                     FILE* fp_arch, char* buf);
+
 static enum e_Fc_type get_Fc_type(char* ptr, FILE* fp_arch, char* buf);
 
 static switch_block_t get_switch_block_type(FILE* fp_arch,
-                                                      char* buf);
+                                            char* buf);
 
 static void gesegment_info_t(FILE* fp_arch, char* buf,
                             segment_info_t* seg_ptr, int num_switch, router_types_t
@@ -201,9 +206,9 @@ static void load_extra_switch_types(detail_routing_arch_t *
                                     det_routing_arch, timing_info_t* timing_inf);
 
 static void countpass(FILE* fp_arch, router_types_t route_type,
-                      segment_info_t** segment_inf_ptr, struct
-                      s_det_routing_arch* det_routing_arch_ptr, timing_info_t
-                      *timing_inf);
+                      segment_info_t** segment_inf_ptr,
+                      detail_routing_arch_t* det_routing_arch_ptr,
+                      timing_info_t*  timing_inf);
 
 
 
@@ -214,10 +219,11 @@ void read_arch(char* arch_file, router_types_t route_type,
                ** segment_inf_ptr, timing_info_t* timing_inf_ptr, subblock_data_t
                *subblock_data_ptr, chan_width_distr_t* chan_width_dist_ptr)
 {
-    char* ptr, buf[BUFSIZE];
-    T_subblock_t* next_T_subblock_ptr;
     FILE* fp_arch = my_fopen(arch_file, "r");
-    countpass(fp_arch, route_type, segment_inf_ptr, det_routing_arch,
+    countpass(fp_arch,
+              route_type,
+              segment_inf_ptr,
+              det_routing_arch,
               timing_inf_ptr);
     rewind(fp_arch);
     linenum = 0;
@@ -225,14 +231,15 @@ void read_arch(char* arch_file, router_types_t route_type,
     int next_segment = 0;
 
     int i, j;
-    for (i = 0; i < NUMINP; i++) {
+    for (i = 0; i < NUMINP; ++i) {
         isread[i] = 0;
     }
 
-    pinloc = (int**)alloc_matrix(0, 3, 0, pins_per_clb - 1, sizeof(int));
-
-    for (i = 0; i <= 3; i++)
-        for (j = 0; j < pins_per_clb; j++) {
+    pinloc = (int**)alloc_matrix(0, 3,
+                                 0, pins_per_clb - 1,
+                                 sizeof(int));
+    for (i = 0; i <= 3; ++i)
+        for (j = 0; j < pins_per_clb; ++j) {
             pinloc[i][j] = 0;
         }
 
@@ -242,17 +249,17 @@ void read_arch(char* arch_file, router_types_t route_type,
     timing_inf_ptr->T_ipin_cblock = 0.;
 
     /* Start the main pass (pass 2).   */
-
+    T_subblock_t* next_T_subblock_ptr;
+    char* ptr, buf[BUFSIZE];
     while ((ptr = my_fgets(buf, BUFSIZE, fp_arch)) != NULL) {
-        ptr = my_strtok(ptr, TOKENS, fp_arch, buf);
 
+        ptr = my_strtok(ptr, TOKENS, fp_arch, buf);
         if (ptr == NULL) {
             continue;    /* Empty or comment line */
         }
 
         /* This linear compare is getting pretty long.  Could speed up with a hash *
          * table search -- do that if this starts getting slow.                    */
-
         if (strcmp(ptr, names[0]) == 0) { /* io_ratio */
             io_ratio = get_int(ptr, 0, fp_arch, buf, 1);
             continue;
@@ -379,14 +386,21 @@ void read_arch(char* arch_file, router_types_t route_type,
         if (strcmp(ptr, names[TIMING_START + 3]) == 0) {
             /* T_clb_ipin_to_sblk_ipin */
             timing_inf_ptr->T_clb_ipin_to_sblk_ipin = get_one_double(ptr,
-                                                                    TIMING_START + 3, -1e-30, 1e20, fp_arch, buf);
+                                                                    TIMING_START + 3,
+                                                                    -1e-30, 1e20,
+                                                                    fp_arch,
+                                                                    buf);
             continue;
         }
 
         if (strcmp(ptr, names[TIMING_START + 4]) == 0) {
             /* T_sblk_opin_to_clb_opin */
             timing_inf_ptr->T_sblk_opin_to_clb_opin = get_one_double(ptr,
-                                                                    TIMING_START + 4, -1e-30, 1e20, fp_arch, buf);
+                                                                     TIMING_START + 4,
+                                                                     -1e-30,
+                                                                     1e20,
+                                                                     fp_arch,
+                                                                     buf);
             continue;
         }
 
@@ -415,7 +429,8 @@ void read_arch(char* arch_file, router_types_t route_type,
     }
 
     if (route_type == GLOBAL) {
-        load_global_segment_and_switch(det_routing_arch, *segment_inf_ptr,
+        load_global_segment_and_switch(det_routing_arch,
+                                       *segment_inf_ptr,
                                        timing_inf_ptr);
     } else {
         load_extra_switch_types(det_routing_arch, timing_inf_ptr);
@@ -428,36 +443,37 @@ void read_arch(char* arch_file, router_types_t route_type,
 }
 
 
-static void countpass(FILE* fp_arch, router_types_t route_type,
-                      segment_info_t** segment_inf_ptr, detail_routing_arch_t
-                      *det_routing_arch_ptr, timing_info_t* timing_inf_ptr)
+/* This routine parses the input architecture file in order to count the    *
+ * number of pinclasses, pins, segments, etc. so storage can be allocated   *
+ * for them before the second(loading) pass begins.                        */
+static void countpass(FILE* fp_arch,
+                      router_types_t route_type,
+                      segment_info_t**  segment_inf_ptr,
+                      detail_routing_arch_t* det_routing_arch_ptr,
+                      timing_info_t* timing_inf_ptr)
 {
-    /* This routine parses the input architecture file in order to count the    *
-     * number of pinclasses, pins, segments, etc. so storage can be allocated   *
-     * for them before the second (loading) pass begins.                        */
-    char buf[BUFSIZE], *ptr;
-    int* pins_per_class, iclass, i, num_segment, num_switch, num_T_subblock;
     linenum = 0;
     num_pin_class = 1;   /* Must be at least 1 class  */
-    num_segment = 0;
-    num_switch = 0;
-    num_T_subblock = 0;
-    pins_per_class = (int*)my_calloc(num_pin_class, sizeof(int));
+    int num_segment = 0;
+    int num_switch = 0;
+    int num_T_subblock = 0;
+    int* pins_per_class = (int*)my_calloc(num_pin_class, sizeof(int));
 
+    int iclass, i;
+    char buf[BUFSIZE], *ptr;
     while ((ptr = my_fgets(buf, BUFSIZE, fp_arch)) != NULL) {
         ptr = my_strtok(ptr, TOKENS, fp_arch, buf);
-
         if (ptr == NULL) { /* Empty or comment line. */
             continue;
         }
 
         if (strcmp(ptr, "inpin") == 0 || strcmp(ptr, "outpin") == 0
                 || strcmp(ptr, "global_inpin") == 0) {
-            iclass = get_class(fp_arch, buf);
 
+            iclass = get_class(fp_arch, buf);
             if (iclass >= num_pin_class) {
-                pins_per_class = (int*) my_realloc(pins_per_class,
-                                                   (iclass + 1) * sizeof(int));
+                pins_per_class = (int*)my_realloc(pins_per_class,
+                                                  (iclass + 1) * sizeof(int));
 
                 for (i = num_pin_class; i <= iclass; i++) {
                     pins_per_class[i] = 0;
@@ -468,11 +484,11 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
 
             pins_per_class[iclass]++;
         } else if (strcmp(ptr, "segment") == 0) {
-            num_segment++;
+            ++num_segment;
         } else if (strcmp(ptr, "switch") == 0) {
-            num_switch++;
+            ++num_switch;
         } else if (strcmp(ptr, "T_subblock") == 0) {
-            num_T_subblock++;
+            ++num_T_subblock;
         }
 
         /* Go to end of line (possibly continued) */
@@ -480,10 +496,9 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
         while (ptr != NULL) {
             ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
         }
-    }
+    }  /* end of while() */
 
     /* Check for missing classes. */
-
     for (i = 0; i < num_pin_class; i++) {
         if (pins_per_class[i] == 0) {
             printf("\nError:  class index %d not used in architecture "
@@ -497,9 +512,8 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
      * pins belong to each class.  Allocate the proper memory.            */
     class_inf = (pin_class_t*) my_malloc(num_pin_class * sizeof(pin_class_t));
     pins_per_clb = 0;
-
-    for (i = 0; i < num_pin_class; i++) {
-        class_inf[i].type = OPEN;                   /* Flag for not set yet. */
+    for (i = 0; i < num_pin_class; ++i) {
+        class_inf[i].type = OPEN;   /* Flag for not set yet. */
         class_inf[i].num_pins = 0;
         class_inf[i].pinlist = (int*) my_malloc(pins_per_class[i] *
                                                 sizeof(int));
@@ -513,7 +527,6 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
     /* Now allocate space for segment and switch information if the route_type   *
      * is DETAILED.  Otherwise ignore the segment and switch information, and    *
      * create only one segment and one switch.                                   */
-
     if (route_type == GLOBAL) {
         num_segment = 1;
         num_switch = 1;
@@ -527,7 +540,7 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
         exit(1);
     }
 
-    *segment_inf_ptr = (segment_info_t*) my_malloc(num_segment *
+    *segment_inf_ptr = (segment_info_t*)my_malloc(num_segment *
                                                   sizeof(segment_info_t));
     det_routing_arch_ptr->num_segment = num_segment;
 
@@ -536,9 +549,8 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
         exit(1);
     }
 
-    switch_inf = (switch_info_t*) my_malloc(num_switch *
-                                                  sizeof(switch_info_t));
-
+    switch_inf = (switch_info_t*)my_malloc(num_switch *
+                                           sizeof(switch_info_t));
     for (i = 0; i < num_switch; i++) {
         switch_inf[i].R = -1.;    /* Flag to show it's not set yet. */
     }
@@ -551,7 +563,7 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
     else {
         timing_inf_ptr->T_subblock = NULL;
     }
-}
+}  /* end of static void countpass(FILE* fp_arch, ) */
 
 
 static int get_class(FILE* fp_arch, char* buf)
@@ -559,10 +571,7 @@ static int get_class(FILE* fp_arch, char* buf)
     /* This routine is called when strtok has moved the pointer to just before *
      * the class: keyword.  It advances the pointer to after the class         *
      * descriptor and returns the class number.                                */
-    int iclass;
-    char* ptr;
-    ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
-
+    char* ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
     if (ptr == NULL) {
         printf("Error in get_class on line %d of architecture file.\n", linenum);
         printf("Expected class: keyword.\n");
@@ -577,15 +586,13 @@ static int get_class(FILE* fp_arch, char* buf)
 
     /* Now get class number. */
     ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
-
     if (ptr == NULL) {
         printf("Error in get_class on line %d of architecture file.\n", linenum);
         printf("Expected class number.\n");
         exit(1);
     }
 
-    iclass = my_atoi(ptr);
-
+    int iclass = my_atoi(ptr);
     if (iclass < 0) {
         printf("Error in get_class on line %d of architecture file.\n", linenum);
         printf("Expected class number >= 0, got %d.\n", iclass);
@@ -596,15 +603,18 @@ static int get_class(FILE* fp_arch, char* buf)
 }
 
 
+/* This routine parses an ipin or outpin line.  It should be called right   *
+ * after the inpin, global_inpin, or outpin keyword has been parsed.        */
 static void get_pin(char* ptr, int pinnum, pin_types_t type,
                     FILE* fp_arch, char* buf)
 {
-    /* This routine parses an ipin or outpin line.  It should be called right   *
-     * after the inpin, global_inpin, or outpin keyword has been parsed.        */
-    int i, valid, iclass, ipin;
-    char* position[4] = {"top", "bottom", "left", "right"};
-    iclass = get_class(fp_arch, buf);
+    char* position[4] = {"top",
+                         "bottom",
+                         "left",
+                         "right"};
 
+    int i, valid;
+    int iclass = get_class(fp_arch, buf);
     if (class_inf[iclass].type == OPEN) {  /* First time through this class. */
         class_inf[iclass].type = type;
     } else {
@@ -616,7 +626,7 @@ static void get_pin(char* ptr, int pinnum, pin_types_t type,
         }
     }
 
-    ipin = class_inf[iclass].num_pins;
+    int ipin = class_inf[iclass].num_pins;
     class_inf[iclass].pinlist[ipin] = pinnum;
     class_inf[iclass].num_pins++;
     clb_pin_class[pinnum] = iclass;
@@ -643,7 +653,6 @@ static void get_pin(char* ptr, int pinnum, pin_types_t type,
 
     do {
         valid = 0;
-
         for (i = 0; i <= 3; i++) {
             if (strcmp(ptr, position[i]) == 0) {
                 pinloc[i][pinnum] = 1;
@@ -694,20 +703,18 @@ static enum e_Fc_type get_Fc_type(char* ptr, FILE* fp_arch, char* buf)
 
 
 static switch_block_t get_switch_block_type(FILE* fp_arch,
-                                                      char* buf)
+                                            char* buf)
 {
     /* Returns the proper value for the switch_block_type member of        *
      *  det_routing_arch.                                                  */
-    char* ptr;
-    switch_block_t sblock_type;
-    ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
-
+    char* ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
     if (ptr == NULL) {
         printf("Error:  missing switch_block_type value on line %d of "
                "architecture file.\n", linenum);
         exit(1);
     }
 
+    switch_block_t sblock_type;
     if (strcmp(ptr, "subset") == 0) {
         sblock_type = SUBSET;
     } else if (strcmp(ptr, "wilton") == 0) {
@@ -721,7 +728,6 @@ static switch_block_t get_switch_block_type(FILE* fp_arch,
     }
 
     ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
-
     if (ptr != NULL) {
         printf("Error:  extra characters at end of line %d.\n", linenum);
         exit(1);
@@ -731,14 +737,13 @@ static switch_block_t get_switch_block_type(FILE* fp_arch,
 }
 
 
+/* Parses one T_subblock line, and loads it into the T_subblock_t structure *
+ * pointed to by T_subblock.                                                */
 static void get_T_subblock(FILE* fp_arch, char* buf, T_subblock_t
                            *T_subblock)
 {
-    /* Parses one T_subblock line, and loads it into the T_subblock_t structure *
-     * pointed to by T_subblock.                                                */
-    char* ptr;
     check_keyword(fp_arch, buf, "T_comb:");
-    ptr = get_middle_token(fp_arch, buf);
+    char* ptr = get_middle_token(fp_arch, buf);
     T_subblock->T_comb = atof(ptr);
 
     if (T_subblock->T_comb < 0.) {
@@ -820,7 +825,6 @@ static void gesegment_info_t(FILE* fp_arch, char* buf, segment_info_t* seg_ptr,
 
     /* Note:  last two switch types are generated automatically.  Shouldn't be *
      * used in the architecture file.                                          */
-
     if (seg_ptr->wire_switch < 0 || seg_ptr->wire_switch >= num_switch - 2) {
         printf("Error on line %d:  wire_switch value (%d) is out of range.\n",
                linenum, seg_ptr->wire_switch);
@@ -833,7 +837,6 @@ static void gesegment_info_t(FILE* fp_arch, char* buf, segment_info_t* seg_ptr,
 
     /* Note:  last two switch types are generated automatically.  Shouldn't be *
      * used in the architecture file.                                          */
-
     if (seg_ptr->opin_switch < 0 || seg_ptr->opin_switch >= num_switch - 2) {
         printf("Error on line %d:  opin_switch value (%d) is out of range.\n",
                linenum, seg_ptr->opin_switch);
@@ -901,8 +904,6 @@ static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,
 {
     /* Loads up all the switch information.                                     */
     char* ptr;
-    int index;
-
     if (route_type != DETAILED) {
         ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
 
@@ -914,8 +915,7 @@ static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,
     }
 
     ptr = get_middle_token(fp_arch, buf);
-    index = my_atoi(ptr);
-
+    int index = my_atoi(ptr);
     if (index < 0) {
         printf("Error on line %d:  switch number (%d) is out of range.\n",
                linenum, index);
@@ -996,13 +996,13 @@ static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,
 }
 
 
-static void load_global_segment_and_switch(detail_routing_arch_t *
-                                           det_routing_arch, segment_info_t* segment_inf, timing_info_t
-                                           *timing_inf)
+/* Loads up the one segment type (unit length segment) and one switch type   *
+ * (pass transistor) needed to make the graph builder allow global routing.  *
+ * Also sets the switch blocks type to SUBSET (works for global routing).     */
+static void load_global_segment_and_switch(detail_routing_arch_t* det_routing_arch,
+                                           segment_info_t* segment_inf,
+                                           timing_info_t* timing_inf)
 {
-    /* Loads up the one segment type (unit length segment) and one switch type   *
-     * (pass transistor) needed to make the graph builder allow global routing.  *
-     * Also sets the switch blocks type to SUBSET (works for global routing).     */
     det_routing_arch->switch_block_type = SUBSET;
     det_routing_arch->Fc_output = 1.;
     det_routing_arch->Fc_input = 1.;
@@ -1060,14 +1060,13 @@ static void load_extra_switch_types(detail_routing_arch_t *
     switch_inf[wire_to_ipin_switch].Tdel = timing_inf->T_ipin_cblock;
 }
 
-
-static void check_keyword(FILE* fp, char* buf, const char* keyword)
+static void check_keyword(FILE* fp,
+                          char* buf,
+                          const char* keyword)
 {
     /* Checks that the next token (which must be a middle token) is the proper *
      * keyword.                                                                */
-    char* ptr;
-    ptr = get_middle_token(fp, buf);
-
+    char* ptr = get_middle_token(fp, buf);
     if (strcmp(ptr, keyword) != 0) {
         printf("Error on line %d:  Expected keyword %s, got %s.\n", linenum,
                keyword, ptr);
@@ -1080,9 +1079,7 @@ static char* get_middle_token(FILE* fp, char* buf)
 {
     /* Gets the next token and prints an error message if it is the last one.   *
      * This token also can't be the first token.                                */
-    char* ptr;
-    ptr = my_strtok(NULL, TOKENS, fp, buf);
-
+    char* ptr = my_strtok(NULL, TOKENS, fp, buf);
     if (ptr == NULL) {
         printf("Error:  line %d is incomplete.\n", linenum);
         exit(1);
@@ -1095,10 +1092,9 @@ static char* get_middle_token(FILE* fp, char* buf)
 static char* get_last_token(FILE* fp, char* buf)
 {
     /* Gets the next token and prints an error message if it isn't the last one. */
-    char* ptr, *ptr2;
-    ptr = get_middle_token(fp, buf);
-    ptr2 = my_strtok(NULL, TOKENS, fp, buf);
+    char* ptr = get_middle_token(fp, buf);
 
+    char* ptr2 = my_strtok(NULL, TOKENS, fp, buf);
     if (ptr2 != NULL) {
         printf("Error:  Extra characters at end of line %d.\n", linenum);
         exit(1);
@@ -1113,17 +1109,14 @@ static int get_int(char* ptr, int inp_num, FILE* fp_arch, char* buf,
 {
     /* This routine gets the next integer on the line.  It must be greater *
      * than or equal to min_val or an error message is printed.            */
-    int val;
     ptr = my_strtok(NULL, TOKENS, fp_arch, buf);
-
     if (ptr == NULL) {
         printf("Error:  missing %s value on line %d.\n",
                names[inp_num], linenum);
         exit(1);
     }
 
-    val = my_atoi(ptr);
-
+    int val = my_atoi(ptr);
     if (val < min_val) {
         printf("Error:  Bad value.  %s = %d on line %d.\n",
                names[inp_num], val, linenum);
@@ -1143,7 +1136,7 @@ static int get_int(char* ptr, int inp_num, FILE* fp_arch, char* buf,
 
 
 static double get_one_double(char* ptr, int inp_num, double low_lim,
-                           double upp_lim, FILE* fp_arch, char* buf)
+                             double upp_lim, FILE* fp_arch, char* buf)
 {
     /* This routine gets one doubleing point number from ptr.  It checks that     *
      * there are no extra characters at the end of the line, and updates isread. *
@@ -1194,10 +1187,8 @@ static double get_double(char* ptr, int inp_num, double low_lim,
  * and gaussian).  All values from 0 to 1, except peak and dc, *
  * which can be anything.                                      *
  * Other possibility:  chan_width_x delta peak xpeak dc        */
-
-
 static void gechannel_t(char* ptr, channel_t* chan, int inp_num, FILE* fp_arch,
-                     char* buf)
+                        char* buf)
 {
     /* This routine parses a channel functional description line.  chan  *
      * is the channel data structure to be loaded, while inp_num is the  *
@@ -1562,8 +1553,10 @@ void init_arch(double aspect_ratio, boolean user_sized)
     /* User specified the dimensions on the command line.  Check if they *
      * will fit the circuit.                                             */
     if (user_sized == TRUE) {
-        if (num_clbs > num_grid_columns * num_grid_rows || num_primary_inputs + num_primary_outputs >
-                2 * io_ratio * (num_grid_columns + num_grid_rows)) {
+        /* clb didn't include the pheriperial io pads */
+        if (num_clbs > num_grid_columns * num_grid_rows
+              ||num_primary_inputs + num_primary_outputs >
+                  io_ratio * (2 * (num_grid_columns + num_grid_rows))) {
             printf("Error:  User-specified size is too small for circuit.\n");
             exit(1);
         }
@@ -1601,8 +1594,8 @@ void init_arch(double aspect_ratio, boolean user_sized)
     }
 
     clb_grids = (grid_tile_t**)alloc_matrix(0, num_grid_columns + 1,
-                                      0, num_grid_rows + 1,
-                                      sizeof(grid_tile_t));
+                                            0, num_grid_rows + 1,
+                                            sizeof(grid_tile_t));
     chan_width_x = (int*)my_malloc((num_grid_rows + 1) * sizeof(int));
     chan_width_y = (int*)my_malloc((num_grid_columns + 1) * sizeof(int));
 
@@ -1613,9 +1606,10 @@ void init_arch(double aspect_ratio, boolean user_sized)
 static void fill_arch(void)
 {
     /* allocate io_blocks arrays. Done this way to save storage */
-    int  i = 2 * io_ratio * (num_grid_columns + num_grid_rows);
-    int* index = (int*) my_malloc(i * sizeof(int));
+    int  total_io_locations = 2 * io_ratio * (num_grid_columns + num_grid_rows);
+    int* index = (int*)my_malloc(total_io_locations * sizeof(int));
 
+    int i = 0;
     for (i = 1; i <= num_grid_columns; ++i) {
         clb_grids[i][0].u.io_blocks = index;
         index += io_ratio;
@@ -1649,8 +1643,8 @@ static void fill_arch(void)
     }
 
     /* Nothing goes in the corners.      */
-    clb_grids[0][0].type = clb_grids[num_grid_columns + 1][0].type = ILLEGAL_TYPE;
+    clb_grids[0][0].type = clb_grids[num_grid_columns + 1][0].type = EMPTY_TYPE;
     clb_grids[0][num_grid_rows + 1].type =
-        clb_grids[num_grid_columns + 1][num_grid_rows + 1].type = ILLEGAL_TYPE;
-}
+        clb_grids[num_grid_columns + 1][num_grid_rows + 1].type = EMPTY_TYPE;
+} /* end of static void fill_arch(void) */
 
