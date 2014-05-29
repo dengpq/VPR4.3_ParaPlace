@@ -412,13 +412,15 @@ void free_rr_graph(void)
 
 static void alloc_net_rr_terminals(void)
 {
-    int inet;
-    net_rr_terminals = (int**) my_malloc(num_nets * sizeof(int*));
+    net_rr_terminals = (int**)my_malloc(num_nets * sizeof(int*));
 
-    for (inet = 0; inet < num_nets; inet++) {
-        net_rr_terminals[inet] = (int*) my_chunk_malloc(net[inet].num_pins *
-                                                        sizeof(int), &rr_mem_chunk_list_head, &chunk_bytes_avail,
-                                                        &chunk_next_avail_mem);
+    int inet;
+    for (inet = 0; inet < num_nets; ++inet) {
+        net_rr_terminals[inet] = (int*)my_chunk_malloc(net[inet].num_net_pins *
+                                                       sizeof(int),
+                                                       &rr_mem_chunk_list_head,
+                                                       &chunk_bytes_avail,
+                                                       &chunk_next_avail_mem);
     }
 }
 
@@ -433,16 +435,16 @@ void load_net_rr_terminals(int** rr_node_indices,
     int inet, ipin, ivex, iblk, i, j, blk_pin, iclass;
     rr_types_t rr_type;
 
-    for (inet = 0; inet < num_nets; inet++) {
+    for (inet = 0; inet < num_nets; ++inet) {
         rr_type = SOURCE;     /* First pin only */
-
-        for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
-            iblk = net[inet].blocks[ipin];
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 0; ipin < knum_net_pins; ++ipin) {
+            iblk = net[inet].node_blocks[ipin];
             i = blocks[iblk].x;
             j = blocks[iblk].y;
 
             if (clb_grids[i][j].type == CLB_TYPE) {
-                blk_pin = net[inet].blk_pin[ipin];
+                blk_pin = net[inet].node_block_pins[ipin];
                 iclass = clb_pin_class[blk_pin];
             } else {
                 iclass = which_io_block(iblk);

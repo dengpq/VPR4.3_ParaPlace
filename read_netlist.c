@@ -189,9 +189,9 @@ static void init_parse(int doall)
         num_driver = (int*)my_malloc(num_nets * sizeof(int));
         temp_num_pins = (int*)my_malloc(num_nets * sizeof(int));
 
-        for (i = 0; i < num_nets; i++) {
+        for (i = 0; i < num_nets; ++i) {
             num_driver[i] = 0;
-            net[i].num_pins = 0;
+            net[i].num_net_pins = 0;
         }
 
         /* Allocate blocks pin connection storage.  Some is wasted for io blocks. *
@@ -199,7 +199,7 @@ static void init_parse(int doall)
          * reduce the memory housekeeping overhead of malloc.                    */
         tmp_ptr = (int*)my_malloc(pins_per_clb * num_blocks * sizeof(int));
 
-        for (i = 0; i < num_blocks; i++) {
+        for (i = 0; i < num_blocks; ++i) {
             blocks[i].nets = tmp_ptr + i * pins_per_clb;
         }
 
@@ -215,26 +215,32 @@ static void init_parse(int doall)
         while (h_ptr != NULL) {
             nindex = h_ptr->index;
             pin_count = h_ptr->count;
-            net[nindex].blocks = (int*)my_chunk_malloc(pin_count *
-                                                        sizeof(int), NULL, &chunk_bytes_avail, &chunk_next_avail_mem);
-            net[nindex].blk_pin = (int*)my_chunk_malloc(pin_count *
-                                                         sizeof(int), NULL, &chunk_bytes_avail, &chunk_next_avail_mem);
+            net[nindex].node_blocks = (int*)my_chunk_malloc(pin_count * sizeof(int),
+                                                            NULL,
+                                                            &chunk_bytes_avail,
+                                                            &chunk_next_avail_mem);
+            net[nindex].node_block_pins = (int*)my_chunk_malloc(pin_count * sizeof(int),
+                                                                NULL,
+                                                                &chunk_bytes_avail,
+                                                                &chunk_next_avail_mem);
             /* For avoiding assigning values beyond end of pins array. */
             temp_num_pins[nindex] = pin_count;
             len = strlen(h_ptr->name);
-            net[nindex].name = (char*)my_chunk_malloc((len + 1) *
-                                                       sizeof(char), NULL, &chunk_bytes_avail, &chunk_next_avail_mem);
+            net[nindex].name = (char*)my_chunk_malloc((len + 1) * sizeof(char),
+                                                       NULL,
+                                                       &chunk_bytes_avail,
+                                                       &chunk_next_avail_mem);
             strcpy(net[nindex].name, h_ptr->name);
             h_ptr = get_next_hash(hash_table, &hash_iterator);
         }
 
         /* Allocate storage for subblock info. (what's in each logic blocks) */
-        num_subblocks_per_block = (int*) my_realloc(num_subblocks_per_block,
-                                                    num_blocks * sizeof(int));
-        subblock_inf = (subblock_t**) my_malloc(num_blocks *
-                                                sizeof(subblock_t*));
+        num_subblocks_per_block = (int*)my_realloc(num_subblocks_per_block,
+                                                   num_blocks * sizeof(int));
+        subblock_inf = (subblock_t**)my_malloc(num_blocks *
+                                               sizeof(subblock_t*));
 
-        for (i = 0; i < num_blocks; i++) {
+        for (i = 0; i < num_blocks; ++i) {
             if (num_subblocks_per_block[i] == 0) {
                 subblock_inf[i] = NULL;
             } else {
@@ -735,13 +741,13 @@ static int add_net(char* ptr,
         }
 
         net_index = h_ptr->index;
-        ++(net[net_index].num_pins);
+        ++(net[net_index].num_net_pins);
 
         if (type == DRIVER) {
             ++num_driver[net_index];
             j = 0; /* Driver always in position 0 of pinlist */
         } else {
-            j = net[net_index].num_pins - num_driver[net_index];
+            j = net[net_index].num_net_pins - num_driver[net_index];
             /* num_driver is the number of signal drivers of this net. *
              * It should always be zero or 1 unless the netlist is bad.*/
             if (j >= temp_num_pins[net_index]) {
@@ -752,8 +758,8 @@ static int add_net(char* ptr,
             }
         }
 
-        net[net_index].blocks[j] = block_num;
-        net[net_index].blk_pin[j] = block_pin_num;
+        net[net_index].node_blocks[j] = block_num;
+        net[net_index].node_block_pins[j] = block_pin_num;
     }  /* end of else (doall != 0) */
     return net_index;
 }  /* end of static int add_net() */

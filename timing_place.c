@@ -49,7 +49,7 @@ static double** alloc_all_nets_crit(linked_vptr_t** chunk_list_head_ptr)
 
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_pins-1)
+        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_net_pins-1)
                                                      * sizeof(double),
                                                    chunk_list_head_ptr,
                                                    &chunk_bytes_avail,
@@ -75,7 +75,7 @@ static double** alloc_all_nets_local_crit_weight(linked_vptr_t** chunk_list_head
 
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_pins-1)
+        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_net_pins-1)
                                                      * sizeof(double),
                                                    chunk_list_head_ptr,
                                                    &chunk_bytes_avail,
@@ -130,8 +130,9 @@ void load_criticalities(double** net_slack,
             continue;
         }
 
+        const int knum_net_pins = net[inet].num_net_pins;
         int ipin = 0;
-        for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) {
         /* clip the criticality to never go negative(could happen for a  *
          * constant generator since it's slack is huge).                 *
          * criticality<SOURCE, ipin> = 1 - slack<SOURCE, ipn>/max_delay  */
@@ -188,12 +189,16 @@ void free_lookups_and_criticalities(const placer_opts_t* placer_opts_ptr,
         free(timing_place_crit);
     }
     free_crit(&timing_place_crit_chunk_list_head);
+
     free_timing_graph(*net_slack);
+
     free_net_delay(*net_delay,
                    &net_delay_chunk_list_head);
+
     /* Now added free data structure used for NEW_TIMING_DRIVEN_PLACE */
     free(front_crit_path_through_pin);
     front_crit_path_through_pin = NULL;
+
     free(behind_crit_path_through_pin);
     behind_crit_path_through_pin = NULL;
     /* then free double** subnet_local_crit_weight[0..num_nets-1][0..num_pins-1] */

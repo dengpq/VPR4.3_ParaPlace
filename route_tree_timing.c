@@ -444,16 +444,18 @@ void free_route_tree(t_rt_node* rt_node)
 }
 
 
-void update_net_delays_from_route_tree(double* net_delay, t_rt_node
-                                       ** rt_node_of_sink, int inet)
+void update_net_delays_from_route_tree(double* net_delay,
+                                       t_rt_node** rt_node_of_sink,
+                                       int inet)
 {
     /* Goes through all the sinks of this net and copies their Tdel values from *
      * the route_tree to the net_delay array.                                    */
     int isink;
     t_rt_node* sink_rt_node;
-
-    for (isink = 1; isink < net[inet].num_pins; isink++) {
+    const int knum_net_pins = net[inet].num_net_pins;
+    for (isink = 1; isink < knum_net_pins; ++isink) {
         sink_rt_node = rt_node_of_sink[isink];
         net_delay[isink] = sink_rt_node->Tdel;
     }
 }
+

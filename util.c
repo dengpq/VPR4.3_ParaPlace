@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "util.h"
+#include <stdarg.h>
 
 #include "vpr_types.h"
 

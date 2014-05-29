@@ -54,20 +54,21 @@ void check_route(router_types_t route_type, int num_switch,
     connected_to_route = (boolean*) my_calloc(num_rr_nodes, sizeof(boolean));
     max_pins = 0;
 
-    for (inet = 0; inet < num_nets; inet++) {
-        max_pins = max(max_pins, net[inet].num_pins);
+    for (inet = 0; inet < num_nets; ++inet) {
+        max_pins = max(max_pins, net[inet].num_net_pins);
     }
 
-    pin_done = (boolean*) my_malloc(max_pins * sizeof(boolean));
+    pin_done = (boolean*)my_malloc(max_pins * sizeof(boolean));
 
     /* Now check that all nets are indeed connected. */
 
-    for (inet = 0; inet < num_nets; inet++) {
+    for (inet = 0; inet < num_nets; ++inet) {
         if (is_global[inet]) {             /* Skip global nets. */
             continue;
         }
 
-        for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 0; ipin < knum_net_pins; ++ipin) {
             pin_done[ipin] = FALSE;
         }
 
@@ -89,7 +90,6 @@ void check_route(router_types_t route_type, int num_switch,
         tptr = tptr->next;
 
         /* Check the rest of the net */
-
         while (tptr != NULL) {
             ivex = tptr->index;
             check_node_and_range(ivex, route_type);
@@ -103,7 +103,6 @@ void check_route(router_types_t route_type, int num_switch,
                 }
             } else {
                 connects = check_adjacent(prev_node, ivex);
-
                 if (!connects) {
                     printf("Error in check_route while checking net %d.\n",
                            inet);
@@ -136,7 +135,7 @@ void check_route(router_types_t route_type, int num_switch,
             exit(1);
         }
 
-        for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
+        for (ipin = 0; ipin < knum_net_pins; ++ipin) {
             if (pin_done[ipin] == FALSE) {
                 printf("Error in check_route.  Net %d does not \n", inet);
                 printf("connect to pin %d.\n", ipin);
@@ -165,9 +164,11 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
     int ipin, block_num, iclass, blk_pin;
     if (clb_grids[i][j].type == CLB_TYPE) {
         block_num = clb_grids[i][j].u.blocks;
-        for (ipin = 1; ipin < net[inet].num_pins; ipin++) { /* All net SINKs */
-            if (net[inet].blocks[ipin] == block_num) {
-                blk_pin = net[inet].blk_pin[ipin];
+
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) { /* All net SINKs */
+            if (net[inet].node_blocks[ipin] == block_num) {
+                blk_pin = net[inet].node_block_pins[ipin];
                 iclass = clb_pin_class[blk_pin];
 
                 if (iclass == ptc_num) {
@@ -184,8 +185,9 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
     } else { /* IO_TYPE pad */
         block_num = clb_grids[i][j].u.io_blocks[ptc_num];
 
-        for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
-            if (net[inet].blocks[ipin] == block_num) {   /* Pad:  no pin class */
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 0; ipin < knum_net_pins; ++ipin) {
+            if (net[inet].node_blocks[ipin] == block_num) {   /* Pad:  no pin class */
                 ifound++;
                 pin_done[ipin] = TRUE;
             }
@@ -222,7 +224,7 @@ static void check_source(int ivex, int inet)
     i = rr_node[ivex].xlow;
     j = rr_node[ivex].ylow;
     ptc_num = rr_node[ivex].ptc_num;
-    block_num = net[inet].blocks[0];
+    block_num = net[inet].node_blocks[0];
 
     if (blocks[block_num].x != i || blocks[block_num].y != j) {
         printf("Error in check_source:  net SOURCE is in wrong location (%d,%d)."
@@ -231,7 +233,7 @@ static void check_source(int ivex, int inet)
     }
 
     if (blocks[block_num].type == CLB_TYPE) {
-        blk_pin = net[inet].blk_pin[0];
+        blk_pin = net[inet].node_block_pins[0];
         iclass = clb_pin_class[blk_pin];
 
         if (ptc_num != iclass) {

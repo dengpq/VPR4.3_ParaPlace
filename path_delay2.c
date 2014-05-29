@@ -267,7 +267,7 @@ double print_critical_path_node(FILE* fp,
     if (type == INPAD_OPIN || type == CLB_OPIN) {
         inet = blocks[iblk].nets[ipin];
         fprintf(fp, "Net to next node: #%d (%s).  Pins on net: %d.\n", inet,
-                net[inet].name, net[inet].num_pins);
+                net[inet].name, net[inet].num_net_pins);
     }
 
     fprintf(fp, "\n");

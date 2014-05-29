@@ -390,7 +390,8 @@ static void calc_subnet_local_crit_weight(double** net_slack,
             source_vertex_idx = locate_source_vertex_index_by_net_index(inet);
 
             int ipin = 0;
-            for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
+            const int knum_net_pins = net[inet].num_net_pins;
+            for (ipin = 1; ipin < knum_net_pins; ++ipin) {
                 discount_value = compute_discount_value(ground_num,
                                                         net_slack[inet][ipin],
                                                         crit_delay);
@@ -447,10 +448,10 @@ int find_sink_vertex_index_by_net_and_pin_index(const int net_index,
     assert(net != NULL && block_pin_to_tnode != NULL && (net_index >= 0
             && net_index <= num_nets - 1));
     /* first, according to net_index, locate the connected CLB_TYPE */
-    const int block_index = net[net_index].blocks[sink_pin_index];
+    const int block_index = net[net_index].node_blocks[sink_pin_index];
 
     /* according to sink_pin_index, locate the accurate CLB_TYPE's input_pin */
-    const int block_pin_index = net[net_index].blk_pin[sink_pin_index];
+    const int block_pin_index = net[net_index].node_block_pins[sink_pin_index];
 
     /* Last, according to block_pin_to_tnode, get sink_vertex_idx. */
     int sink_vertex_idx = block_pin_to_tnode[block_index][block_pin_index];
@@ -894,20 +895,22 @@ static void build_block_output_tnode(int ivex,
     assert(inet != OPEN);          /* Sanity check. */
 
     driver_node_index_of_net[inet] = ivex;
-    int num_edges = net[inet].num_pins - 1;
+    int num_edges = net[inet].num_net_pins - 1;
     vertexes[ivex].num_edges = num_edges;
     vertexes[ivex].out_edges = (edge_t*)my_chunk_malloc(num_edges * sizeof(edge_t),
                                                        &tedge_ch_list_head,
                                                        &tedge_ch_bytes_avail,
                                                        &tedge_ch_next_avail);
     edge_t* tedge = vertexes[ivex].out_edges;
+    const int knum_net_pins = net[inet].num_net_pins;
+
     int iedge = -1;
-    for (iedge = 0; iedge < net[inet].num_pins-1; ++iedge) {
-        int to_blk = net[inet].blocks[iedge + 1];
+    for (iedge = 0; iedge < knum_net_pins - 1; ++iedge) {
+        int to_blk = net[inet].node_blocks[iedge + 1];
 
         int to_pin = -1;
         if (blocks[to_blk].type == CLB_TYPE) {
-            to_pin = net[inet].blk_pin[iedge + 1];
+            to_pin = net[inet].node_block_pins[iedge + 1];
         } else { /* OUTPAD_TYPE */
             to_pin = 0;
         }
@@ -1160,13 +1163,14 @@ static boolean is_global_clock(int iblk,
         return FALSE;
     }
 
+    const int knum_net_pins = net[inet].num_net_pins;
     int ipin = -1;
-    for (ipin = 1; ipin < net[inet].num_pins; ipin++) {
-        int to_blk = net[inet].blocks[ipin];
-        int to_pin = net[inet].blk_pin[ipin];
+    for (ipin = 1; ipin < knum_net_pins; ++ipin) {
+        int to_blk = net[inet].node_blocks[ipin];
+        int to_pin = net[inet].node_block_pins[ipin];
 
         int isub = -1;
-        for (isub = 0; isub < num_subblocks_per_block[to_blk]; isub++) {
+        for (isub = 0; isub < num_subblocks_per_block[to_blk]; ++isub) {
             if (subblock_inf[to_blk][isub].clock == to_pin) {
                 return TRUE;
             }
@@ -1223,8 +1227,9 @@ void load_timing_graph_net_delays(double** net_delay) /* FIXME */
 
         /* Note that the edges of a vertexes corresponding to a CLB_TYPE or INPAD_TYPE opin must*
          * be in the same order as the pins of the net driven by the vertexes.        */
+        const int knum_net_pins = net[inet].num_net_pins;
         int ipin = 0;
-        for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) {
             tedge[ipin-1].Tdel = net_delay[inet][ipin]; /* tedge's Tdel*/
         }
     }
@@ -1240,7 +1245,8 @@ double** alloc_net_slack(void)
 
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_pins-1) * sizeof(double),
+        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_net_pins-1)
+                                                      * sizeof(double),
                                                    &tedge_ch_list_head,
                                                    &tedge_ch_bytes_avail,
                                                    &tedge_ch_next_avail);
@@ -1283,10 +1289,11 @@ void print_net_slack(char* fname, double** net_slack)
     fprintf(fp, "Net #\tSlacks\n\n");
 
     int inet, ipin;
-    for (inet = 0; inet < num_nets; inet++) {
+    for (inet = 0; inet < num_nets; ++inet) {
         fprintf(fp, "%5d", inet);
 
-        for (ipin = 1; ipin < net[inet].num_pins; ipin++) {
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) {
             fprintf(fp, "\t%g", net_slack[inet][ipin]);
         }
 

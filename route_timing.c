@@ -54,12 +54,14 @@ boolean try_timing_driven_route(router_opts_t router_opts,
      * on each net as critical to get reasonable net Tdel estimates.           */
     int inet, ipin;
     for (inet = 0; inet < num_nets; ++inet) {
+        const int knum_net_pins = net[inet].num_net_pins;
+
         if (is_global[inet] == FALSE) {
-            for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
+            for (ipin = 1; ipin < knum_net_pins; ++ipin) {
                 net_slack[inet][ipin] = 0.0;
             }
         } else {  /* Set Tdel of global signals to zero. */
-            for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
+            for (ipin = 1; ipin < knum_net_pins; ++ipin) {
                 net_delay[inet][ipin] = 0.0;
             }
         }
@@ -181,7 +183,7 @@ static int get_max_pins_per_net(void)
     int inet = 0;
     for (inet = 0; inet < num_nets; ++inet) {
         if (is_global[inet] == FALSE) {
-            max_pins_per_net = max(max_pins_per_net, net[inet].num_pins);
+            max_pins_per_net = max(max_pins_per_net, net[inet].num_net_pins);
         }
     }
 
@@ -209,7 +211,9 @@ boolean timing_driven_route_net(int inet, double pres_fac,
     /* TODO: What did the pin_criticality used for? */
     int ipin = 0;
     double pin_crit = 0.0;
-    for (ipin = 1; ipin < net[inet].num_pins; ++ipin) { /* For all sinks */
+
+    const int knum_net_pins = net[inet].num_net_pins;
+    for (ipin = 1; ipin < knum_net_pins; ++ipin) { /* For all sinks */
         /* was this should be max((max_criticality - net_slack[ipin])/T_crit, 0.0) */
         pin_crit = max(max_criticality - net_slack[ipin] / T_crit, 0.0);
         pin_crit = pow(pin_crit, criticality_exp);
@@ -217,7 +221,7 @@ boolean timing_driven_route_net(int inet, double pres_fac,
         pin_criticality[ipin] = pin_crit;
     }
 
-    int num_sinks = net[inet].num_pins - 1; /* only one source, other was sinks */
+    int num_sinks = net[inet].num_net_pins - 1; /* only one source, other was sinks */
     /* Sorting int sink_order[num_sinks], according to pin_criticality */
     heapsort(sink_order, pin_criticality, num_sinks);
 
@@ -562,7 +566,7 @@ static void update_rr_base_costs(int inet, double largest_criticality)
 {
     /* Changes the base costs of different types of rr_nodes according to the *
      * criticality, fanout, etc. of the current net being routed (inet).      */
-    double fanout = net[inet].num_pins - 1.0;
+    double fanout = net[inet].num_net_pins - 1.0;
     double factor = sqrt(fanout);
 
     int index = 0;
@@ -590,8 +594,9 @@ static void timing_driven_check_net_delays(double** net_delay)
     net_delay_check = alloc_net_delay(&ch_list_head_net_delay_check);
     load_net_delay_from_routing(net_delay_check);
 
-    for (inet = 0; inet < num_nets; inet++) {
-        for (ipin = 1; ipin < net[inet].num_pins; ipin++) {
+    for (inet = 0; inet < num_nets; ++inet) {
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) {
             if (net_delay_check[inet][ipin] == 0.) { /* Should be only GLOBAL nets */
                 if (net_delay_check[inet][ipin] != 0.) {
                     printf("Error in timing_driven_check_net_delays: net %d pin %d."

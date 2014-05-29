@@ -207,14 +207,15 @@ static void alloc_net(void)
         int len = strlen("TEMP_NET");
         net[i].name = (char*)my_malloc((len + 1) * sizeof(char));
         strcpy(net[NET_USED].name, "TEMP_NET");
-        net[i].num_pins = BLOCK_COUNT;
-        net[i].blocks = (int*)my_malloc(BLOCK_COUNT * sizeof(int));
-        net[i].blocks[NET_USED_SOURCE_BLOCK] = NET_USED_SOURCE_BLOCK;/*driving blocks*/
-        net[i].blocks[NET_USED_SINK_BLOCK] = NET_USED_SINK_BLOCK;  /*target blocks */
-        net[i].blk_pin = (int*)my_malloc(BLOCK_COUNT * sizeof(int));
+        net[i].num_net_pins = BLOCK_COUNT;
+        net[i].node_blocks = (int*)my_malloc(BLOCK_COUNT * sizeof(int));
+        net[i].node_blocks[NET_USED_SOURCE_BLOCK] = NET_USED_SOURCE_BLOCK;/*driving blocks*/
+        net[i].node_blocks[NET_USED_SINK_BLOCK] = NET_USED_SINK_BLOCK;  /*target blocks */
+        net[i].node_block_pins = (int*)my_malloc(BLOCK_COUNT * sizeof(int));
         /*the values for this are allocated in assign_blocks_and_route_net*/
     }
 }
+
 /**************************************/
 static void alloc_block(void)
 {
@@ -290,16 +291,16 @@ static void free_and_reset_internal_structures(net_t* original_net,
     int i;
 
     /*there should be only one net to free, but this is safer*/
-    for (i = 0; i < NET_COUNT; i++) {
+    for (i = 0; i < NET_COUNT; ++i) {
         free(net[i].name);
-        free(net[i].blocks);
-        free(net[i].blk_pin);
+        free(net[i].node_blocks);
+        free(net[i].node_block_pins);
     }
 
     free(net);
     net = original_net;
 
-    for (i = 0; i < BLOCK_COUNT; i++) {
+    for (i = 0; i < BLOCK_COUNT; ++i) {
         free(blocks[i].name);
         free(blocks[i].nets);
     }
@@ -386,22 +387,22 @@ static void assign_locations(block_types_t source_type,
 
     int isubblk = 0;
     if (source_type == CLB_TYPE) {
-        net[NET_USED].blk_pin[NET_USED_SOURCE_BLOCK] = get_first_pin(DRIVER);
+        net[NET_USED].node_block_pins[NET_USED_SOURCE_BLOCK] = get_first_pin(DRIVER);
         clb_grids[source_x_loc][source_y_loc].u.blocks = SOURCE_BLOCK;
         clb_grids[source_x_loc][source_y_loc].m_usage += 1;
     } else {
-        net[NET_USED].blk_pin[NET_USED_SOURCE_BLOCK] = OPEN;
+        net[NET_USED].node_block_pins[NET_USED_SOURCE_BLOCK] = OPEN;
         isubblk = clb_grids[source_x_loc][source_y_loc].m_usage;
         clb_grids[source_x_loc][source_y_loc].u.io_blocks[isubblk] = SOURCE_BLOCK;
         clb_grids[source_x_loc][source_y_loc].m_usage += 1;
     }
 
     if (sink_type == CLB_TYPE) {
-        net[NET_USED].blk_pin[NET_USED_SINK_BLOCK] = get_first_pin(RECEIVER);
+        net[NET_USED].node_block_pins[NET_USED_SINK_BLOCK] = get_first_pin(RECEIVER);
         clb_grids[sink_x_loc][sink_y_loc].u.blocks = SINK_BLOCK;
         clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
     } else {
-        net[NET_USED].blk_pin[NET_USED_SINK_BLOCK] = OPEN;
+        net[NET_USED].node_block_pins[NET_USED_SINK_BLOCK] = OPEN;
         isubblk = clb_grids[sink_x_loc][sink_y_loc].m_usage;
         clb_grids[sink_x_loc][sink_y_loc].u.io_blocks[isubblk] = SINK_BLOCK;
         clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
@@ -430,8 +431,10 @@ static double assign_blocks_and_route_net(block_types_t source_type,
                           nodes_per_chan);
     double T_crit = 1.0;
     double pres_fac = 0.0; /* ignore congestion */
+
+    const int knum_net_pins = net[NET_USED].num_net_pins;
     int ipin = 0;
-    for (ipin = 1; ipin < net[NET_USED].num_pins; ++ipin) {
+    for (ipin = 1; ipin < knum_net_pins; ++ipin) {
         net_slack[NET_USED][ipin] = 0;
     }
 

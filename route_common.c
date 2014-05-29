@@ -495,8 +495,9 @@ void mark_ends(int inet)
      * the same net to two inputs of an and-gate (and-gate inputs are logically *
      * equivalent, so both will connect to the same SINK).                      */
     /* int ipin = 0; */
+    const int knum_net_pins = net[inet].num_net_pins;
     int ipin = 0;
-    for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
+    for (ipin = 1; ipin < knum_net_pins; ++ipin) {
         int ivex = net_rr_terminals[inet][ipin];
         ++(rr_node_route_inf[ivex].target_flag);
     }
@@ -728,32 +729,31 @@ void free_rr_node_route_structs(void)
     rr_node_route_inf = NULL;   /* Mark as free */
 }
 
-
+/* This routine loads the bounding box arrays used to limit the space  *
+ * searched by the maze router when routing each net.  The search is   *
+ * limited to channels contained with the net bounding box expanded    *
+ * by bb_factor channels on each side.  For example, if bb_factor is   *
+ * 0, the maze router must route each net within its bounding box.     *
+ * If bb_factor = num_grid_columns, the maze router will search every  *
+ * channel in the FPGA if necessary. The bounding boxes returned by    *
+ * this routine are different from the ones used by the placer in that *
+ * they are clipped to lie within (0,0) and (num_grid_columns+1,       *
+ * num_grid_rows+1) rather than (1,1) and (num_grid_columns,num_grid_rows).*/
 static void load_route_bb(int bb_factor)
 {
-    /* This routine loads the bounding box arrays used to limit the space  *
-     * searched by the maze router when routing each net.  The search is   *
-     * limited to channels contained with the net bounding box expanded    *
-     * by bb_factor channels on each side.  For example, if bb_factor is   *
-     * 0, the maze router must route each net within its bounding box.     *
-     * If bb_factor = num_grid_columns, the maze router will search every channel in     *
-     * the FPGA if necessary.  The bounding boxes returned by this routine *
-     * are different from the ones used by the placer in that they are     *
-     * clipped to lie within (0,0) and (num_grid_columns+1,num_grid_rows+1) rather than (1,1) and   *
-     * (num_grid_columns,num_grid_rows).                                                            */
     int k, xmax, ymax, xmin, ymin, x, y, inet;
-
-    for (inet = 0; inet < num_nets; inet++) {
-        x = blocks[net[inet].blocks[0]].x;
-        y = blocks[net[inet].blocks[0]].y;
+    for (inet = 0; inet < num_nets; ++inet) {
+        x = blocks[net[inet].node_blocks[0]].x;
+        y = blocks[net[inet].node_blocks[0]].y;
         xmin = x;
         ymin = y;
         xmax = x;
         ymax = y;
 
-        for (k = 1; k < net[inet].num_pins; k++) {
-            x = blocks[net[inet].blocks[k]].x;
-            y = blocks[net[inet].blocks[k]].y;
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (k = 1; k < knum_net_pins; ++k) {
+            x = blocks[net[inet].node_blocks[k]].x;
+            y = blocks[net[inet].node_blocks[k]].y;
 
             if (x < xmin) {
                 xmin = x;
@@ -1083,11 +1083,12 @@ void print_route(char* route_file)
             fprintf(fp, "\n\nNet %d (%s): global net connecting:\n\n", inet,
                     net[inet].name);
 
-            for (ipin = 0; ipin < net[inet].num_pins; ipin++) {
-                block_num = net[inet].blocks[ipin];
+            const int knum_net_pins = net[inet].num_net_pins;
+            for (ipin = 0; ipin < knum_net_pins; ++ipin) {
+                block_num = net[inet].node_blocks[ipin];
 
                 if (blocks[block_num].type == CLB_TYPE) {
-                    blk_pin = net[inet].blk_pin[ipin];
+                    blk_pin = net[inet].node_block_pins[ipin];
                     iclass = clb_pin_class[blk_pin];
                 } else {            /* IO_TYPE pad */
                     iclass = OPEN;   /* Class not relevant */

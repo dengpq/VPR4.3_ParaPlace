@@ -1422,18 +1422,14 @@ static double read_double_option(int argc, char* argv[], int iarg)
 {
     /* This routine returns the value in argv[iarg+1].  This value must exist *
      * and be a double, or an error message is printed and the program exits.  */
-    int num_read;
-    double value;
-    num_read = 0;
-
+    int num_read = 0;
+    double value = 0;
     /* Does value exist for this option? */
-
     if (argc > iarg + 1) {
         num_read = sscanf(argv[iarg + 1], "%f", &value);
     }
 
     /* Value exists and was a proper double? */
-
     if (num_read != 1) {
         printf("Error:  %s option requires a double parameter.\n\n", argv[iarg]);
         exit(1);

@@ -484,11 +484,12 @@ static void drawnets(void)
         }
 
         setcolor(net_color[inet]);
-        b1 = net[inet].blocks[0];
+        b1 = net[inet].node_blocks[0];
         get_block_center(b1, &x1, &y1);
 
-        for (ipin = 1; ipin < net[inet].num_pins; ipin++) {
-            b2 = net[inet].blocks[ipin];
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) {
+            b2 = net[inet].node_blocks[ipin];
             get_block_center(b2, &x2, &y2);
             drawline(x1, y1, x2, y2);
             /*      x1 = x2;  */    /* Uncomment to draw a chain instead of a star. */
@@ -1387,16 +1388,16 @@ static void highlight_blocks(double x, double y)
     if (blocks[block_num].type == OUTPAD_TYPE) {
         netnum = blocks[block_num].nets[0];    /* Only net. */
         net_color[netnum] = BLUE;        /* Outpad drives nothing */
-        fanblk = net[netnum].blocks[0];    /* Net driver */
+        fanblk = net[netnum].node_blocks[0];    /* Net driver */
         block_color[fanblk] = BLUE;
     } else if (blocks[block_num].type == INPAD_TYPE) {
         netnum = blocks[block_num].nets[0];    /* Only net. */
         net_color[netnum] = RED;         /* Driven by INPAD_TYPE */
 
         /* Highlight fanout blocks in RED */
-
-        for (ipin = 1; ipin < net[netnum].num_pins; ipin++) {
-            fanblk = net[netnum].blocks[ipin];
+        const int knum_net_pins = net[netnum].num_net_pins;
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) {
+            fanblk = net[netnum].node_blocks[ipin];
             block_color[fanblk] = RED;
         }
     } else {     /* CLB_TYPE blocks. */
@@ -1410,13 +1411,14 @@ static void highlight_blocks(double x, double y)
             if (class_inf[class].type == DRIVER) {  /* Fanout */
                 net_color[netnum] = RED;
 
-                for (ipin = 1; ipin < net[netnum].num_pins; ipin++) {
-                    fanblk = net[netnum].blocks[ipin];
+                const int knum_net_pins = net[netnum].num_net_pins;
+                for (ipin = 1; ipin < knum_net_pins; ++ipin) {
+                    fanblk = net[netnum].node_blocks[ipin];
                     block_color[fanblk] = RED;
                 }
             } else {       /* This net is fanin to the blocks. */
                 net_color[netnum] = BLUE;
-                fanblk = net[netnum].blocks[0];
+                fanblk = net[netnum].node_blocks[0];
                 block_color[fanblk] = BLUE;
             }
         }

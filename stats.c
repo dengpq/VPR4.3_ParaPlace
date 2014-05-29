@@ -292,20 +292,21 @@ void print_wirelen_prob_dist(void)
     prob_dist = (double*) my_calloc(num_grid_columns + num_grid_rows + 3, sizeof(double));
     norm_fac = 0.;
 
-    for (inet = 0; inet < num_nets; inet++) {
+    for (inet = 0; inet < num_nets; ++inet) {
         if (is_global[inet] == FALSE) {
             get_num_bends_and_length(inet, &bends, &length, &segments);
             /*  Assign probability to two integer lengths proportionately -- i.e.  *
              *  if two_point_length = 1.9, add 0.9 of the pins to prob_dist[2] and *
              *  only 0.1 to prob_dist[1].                                          */
-            two_point_length = (double) length / (double)(net[inet].num_pins - 1);
+            const int knum_net_pins = net[inet].num_net_pins;
+            two_point_length = (double) length / (double)(knum_net_pins - 1);
             index = (int) two_point_length;
-            prob_dist[index] += (net[inet].num_pins - 1.) * (1 - two_point_length
+            prob_dist[index] += (knum_net_pins - 1.0) * (1 - two_point_length
                                                              + index);
             index++;
-            prob_dist[index] += (net[inet].num_pins - 1.) * (1 - index +
+            prob_dist[index] += (knum_net_pins - 1.0) * (1 - index +
                                                              two_point_length);
-            norm_fac += net[inet].num_pins - 1.;
+            norm_fac += knum_net_pins - 1.0;
         }
     }
 

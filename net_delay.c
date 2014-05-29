@@ -128,7 +128,8 @@ double** alloc_net_delay(linked_vptr_t** chunk_list_head_ptr)
 
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_pins-1) * sizeof(double),
+        double* tmp_ptr = (double*)my_chunk_malloc((net[inet].num_net_pins-1)
+                                                      * sizeof(double),
                                                    chunk_list_head_ptr,
                                                    &chunk_bytes_avail,
                                                    &chunk_next_avail_mem);
@@ -433,7 +434,8 @@ static void load_one_net_delay(double** net_delay, int inet, t_linked_rc_ptr
     t_rc_node* rc_node;
     t_linked_rc_ptr* linked_rc_ptr, *next_ptr;
 
-    for (ipin = 1; ipin < net[inet].num_pins; ipin++) {
+    const int knum_net_pins = net[inet].num_net_pins;
+    for (ipin = 1; ipin < knum_net_pins; ++ipin) {
         ivex = net_rr_terminals[inet][ipin];
         linked_rc_ptr = rr_node_to_rc_node[ivex].next;
         rc_node = rr_node_to_rc_node[ivex].rc_node;
@@ -477,10 +479,11 @@ static void load_one_constant_net_delay(double** net_delay, int inet, double
                                         delay_value)
 {
     /* Sets each entry of the net_delay array for net inet to delay_value. */
-    int ipin;
     /* TODO: why did all subnets(or connections) set same dealy_value? */
     /* This is used to NET_TIMING_DRIVEN_PLACE. */
-    for (ipin = 1; ipin < net[inet].num_pins; ++ipin) {
+    const int knum_net_pins = net[inet].num_net_pins;
+    int ipin;
+    for (ipin = 1; ipin < knum_net_pins; ++ipin) {
         net_delay[inet][ipin] = delay_value;
     }
 }
@@ -560,11 +563,12 @@ void print_net_delay(double** net_delay, char* fname)
     FILE* fp = my_fopen(fname, "w");
 
     int inet, ipin;
-    for (inet = 0; inet < num_nets; inet++) {
+    for (inet = 0; inet < num_nets; ++inet) {
         fprintf(fp, "Net: %d.\n", inet);
         fprintf(fp, "Delays:");
 
-        for (ipin = 1; ipin < net[inet].num_pins; ipin++) {
+        const int knum_net_pins = net[inet].num_net_pins;
+        for (ipin = 1; ipin < knum_net_pins; ++ipin) {
             fprintf(fp, " %g", net_delay[inet][ipin]);
         }
 

@@ -24,17 +24,19 @@ void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)
             num_blocks, num_nets, num_globals);
     fprintf(fp, "\nNet\tName\t\t#Pins\tDriver\t\tRecvs. (blocks, pin)\n");
 
-    for (i = 0; i < num_nets; i++) {
+    for (i = 0; i < num_nets; ++i) {
         fprintf(fp, "\n%d\t%s\t", i, net[i].name);
 
         if (strlen(net[i].name) < 8) {
             fprintf(fp, "\t");    /* Name field is 16 chars wide */
         }
 
-        fprintf(fp, "%d", net[i].num_pins);
+        fprintf(fp, "%d", net[i].num_net_pins);
 
-        for (j = 0; j < net[i].num_pins; j++) {
-            fprintf(fp, "\t(%4d,%4d)", net[i].blocks[j], net[i].blk_pin[j]);
+        const int knum_net_pins = net[i].num_net_pins;
+        for (j = 0; j < knum_net_pins; ++j) {
+            fprintf(fp, "\t(%4d,%4d)", net[i].node_blocks[j],
+                    net[i].node_block_pins[j]);
         }
     }
 

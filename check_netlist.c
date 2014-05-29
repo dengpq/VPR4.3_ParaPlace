@@ -57,7 +57,7 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
             ++error;
         }
 
-        if ((net[net_index].num_pins - num_driver[net_index]) < 1) {
+        if ((net[net_index].num_net_pins - num_driver[net_index]) < 1) {
             printf("Error:  net %s has no fanout.\n",
                    net[net_index].name);
             ++error;
@@ -117,13 +117,13 @@ static int check_connections_to_global_clb_pins(int inet)
      * although a CLB_TYPE output generates a warning. I could make a global CLB_TYPE  *
      * output pin type to allow people to make architectures that didn't have *
      * this warning.                                                          */
+    const int knum_net_pins = net[inet].num_net_pins;
     int ipin = -1;
-    int num_pins = net[inet].num_pins;
-    for (ipin = 0; ipin < num_pins; ++ipin) {
-        int iblk = net[inet].blocks[ipin];
+    for (ipin = 0; ipin < knum_net_pins; ++ipin) {
+        int iblk = net[inet].node_blocks[ipin];
 
         if (blocks[iblk].type == CLB_TYPE) {  /* I/O pads are exempt. */
-            int blk_pin = net[inet].blk_pin[ipin];
+            int blk_pin = net[inet].node_block_pins[ipin];
 
             if (is_global_clb_pin[blk_pin] != is_global[inet]) {
                 /* Allow a CLB_TYPE output pin to drive a global net (warning only). */
@@ -152,7 +152,7 @@ static int check_connections_to_global_clb_pins(int inet)
                 }
             }
         } /* end of if(blocks[iblk].type == CLB_TYPE) */
-    }   /* End for all pins */
+    } /* End for all net pins */
 
     return error;
 }

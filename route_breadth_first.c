@@ -105,7 +105,8 @@ static boolean breadth_first_route_net(int inet, double bend_cost)
     int remaining_connections_to_sink = 0;
 
     int i = 0;
-    for (i = 1; i < net[inet].num_pins; ++i) { /* Need n-1 wires to connect n pins */
+    const int knum_net_pins = net[inet].num_net_pins;
+    for (i = 1; i < knum_net_pins; ++i) { /* Need n-1 wires to connect n pins */
         breadth_first_expand_trace_segment(trace_node,
                                            remaining_connections_to_sink);
 

@@ -142,18 +142,19 @@ typedef enum e_pad_loc_type {
 
 /* FIXME: Data Structure about Net in circuit netlist.                       */
 /* name:  ASCII net name for informative annotations in the output.          *
- * num_pins:  Number of pins on this net.                                    *
- * blocks: [0..num_pins-1]. Contains the block_index to which the pins of    *
- *         this net connect. Output in pins[0], inputs in other entries.     *
- * blk_pin: [0..num_pins-1]. Contains the pin_index number(on a blocks) to wh *
- *          -ich each net terminal connects. Since I/O pads have only one pin*
- *          , I set blk_pin to OPEN for them (it should only be used for clb *
- *          pins). For clbs, it is the blocks pin number, as expected.        */
+ * num_net_pins:  Number of pins on this net.                                *
+ * node_blocks: [0..num_pins-1]. Contains the block_index to which the pins of*
+ *              this net connect. Output in pins[0], inputs in other entries. *
+ * node_block_pins: [0..num_pins-1]. Contains the pin_index number(on a blocks)*
+ *                  to which each net terminal connects. Since I/O pads have   *
+ *                  only one pin, I set blk_pin to OPEN for them (it should    *
+ *                  only be used for clb pins). For clbs, it is the blocks pin *
+ *                  number, as expected.        */
 typedef struct s_net {
     char* name;
-    int   num_pins;
-    int*  blocks;
-    int*  blk_pin;
+    int   num_net_pins;
+    int*  node_blocks;     /* int*  blocks; */
+    int*  node_block_pins; /* int*  blk_pin; */
 } net_t;
 
 typedef enum e_grid_loc_type {
@@ -222,7 +223,7 @@ typedef const type_descriptor_t*  block_type_ptr;
 
 /* FIXME: Data Structure about clbs or io pads in circuit netlist.   */
 /* name:  Taken from the net which it drives.                        *
- * type:  CLB_TYPE, INPAD_TYPE or OUTPAD_TYPE                                       *
+ * type:  CLB_TYPE, INPAD_TYPE or OUTPAD_TYPE                        *
  * nets[]:  List of nets connected to this blocks.  If nets[i] = OPEN *
             no net is connected to pin i.                            *
  * x,y:  physical location of the placed blocks.                      */
@@ -232,17 +233,19 @@ typedef struct s_block {
     int*  nets; /* [0..pins_per_clb-1] */
     int   x;
     int   y;
+    int   z;
 } block_t;
 
 /* FIXME: Data Structure about clb in FPGA chip architecture.        */
-/* type: CLB_TYPE, IO_TYPE or ILLEGAL.                                         *
- * m_usage:  number of logical blocks in this physical group.            *
+/* type: CLB_TYPE, IO_TYPE or ILLEGAL.                               *
+ * m_usage:  number of logical blocks in this physical group.        *
  * u.blocks: number of the blocks occupying this group if it is a CLB_TYPE. *
  * u.io_blocks[]: numbers of other blocks occupying groups (for      *
  *                IO_TYPE's), up to u.io_blocks[m_usage-1]                   */
 typedef struct s_clb {
     block_types_t type;
     int  m_usage;
+    int  m_offset;
     union {
         int   blocks;
         int*  io_blocks;
