@@ -132,7 +132,7 @@ void* my_realloc(void* ptr,
     }
     if ((ret = realloc(ptr, size)) == NULL) {
         fprintf(stderr, "Error:  Unable to realloc memory.  Aborting.\n"
-                "ptr = %p, size = %d.\n", ptr, size);
+                "ptr = %p, size = %u.\n", ptr, size);
 
         if (ptr == NULL) {
             printf(ERRTAG "my_realloc: ptr == NULL. Aborting.\n");

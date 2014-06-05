@@ -1042,7 +1042,7 @@ void print_route(char* route_file)
                 switch (rr_type) {
                     case IPIN:
                     case OPIN:
-                        if (clb_grids[ilow][jlow].block_type == CLB_TYPE) {
+                        if (clb_grids[ilow][jlow].grid_type == CLB_TYPE) {
                             fprintf(fp, " Pin: ");
                         } else { /* IO_TYPE Pad. */
                             fprintf(fp, " Pad: ");
@@ -1057,7 +1057,7 @@ void print_route(char* route_file)
 
                     case SOURCE:
                     case SINK:
-                        if (clb_grids[ilow][jlow].block_type == CLB_TYPE) {
+                        if (clb_grids[ilow][jlow].grid_type == CLB_TYPE) {
                             fprintf(fp, " Class: ");
                         } else { /* IO_TYPE Pad. */
                             fprintf(fp, " Pad: ");

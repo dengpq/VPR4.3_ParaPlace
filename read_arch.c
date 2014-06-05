@@ -1637,34 +1637,34 @@ static void fill_arch(void)
 
     /* Initialize type, and occupancy. */
     for (i = 1; i <= num_grid_columns; ++i) {
-        clb_grids[i][0].block_type = IO_TYPE;
+        clb_grids[i][0].grid_type = IO_TYPE;
         clb_grids[i][0].m_offset = 0;
 
-        clb_grids[i][num_grid_rows + 1].block_type = IO_TYPE; /* perimeter (IO_TYPE) cells */
+        clb_grids[i][num_grid_rows + 1].grid_type = IO_TYPE; /* perimeter (IO_TYPE) cells */
         clb_grids[i][num_grid_rows + 1].m_offset = 0;
     }
 
     for (i = 1; i <= num_grid_rows; ++i) {
-        clb_grids[0][i].block_type = IO_TYPE;
+        clb_grids[0][i].grid_type = IO_TYPE;
         clb_grids[0][i].m_offset = 0;
 
-        clb_grids[num_grid_columns + 1][i].block_type = IO_TYPE;
+        clb_grids[num_grid_columns + 1][i].grid_type = IO_TYPE;
         clb_grids[num_grid_columns + 1][i].m_offset = 0;
     }
 
     for (i = 1; i <= num_grid_columns; ++i) { /* interior (LUT) cells */
         int j = 0;
         for (j = 1; j <= num_grid_rows; ++j) {
-            clb_grids[i][j].block_type = CLB_TYPE;
+            clb_grids[i][j].grid_type = CLB_TYPE;
             clb_grids[i][j].m_offset = 0;
         }
     }
 
     /* Nothing goes in the corners.  */
-    clb_grids[0][0].block_type = clb_grids[num_grid_columns + 1][0].block_type =
+    clb_grids[0][0].grid_type = clb_grids[num_grid_columns + 1][0].grid_type =
         EMPTY_TYPE;
-    clb_grids[0][num_grid_rows + 1].block_type =
-        clb_grids[num_grid_columns + 1][num_grid_rows + 1].block_type = EMPTY_TYPE;
+    clb_grids[0][num_grid_rows + 1].grid_type =
+        clb_grids[num_grid_columns + 1][num_grid_rows + 1].grid_type = EMPTY_TYPE;
 } /* end of static void fill_arch(void) */
 
 static void init_grid_capacity(void)

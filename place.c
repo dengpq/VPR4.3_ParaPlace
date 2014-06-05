@@ -800,11 +800,11 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int k = 0;
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].block_type == CLB_TYPE
+            if (clb_grids[i][j].grid_type == CLB_TYPE
                     && clb_grids[i][j].m_usage == 1) {
                 blocks[clb_grids[i][j].u.blocks].x = i;
                 blocks[clb_grids[i][j].u.blocks].y = j;
-            } else if (clb_grids[i][j].block_type == IO_TYPE) {
+            } else if (clb_grids[i][j].grid_type == IO_TYPE) {
                 for (k = 0; k < clb_grids[i][j].m_usage; ++k) {
                     blocks[clb_grids[i][j].u.io_blocks[k]].x = i;
                     blocks[clb_grids[i][j].u.io_blocks[k]].y = j;
@@ -3487,7 +3487,7 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                 continue;
             }
 
-            if (clb_grids[i][j].block_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == CLB_TYPE) {
                 int block_num = clb_grids[i][j].u.blocks;
                 if (blocks[block_num].block_type != CLB_TYPE) {
                     printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",

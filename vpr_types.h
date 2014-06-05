@@ -18,8 +18,8 @@
 
 /* Block Types in input netlist file */
 typedef enum e_block_types {
-    CLB_TYPE = 0,
-    IO_TYPE,
+    CLB_TYPE = 0, /* 1 */
+    IO_TYPE,      /* io_ratio */
     EMPTY_TYPE,
     OUTPAD_TYPE,
     INPAD_TYPE
@@ -243,7 +243,7 @@ typedef struct s_block {
  * u.io_blocks[]: numbers of other blocks occupying groups (for      *
  *                IO_TYPE's), up to u.io_blocks[m_usage-1]                   */
 typedef struct s_clb {
-    block_types_t  block_type;
+    block_types_t  grid_type;
     int  m_usage;
     int  m_offset;
     union {

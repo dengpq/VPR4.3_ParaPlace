@@ -34,7 +34,7 @@ void read_user_pad_loc(char* pad_loc_file)
 
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].block_type == IO_TYPE) {
+            if (clb_grids[i][j].grid_type == IO_TYPE) {
                 for (isubblk = 0; isubblk < io_ratio; ++isubblk) {
                     clb_grids[i][j].u.io_blocks[isubblk] = OPEN;    /* Flag for err. check */
                 }
@@ -111,7 +111,7 @@ void read_user_pad_loc(char* pad_loc_file)
         blocks[block_num].x = i;   /* Will be reloaded by initial_placement anyway. */
         blocks[block_num].y = j;   /* I need to set .x only as a done flag.         */
 
-        if (clb_grids[i][j].block_type != IO_TYPE) {
+        if (clb_grids[i][j].grid_type != IO_TYPE) {
             printf("Error:  attempt to place IO_TYPE blocks %s in \n", bname);
             printf("an illegal location (%d, %d).\n", i, j);
             exit(1);
@@ -139,7 +139,7 @@ void read_user_pad_loc(char* pad_loc_file)
 
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].block_type == IO_TYPE) {
+            if (clb_grids[i][j].grid_type == IO_TYPE) {
                 for (isubblk = 0; isubblk < clb_grids[i][j].m_usage; isubblk++) {
                     if (clb_grids[i][j].u.io_blocks[isubblk] == OPEN) {
                         printf("Error:  The IO_TYPE blocks at (%d, %d) do not have \n"
@@ -165,14 +165,14 @@ void dump_clbs(void)
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             printf("clb (%d,%d):  type: %d  m_usage: %d\n",
-                   i, j, clb_grids[i][j].block_type,
+                   i, j, clb_grids[i][j].grid_type,
                    clb_grids[i][j].m_usage);
 
-            if (clb_grids[i][j].block_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == CLB_TYPE) {
                 printf("blocks: %d\n", clb_grids[i][j].u.blocks);
             }
 
-            if (clb_grids[i][j].block_type == IO_TYPE) {
+            if (clb_grids[i][j].grid_type == IO_TYPE) {
                 printf("io_blocks: ");
 
                 for (index = 0; index < clb_grids[i][j].m_usage; index++) {
@@ -261,7 +261,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             clb_grids[i][j].m_usage = 0;
 
-            if (clb_grids[i][j].block_type == IO_TYPE) {
+            if (clb_grids[i][j].grid_type == IO_TYPE) {
                 for (isubblock = 0; isubblock < io_ratio; ++isubblock) {
                     clb_grids[i][j].u.io_blocks[isubblock] = OPEN;
                 }
@@ -348,7 +348,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
         blocks[block_num].x = i;
         blocks[block_num].y = j;
 
-        if (clb_grids[i][j].block_type == CLB_TYPE) {
+        if (clb_grids[i][j].grid_type == CLB_TYPE) {
             if (blocks[block_num].block_type != CLB_TYPE) {
                 printf("Error in read_place.  Attempt to place blocks #%d (%s) in\n",
                        block_num, bname);
@@ -358,7 +358,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
 
             clb_grids[i][j].u.blocks = block_num;
             clb_grids[i][j].m_usage++;
-        } else if (clb_grids[i][j].block_type == IO_TYPE) {
+        } else if (clb_grids[i][j].grid_type == IO_TYPE) {
             if (blocks[block_num].block_type != INPAD_TYPE
                   && blocks[block_num].block_type != OUTPAD_TYPE) {
                 printf("Error in read_place.  Attempt to place blocks #%d (%s) in\n",
@@ -398,7 +398,7 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
 
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].block_type == IO_TYPE) {
+            if (clb_grids[i][j].grid_type == IO_TYPE) {
                 for (isubblock = 0; isubblock < clb_grids[i][j].m_usage; isubblock++) {
                     if (clb_grids[i][j].u.io_blocks[isubblock] == OPEN) {
                         printf("Error:  The IO_TYPE blocks at (%d, %d) do not have \n"

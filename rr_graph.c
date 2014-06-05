@@ -342,7 +342,7 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
 
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].block_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == CLB_TYPE) {
 
                 build_rr_clb(rr_node_indices, Fc_output, clb_opin_to_tracks,
                              nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
@@ -358,7 +358,7 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                wire_to_ipin_switch, seg_details_x, seg_details_y,
                                CHANX_COST_INDEX_START + num_segment);
 
-            } else if (clb_grids[i][j].block_type == IO_TYPE) {
+            } else if (clb_grids[i][j].grid_type == IO_TYPE) {
                 build_rr_pads(rr_node_indices, Fc_pad, pads_to_tracks,
                               nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
                               seg_details_y);
@@ -374,10 +374,10 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                    tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
                                    wire_to_ipin_switch, seg_details_x, seg_details_y,
                                    CHANX_COST_INDEX_START + num_segment);
-            } else if (clb_grids[i][j].block_type != EMPTY_TYPE) {
+            } else if (clb_grids[i][j].grid_type != EMPTY_TYPE) {
                 printf("Error in alloc_and_load_rr_graph.\n"
                        "Block at (%d, %d) has unknown type (%d).\n", i, j,
-                       clb_grids[i][j].block_type);
+                       clb_grids[i][j].grid_type);
                 exit(1);
             }
         }
@@ -447,7 +447,7 @@ void load_net_rr_terminals(int** rr_node_indices,
             i = blocks[iblk].x;
             j = blocks[iblk].y;
 
-            if (clb_grids[i][j].block_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == CLB_TYPE) {
                 blk_pin = net[inet].node_block_pins[ipin];
                 iclass = clb_pin_class[blk_pin];
             } else {
