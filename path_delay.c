@@ -191,7 +191,7 @@ void free_subblock_data(subblock_data_t* subblock_data_ptr)
  *       pins is represented by timing edges(tedges). All Tdel is marked  *
  *       on edges, not on nodes. This routine returns an array that will   *
  *       store slack values.                                               */
-void alloc_and_load_timing_graph(placer_opts_t   placer_opts,
+void alloc_and_load_timing_graph(const placer_opts_t*  placer_opts_ptr,
                                  timing_info_t   timing_inf,
                                  subblock_data_t subblock_data)
 {
@@ -240,7 +240,7 @@ void alloc_and_load_timing_graph(placer_opts_t   placer_opts,
     check_block_pin_to_tnode(block_pin_to_tnode);
 
     /* then create the 2 arrays needed by PATH algo */
-    if (placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+    if (placer_opts_ptr->place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
         front_crit_path_through_pin = (double*)my_malloc(num_of_vertexs
                                                            * sizeof(double));
         behind_crit_path_through_pin = (double*)my_malloc(num_of_vertexs
@@ -1649,7 +1649,7 @@ void do_constant_net_delay_timing_analysis(placer_opts_t   placer_opts,
                                            subblock_data_t subblock_data,
                                            double constant_net_delay_value)
 {
-    alloc_and_load_timing_graph(placer_opts,
+    alloc_and_load_timing_graph(&placer_opts,
                                 timing_inf,
                                 subblock_data);
     double** net_slack = alloc_net_slack();

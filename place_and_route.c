@@ -76,7 +76,7 @@ void place_and_route(operation_types_t operation,
     } else if (placer_opts.place_freq == PLACE_ONCE) {
         if (placer_opts.place_parallel == FALSE) {
             try_place(netlist_file,
-                      placer_opts,
+                      &placer_opts,
                       annealing_sched,
                       chan_width_dist,
                       router_opts,
@@ -105,7 +105,7 @@ void place_and_route(operation_types_t operation,
 
         if (placer_opts.place_parallel == FALSE) {
             try_place(netlist_file,
-                      placer_opts,
+                      &placer_opts,
                       annealing_sched,
                       chan_width_dist,
                       router_opts,
@@ -158,7 +158,7 @@ void place_and_route(operation_types_t operation,
         clb_opins_used_locally = alloc_route_structs(*subblock_data_ptr);
 
         if (timing_inf.timing_analysis_enabled) {
-            alloc_and_load_timing_graph(placer_opts,
+            alloc_and_load_timing_graph(&placer_opts,
                                         timing_inf,
                                         *subblock_data_ptr);
             net_slack = alloc_net_slack();
@@ -249,7 +249,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
     double**  net_delay = NULL;
     double**  net_slack = NULL;
     if (timing_inf.timing_analysis_enabled) {
-        alloc_and_load_timing_graph(placer_opts,
+        alloc_and_load_timing_graph(&placer_opts,
                                     timing_inf,
                                     *subblock_data_ptr);
         net_slack = alloc_net_slack();
@@ -288,7 +288,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
             placer_opts.place_chan_width = current;
             if (placer_opts.place_parallel == FALSE) {
                 try_place(netlist_file,
-                          placer_opts,
+                          &placer_opts,
                           annealing_sched,
                           chan_width_dist,
                           router_opts,
@@ -378,7 +378,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
             if (placer_opts.place_freq == PLACE_ALWAYS) {
                 placer_opts.place_chan_width = current;
                 try_place(netlist_file,
-                          placer_opts,
+                          &placer_opts,
                           annealing_sched,
                           chan_width_dist,
                           router_opts,

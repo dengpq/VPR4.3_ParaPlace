@@ -18,8 +18,8 @@ int*** sblk_pin_to_tnode;
 /* This function create the Timing_Analyze_Graph(It's a DAG) for TDP. But VPR  *
  * didn't define any data structure about DAG. It only defined vertex_t* vertexes; *
  * [0...num_of_vertexs-1] and  edge_t*                                         */
-void alloc_and_load_timing_graph(placer_opts_t placer_opts,
-                                 timing_info_t timing_inf,
+void alloc_and_load_timing_graph(const placer_opts_t* placer_opts_ptr,
+                                 timing_info_t  timing_inf,
                                  subblock_data_t subblock_data);
 
 t_linked_int* allocate_and_load_critical_path(void);

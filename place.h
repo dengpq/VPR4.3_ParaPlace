@@ -15,11 +15,12 @@ enum cost_methods {
 struct s_pos {
     int x;
     int y;
+    int z;
 } *pos;
 
 /* This functions was used for placement using single-thread */
-void try_place(const char* netlist_file,
-               const placer_opts_t     placer_opts,
+void try_place(const char*  netlist_file,
+               const placer_opts_t*    placer_opts_ptr,
                const annealing_sched_t annealing_sched,
                chan_width_distr_t chan_width_dist,
                router_opts_t  router_opts,

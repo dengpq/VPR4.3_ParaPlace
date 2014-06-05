@@ -145,7 +145,7 @@ void load_criticalities(double** net_slack,
 } /* end of void load_criticalities() */
 
 /* FIXME: alloated all needed delay-lookup-matrix for timing-driven placement */
-void alloc_delay_lookup_matrixes_and_criticalities(placer_opts_t      placer_opts,
+void alloc_delay_lookup_matrixes_and_criticalities(const placer_opts_t* placer_opts_ptr,
                                                    subblock_data_t    subblock_data,
                                                    chan_width_distr_t chan_width_dist,
                                                    timing_info_t      timing_inf,
@@ -169,7 +169,7 @@ void alloc_delay_lookup_matrixes_and_criticalities(placer_opts_t      placer_opt
                                             subblock_data);
 
     /* FIXME: allocate double** timing_crit[][] for */
-    if (placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+    if (placer_opts_ptr->place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
         subnet_local_crit_weight =
             alloc_all_nets_local_crit_weight(&timing_place_crit_chunk_list_head);
     } else { /* PATH_TIMING_DRIVEN_PLACE or NET_TIMING_DRIVEN_PLACE */

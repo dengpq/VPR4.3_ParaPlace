@@ -106,7 +106,7 @@ const double cross_count[50] = { /* [0..49] */
 static void initial_placement(pad_loc_t pad_loc_type,
                               char* pad_loc_file);
 
-static void run_main_placement(const placer_opts_t  placer_opts,
+static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
                                const annealing_sched_t annealing_sched,
                                const int*        pins_on_block,
                                placer_paras_t*   placer_paras_ptr,
@@ -116,7 +116,7 @@ static void run_main_placement(const placer_opts_t  placer_opts,
                                double**  net_delay,
                                placer_costs_t*   placer_costs_ptr);
 
-static void run_low_temperature_place(const placer_opts_t   placer_opts,
+static void run_low_temperature_place(const placer_opts_t*  placer_opts_ptr,
                                       const int*   pins_on_block,
                                       placer_paras_t*  placer_paras_ptr,
                                       double**  old_region_occ_x,
@@ -131,7 +131,7 @@ static void perform_timing_analyze(const placer_opts_t* placer_opts_ptr,
                                    placer_paras_t*  placer_paras_ptr,
                                    placer_costs_t*  placer_costs_ptr);
 
-static void recompute_td_cost_after_swap_certain_times(const placer_opts_t*  placer_opts_ptr,
+static void recompute_td_cost_after_swap_certain_times(const placer_opts_t* placer_opts_ptr,
                                                        const int inner_iter,
                                                        double**  net_delay,
                                                        double**  net_slack,
@@ -164,7 +164,7 @@ static double get_std_dev(int n,
 
 static double starting_temperature(const annealing_sched_t annealing_sched,
                                    const int* pins_on_block,
-                                   const placer_opts_t   placer_opts,
+                                   const placer_opts_t* placer_opts_ptr,
                                    placer_paras_t* placer_paras_ptr,
                                    double**  old_region_occ_x,
                                    double**  old_region_occ_y,
@@ -193,7 +193,7 @@ static int exit_crit(double t,
  * the number of pins on each type of blocks(improves efficiency). Pins on  *
  * each type of blocks(improves efficiency).                                */
 static int try_swap(const placer_paras_t* placer_paras_ptr,
-                    const placer_opts_t   placer_opts,
+                    const placer_opts_t*  placer_opts_ptr,
                     const int*  pins_on_block,
                     double**  old_region_occ_x,
                     double**  old_region_occ_y,
@@ -205,11 +205,9 @@ static void alloc_and_load_placement_structs(const placer_opts_t* placer_opts_pt
                                              double*** old_region_occ_x,
                                              double*** old_region_occ_y);
 
-static void free_placement_structs(int place_cost_type,
-                                   int num_regions,
+static void free_placement_structs(const placer_opts_t* placer_opts_ptr,
                                    double** old_region_occ_x,
-                                   double** old_region_occ_y,
-                                   placer_opts_t placer_opts);
+                                   double** old_region_occ_y);
 
 
 static void alloc_place_regions(int num_regions);
@@ -312,7 +310,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp);
 
 static void free_fast_cost_update_structs(void);
 
-static void check_place(const placer_opts_t*  placer_opts_ptr,
+static void check_place(const placer_opts_t* placer_opts_ptr,
                         placer_costs_t* placer_costs_ptr);
 
 /* Very Important! */
@@ -322,8 +320,8 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
  * architectures. Place_cost_type determines which cost function is used.     *
  * num_regions is used only the place_cost_type is NONLINEAR_CONG.            */
 void try_place(const char*         netlist_file,
-               const placer_opts_t       placer_opts,
-               const annealing_sched_t   annealing_sched,
+               const placer_opts_t*    placer_opts_ptr,
+               const annealing_sched_t annealing_sched,
                chan_width_distr_t  chan_width_dist,
                router_opts_t       router_opts,
                detail_routing_arch_t det_routing_arch,
@@ -336,21 +334,21 @@ void try_place(const char*         netlist_file,
     double** net_slack = NULL; /* FIXME */
     double** net_delay = NULL; /* FIXME */
     double** remember_net_delay_original_ptr = NULL; /*used to free net_delay if it is re-assigned*/
-    const place_algorithm_t kplace_algo = placer_opts.place_algorithm;
+    const place_algorithm_t kplace_algo = placer_opts_ptr->place_algorithm;
 
     if (kplace_algo == NET_TIMING_DRIVEN_PLACE
           || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           /* new added for support PATH Timing-Driven Placement */
           || kplace_algo == NEW_TIMING_DRIVEN_PLACE
-          || placer_opts.enable_timing_computations) {
+          || placer_opts_ptr->enable_timing_computations) {
         /*do this before the initial placement to avoid messing up the initial placement */
-        alloc_and_load_timing_graph(placer_opts,
+        alloc_and_load_timing_graph(placer_opts_ptr,
                                     timing_inf,
                                     *subblock_data_ptr);
         net_slack = alloc_net_slack();
         assert(net_slack != NULL);
 
-        alloc_delay_lookup_matrixes_and_criticalities(placer_opts,
+        alloc_delay_lookup_matrixes_and_criticalities(placer_opts_ptr,
                                                       *subblock_data_ptr,
                                                       chan_width_dist,
                                                       timing_inf,
@@ -368,9 +366,9 @@ void try_place(const char*         netlist_file,
      * and placer_paras_t. It will simplified my working.                      *
      **************************************************************************/
     placer_paras_t*  placer_paras_ptr = init_placer_paras();
-    placer_paras_ptr->m_width_factor = placer_opts.place_chan_width;
+    placer_paras_ptr->m_width_factor = placer_opts_ptr->place_chan_width;
 
-    if (placer_opts.pad_loc_type == FREE) { /* the io pad can place freely */
+    if (placer_opts_ptr->pad_loc_type == FREE) { /* the io pad can place freely */
         placer_paras_ptr->m_fixed_pins = FALSE;
     } else {
         placer_paras_ptr->m_fixed_pins = TRUE;
@@ -381,13 +379,13 @@ void try_place(const char*         netlist_file,
 
     double**  old_region_occ_x = NULL;
     double**  old_region_occ_y = NULL;
-    alloc_and_load_placement_structs(&placer_opts,
+    alloc_and_load_placement_structs(placer_opts_ptr,
                                      &old_region_occ_x,
                                      &old_region_occ_y);
 
     /* FIXME, run initial_placement, I understand it! */
-    initial_placement(placer_opts.pad_loc_type,
-                      placer_opts.pad_loc_file);
+    initial_placement(placer_opts_ptr->pad_loc_type,
+                      placer_opts_ptr->pad_loc_file);
 
     init_draw_coords((double)placer_paras_ptr->m_width_factor);
 
@@ -405,14 +403,14 @@ void try_place(const char*         netlist_file,
     int  ipin = -1;
     /* Gets initial cost and loads bounding boxes. */
     placer_costs_ptr->m_bb_cost = compute_bb_cost(NORMAL,
-                                                  placer_opts.place_cost_type,
-                                                  placer_opts.num_regions);
+                                                  placer_opts_ptr->place_cost_type,
+                                                  placer_opts_ptr->num_regions);
     /*=========   Now compute initial_cost after initial placement    ========*/
     placer_paras_ptr->m_outer_crit_iter_count = 0;
     if (kplace_algo == NET_TIMING_DRIVEN_PLACE
           || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
-        placer_paras_ptr->m_crit_exponent = placer_opts.td_place_exp_first;
+        placer_paras_ptr->m_crit_exponent = placer_opts_ptr->td_place_exp_first;
 
         compute_net_pin_index_values();
 
@@ -471,7 +469,7 @@ void try_place(const char*         netlist_file,
 
         compute_net_slacks(net_slack);
 
-        compute_timing_driven_cost(&placer_opts,
+        compute_timing_driven_cost(placer_opts_ptr,
                                    placer_paras_ptr,
                                    net_slack,
                                    block_pin_to_tnode,
@@ -509,10 +507,10 @@ void try_place(const char*         netlist_file,
         placer_paras_ptr->m_move_limit = 1;
     }
 
-    if (placer_opts.inner_loop_recompute_divider != 0) { /* its default value was 0 */
+    if (placer_opts_ptr->inner_loop_recompute_divider != 0) { /* its default value was 0 */
         placer_paras_ptr->m_inner_recompute_limit =
                 (int)(0.5 + (double)placer_paras_ptr->m_move_limit /
-                              (double)placer_opts.inner_loop_recompute_divider);
+                          (double)placer_opts_ptr->inner_loop_recompute_divider);
     } else { /*don't do an inner recompute */
         placer_paras_ptr->m_inner_recompute_limit = placer_paras_ptr->m_move_limit + 1;
     }
@@ -529,7 +527,7 @@ void try_place(const char*         netlist_file,
     /* FIXME: initial start_temperature */
     placer_paras_ptr->m_temper = starting_temperature(annealing_sched,
                                                       pins_on_block,
-                                                      placer_opts,
+                                                      placer_opts_ptr,
                                                       placer_paras_ptr,
                                                       old_region_occ_x,
                                                       old_region_occ_y,
@@ -563,7 +561,7 @@ void try_place(const char*         netlist_file,
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
     /*************  MAIN SIMULATED ANNEANLING PlACEMENT STAGE  ****************/
-    run_main_placement(placer_opts,
+    run_main_placement(placer_opts_ptr,
                        annealing_sched,
                        pins_on_block,
                        placer_paras_ptr,
@@ -577,7 +575,7 @@ void try_place(const char*         netlist_file,
 
     /* Now run low-temperature Simulated-Annealing placement! */
     printf("Attention, then will run low-temperature SA-Based Placement.......\n");
-    run_low_temperature_place(placer_opts,
+    run_low_temperature_place(placer_opts_ptr,
                               pins_on_block,
                               placer_paras_ptr,
                               old_region_occ_x,
@@ -614,10 +612,10 @@ void try_place(const char*         netlist_file,
     dump_clbs();
 #endif
 
-    check_place(&placer_opts,
+    check_place(placer_opts_ptr,
                 placer_costs_ptr);
 
-    if (placer_opts.enable_timing_computations &&
+    if (placer_opts_ptr->enable_timing_computations &&
           kplace_algo == BOUNDING_BOX_PLACE) {
         /*need this done since the timing data has not been kept up to date*
          *in bounding_box mode */
@@ -643,7 +641,7 @@ void try_place(const char*         netlist_file,
           || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           /* new added for supporting PATH algorithm */
           || kplace_algo == NEW_TIMING_DRIVEN_PLACE
-          || placer_opts.enable_timing_computations) {
+          || placer_opts_ptr->enable_timing_computations) {
         /* this makes net_delay up to date with    *
          * the same values that the placer is using*/
         net_delay = point_to_point_delay_cost;
@@ -689,14 +687,13 @@ void try_place(const char*         netlist_file,
           || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           /* new added for supporting PATH timing-driven placement */
           || kplace_algo == NEW_TIMING_DRIVEN_PLACE
-          || placer_opts.enable_timing_computations) {
+          || placer_opts_ptr->enable_timing_computations) {
         net_delay = remember_net_delay_original_ptr;
-        free_placement_structs(placer_opts.place_cost_type,
-                               placer_opts.num_regions,
+        free_placement_structs(placer_opts_ptr,
                                old_region_occ_x,
-                               old_region_occ_y,
-                               placer_opts);
-        free_lookups_and_criticalities(&placer_opts,
+                               old_region_occ_y);
+
+        free_lookups_and_criticalities(placer_opts_ptr,
                                        &net_delay,
                                        &net_slack);
     }
@@ -822,7 +819,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
     free(pos);
 } /* end of void initial_placement() */
 
-static void run_main_placement(const placer_opts_t  placer_opts,
+static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
                                const annealing_sched_t annealing_sched,
                                const int*        pins_on_block,
                                placer_paras_t*   placer_paras_ptr,
@@ -836,7 +833,7 @@ static void run_main_placement(const placer_opts_t  placer_opts,
     int moves_since_cost_recompute = 0;
     placer_paras_ptr->m_total_iter = 0;
     char msg[BUFSIZE] = "";
-    const int kplace_algo = placer_opts.place_algorithm;
+    const int kplace_algo = placer_opts_ptr->place_algorithm;
 
     while (exit_crit(placer_paras_ptr->m_temper,
                      placer_costs_ptr->m_total_cost,
@@ -855,14 +852,14 @@ static void run_main_placement(const placer_opts_t  placer_opts,
         /*------   First running timing_analyze before try_swap() in outer loop ------*/
         /* for timing_driven_placement, outer_crit_iter_count initial as 1 */
         const int kouter_crit_iter_count = placer_paras_ptr->m_outer_crit_iter_count;
-        const int krecompute_crit_iter = placer_opts.recompute_crit_iter;
+        const int krecompute_crit_iter = placer_opts_ptr->recompute_crit_iter;
         if ((kplace_algo == NET_TIMING_DRIVEN_PLACE
               || kplace_algo == PATH_TIMING_DRIVEN_PLACE
               /* new added for supporting PATH Timing-Driven Placement */
               || kplace_algo == NEW_TIMING_DRIVEN_PLACE)
               && (kouter_crit_iter_count >= krecompute_crit_iter
-                    || placer_opts.inner_loop_recompute_divider != 0)) {
-            perform_timing_analyze(&placer_opts,
+                    || placer_opts_ptr->inner_loop_recompute_divider != 0)) {
+            perform_timing_analyze(placer_opts_ptr,
                                    net_slack,
                                    net_delay,
                                    placer_paras_ptr,
@@ -881,7 +878,7 @@ static void run_main_placement(const placer_opts_t  placer_opts,
         for (inner_iter = 0; inner_iter < move_limit; ++inner_iter) {
             /* FIXME: try to swap a pair of clbs or io pads randomly */
             if (try_swap(placer_paras_ptr,
-                         placer_opts,
+                         placer_opts_ptr,
                          pins_on_block,
                          old_region_occ_x,
                          old_region_occ_y,
@@ -900,7 +897,7 @@ static void run_main_placement(const placer_opts_t  placer_opts,
                   || kplace_algo == PATH_TIMING_DRIVEN_PLACE
                   /* New added for supporting PATH Timing-Driven Placement */
                   || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
-                recompute_td_cost_after_swap_certain_times(&placer_opts,
+                recompute_td_cost_after_swap_certain_times(placer_opts_ptr,
                                                            inner_iter,
                                                            net_delay,
                                                            net_slack,
@@ -914,8 +911,8 @@ static void run_main_placement(const placer_opts_t  placer_opts,
              * in VPR costing 4 or 5 times long than origin algorithm. So*
              * Do not use the following codes!!!                         */
             if (fabs(placer_costs_ptr->m_bb_cost - compute_bb_cost(CHECK,
-                                                                   placer_opts.place_cost_type,
-                                                                   placer_opts.num_regions))
+                                                                   placer_opts_ptr->place_cost_type,
+                                                                   placer_opts_ptr->num_regions))
                     > placer_costs_ptr->m_bb_cost * ERROR_TOL) {
                 exit(1);
             }
@@ -929,7 +926,7 @@ static void run_main_placement(const placer_opts_t  placer_opts,
          * cost and timing_cost.                                          */
         moves_since_cost_recompute += move_limit;
         if (moves_since_cost_recompute > MAX_MOVES_BEFORE_RECOMPUTE) { /* > 10^6 */
-            update_place_cost_after_max_move_times(&placer_opts,
+            update_place_cost_after_max_move_times(placer_opts_ptr,
                                                    placer_costs_ptr);
             moves_since_cost_recompute = 0;
         } /* update placement_cost after MAX_MOVES_BEFORE_RECOMPUTE in inner_loop */
@@ -971,7 +968,7 @@ static void run_main_placement(const placer_opts_t  placer_opts,
               /* new added for supporting PATH timing-driven placement */
               || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
             /* FIXME: update timing_critical_exponent */
-            placer_paras_ptr->m_crit_exponent = update_crit_exponent(&placer_opts,
+            placer_paras_ptr->m_crit_exponent = update_crit_exponent(placer_opts_ptr,
                                                                      placer_paras_ptr);
         }
 
@@ -981,7 +978,7 @@ static void run_main_placement(const placer_opts_t  placer_opts,
     } /* FIXME:  end of VPR outer loop */
 }  /* end of void run_main_placement(const placer_opts_t  placer_opts,..) */
 
-static void  run_low_temperature_place(const placer_opts_t  placer_opts,
+static void  run_low_temperature_place(const placer_opts_t* placer_opts_ptr,
                                        const int*  pins_on_block,
                                        placer_paras_t*  placer_paras_ptr,
                                        double**  old_region_occ_x,
@@ -997,17 +994,17 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
 
     /* before run low-temperature placement, it should do timing_analyze! */
     const int kouter_crit_iter_count = placer_paras_ptr->m_outer_crit_iter_count;
-    const int krecompute_crit_iter = placer_opts.recompute_crit_iter; /* 1 */
-    const place_algorithm_t kplace_algo = placer_opts.place_algorithm;
+    const int krecompute_crit_iter = placer_opts_ptr->recompute_crit_iter; /* 1 */
+    const place_algorithm_t kplace_algo = placer_opts_ptr->place_algorithm;
 
     if ((kplace_algo == NET_TIMING_DRIVEN_PLACE
           || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           || kplace_algo == NEW_TIMING_DRIVEN_PLACE)
           && (kouter_crit_iter_count >= krecompute_crit_iter
-                || placer_opts.inner_loop_recompute_divider != 0)) {
+                || placer_opts_ptr->inner_loop_recompute_divider != 0)) {
             /*at each temperature change we update these values to be used   */
             /*for normalizing the tradeoff between timing and wirelength(bb) */
-        perform_timing_analyze(&placer_opts,
+        perform_timing_analyze(placer_opts_ptr,
                                net_slack,
                                net_delay,
                                placer_paras_ptr,
@@ -1027,7 +1024,7 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
     for (inner_iter = 0; inner_iter < move_limit; ++inner_iter) {
         /* FIXME, after main loop in try_place(), current t set to 0. */
         if (try_swap(placer_paras_ptr,
-                     placer_opts,
+                     placer_opts_ptr,
                      pins_on_block,
                      old_region_occ_x,
                      old_region_occ_y,
@@ -1044,7 +1041,7 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
                   || kplace_algo == PATH_TIMING_DRIVEN_PLACE
                   /* new added for supporting PATH timing-driven placement */
                   || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
-                recompute_td_cost_after_swap_certain_times(&placer_opts,
+                recompute_td_cost_after_swap_certain_times(placer_opts_ptr,
                                                            inner_iter,
                                                            net_delay,
                                                            net_slack,
@@ -1170,7 +1167,7 @@ static void update_place_cost_after_max_move_times(const placer_opts_t* placer_o
                                                    placer_costs_t*  placer_costs_ptr)
 {
     /* first recompute bbox_cost..... */
-    enum place_c_types place_cost_type = placer_opts_ptr->place_cost_type;
+    place_cong_types_t place_cost_type = placer_opts_ptr->place_cost_type;
     const int knum_regions = placer_opts_ptr->num_regions;
     placer_costs_ptr->m_new_bb_cost = recompute_bb_cost(place_cost_type,
                                                         knum_regions);
@@ -1332,7 +1329,7 @@ static double get_std_dev(int success_sum,
 
 static double starting_temperature(const annealing_sched_t annealing_sched,
                                    const int*  pins_on_block,
-                                   const placer_opts_t   placer_opts,
+                                   const placer_opts_t* placer_opts_ptr,
                                    placer_paras_t* placer_paras_ptr,
                                    double**  old_region_occ_x,
                                    double**  old_region_occ_y,
@@ -1345,14 +1342,14 @@ static double starting_temperature(const annealing_sched_t annealing_sched,
 
     int num_accepted = 0;
     double av_cost = 0.0;
-    double sum_of_squares = 0.;
+    double sum_of_squares = 0.0;
     /* Try one move per blocks.  Set t high so essentially all accepted. */
     const int move_limit = min(placer_paras_ptr->m_move_limit, num_blocks);
     placer_paras_ptr->m_temper = 1.e30;
     int i = -1;
     for (i = 0; i < move_limit; ++i) {
         if (try_swap(placer_paras_ptr,
-                     placer_opts,
+                     placer_opts_ptr,
                      pins_on_block,
                      old_region_occ_x,
                      old_region_occ_y,
@@ -1381,7 +1378,7 @@ static double starting_temperature(const annealing_sched_t annealing_sched,
     }
 #endif
 
-    return (20. * std_dev);
+    return (20.0 * std_dev);
 } /* end of static double starting_temperature() */
 
 /* Update the temperature according to the annealing-schedule, success_ratio
@@ -1467,7 +1464,7 @@ static int exit_crit(double t,
  * the number of pins on each type of blocks(improves efficiency). Pins on   *
  * each type of blocks(improves efficiency).                                 */
 static int try_swap(const placer_paras_t*  placer_paras_ptr,
-                    const placer_opts_t   placer_opts,
+                    const placer_opts_t*   placer_opts_ptr,
                     const int*  pins_on_block,
                     double**    old_region_occ_x,
                     double**    old_region_occ_y,
@@ -1558,8 +1555,8 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
                                                      from_block,
                                                      to_block,
                                                      num_of_pins);
-    enum place_c_types place_cost_type = placer_opts.place_cost_type;
-    const int knum_regions = placer_opts.num_regions;
+    place_cong_types_t place_cost_type = placer_opts_ptr->place_cost_type;
+    const int knum_regions = placer_opts_ptr->num_regions;
     if (place_cost_type == NONLINEAR_CONG) {
         save_region_occ(old_region_occ_x,
                         old_region_occ_y,
@@ -1626,7 +1623,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
 
     double  newcost = 0.0;
     if (place_cost_type == NONLINEAR_CONG) {
-        newcost = nonlinear_cong_cost(placer_opts.num_regions);
+        newcost = nonlinear_cong_cost(placer_opts_ptr->num_regions);
         /* bb_delta_c = newcost - *bb_cost_ptr; */
         bb_delta_c = newcost - placer_costs_ptr->m_bb_cost;
     }
@@ -1635,7 +1632,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     double delta_cost = 0.0; /* Change in total_cost_ptr due to this swap. */
     double timing_delta_c = 0.0;
     double delay_delta_c = 0.0;
-    const place_algorithm_t place_algo = placer_opts.place_algorithm;
+    const place_algorithm_t place_algo = placer_opts_ptr->place_algorithm;
     if (place_algo == NET_TIMING_DRIVEN_PLACE
           || place_algo == PATH_TIMING_DRIVEN_PLACE
     /* new added for supporting PATH timing-driven placement */
@@ -1650,7 +1647,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
                                          &timing_delta_c,
                                          &delay_delta_c);
 
-        const double ktiming_tradeoff = placer_opts.timing_tradeoff;
+        const double ktiming_tradeoff = placer_opts_ptr->timing_tradeoff;
         const double normal_bb_cost =
                 bb_delta_c * placer_costs_ptr->m_inverse_prev_bb_cost;
         const double normal_timing_cost =
@@ -1668,7 +1665,8 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         placer_costs_ptr->m_total_cost += delta_cost;
         placer_costs_ptr->m_bb_cost += bb_delta_c;
 
-        if (place_algo == NET_TIMING_DRIVEN_PLACE || place_algo == PATH_TIMING_DRIVEN_PLACE
+        if (place_algo == NET_TIMING_DRIVEN_PLACE
+              || place_algo == PATH_TIMING_DRIVEN_PLACE
               || place_algo == NEW_TIMING_DRIVEN_PLACE) {
             placer_costs_ptr->m_timing_cost += timing_delta_c;
             placer_costs_ptr->m_delay_cost += delay_delta_c;
@@ -1839,7 +1837,7 @@ static void alloc_and_load_placement_structs(const placer_opts_t* placer_opts_pt
     alloc_and_load_unique_pin_list();
 
     /* Allocate storage for subregion data, if needed. */
-    enum place_c_types place_cost_type = placer_opts_ptr->place_cost_type;
+    place_cong_types_t place_cost_type = placer_opts_ptr->place_cost_type;
     const int knum_regions = placer_opts_ptr->num_regions;
     if (place_cost_type == NONLINEAR_CONG) {
         alloc_place_regions(knum_regions);
@@ -1863,16 +1861,15 @@ static void alloc_and_load_placement_structs(const placer_opts_t* placer_opts_pt
  * elsewhere).   */
 /* Allocates the major structures needed only by the placer, primarily for *
  * computing costs quickly and such. FIXME                                 */
-static void free_placement_structs(int place_cost_type,
-                                   int num_regions,
+static void free_placement_structs(const placer_opts_t* placer_opts_ptr,
                                    double** old_region_occ_x,
-                                   double** old_region_occ_y,
-                                   placer_opts_t placer_opts)
+                                   double** old_region_occ_y)
 {
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE
-          || placer_opts.enable_timing_computations) {
+    const place_algorithm_t kplace_algo = placer_opts_ptr->place_algorithm;
+    if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+          || kplace_algo == PATH_TIMING_DRIVEN_PLACE
+          || kplace_algo == NEW_TIMING_DRIVEN_PLACE
+          || placer_opts_ptr->enable_timing_computations) {
         int inet = -1;
         for (inet = 0; inet < num_nets; ++inet) {
             /*add one to the address since it is indexed from 1 not 0 */
@@ -1910,11 +1907,13 @@ static void free_placement_structs(int place_cost_type,
     bb_coords = NULL;
     free_unique_pin_list();
 
-    if (place_cost_type == NONLINEAR_CONG) {
-        free_place_regions(num_regions);
-        free_matrix(old_region_occ_x, 0, num_regions - 1, 0, sizeof(double));
-        free_matrix(old_region_occ_y, 0, num_regions - 1, 0, sizeof(double));
-    } else if (place_cost_type == LINEAR_CONG) {
+    const place_cong_types_t kplace_cost_type = placer_opts_ptr->place_cost_type;
+    const int knum_regions = placer_opts_ptr->num_regions;
+    if (kplace_cost_type == NONLINEAR_CONG) {
+        free_place_regions(knum_regions);
+        free_matrix(old_region_occ_x, 0, knum_regions - 1, 0, sizeof(double));
+        free_matrix(old_region_occ_y, 0, knum_regions - 1, 0, sizeof(double));
+    } else if (kplace_cost_type == LINEAR_CONG) {
         free_fast_cost_update_structs();
     }
 } /* static void free_placement_structs() */
@@ -3447,7 +3446,7 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                                                      &delay_cost_check);
         } else {
             compute_timing_driven_cost_by_orig_algo(&timing_cost_check,
-                                        &delay_cost_check);
+                                                    &delay_cost_check);
         }
         printf("timing_cost recomputed from scratch is %g. \n",
                timing_cost_check);
@@ -3584,12 +3583,12 @@ void read_place(char* place_file,
           || placer_opts.enable_timing_computations) {
         /*this must be called before alloc_and_load_placement_structs *
          *and parse_placement_file since it modifies the structures*/
-        alloc_and_load_timing_graph(placer_opts,
+        alloc_and_load_timing_graph(&placer_opts,
                                     timing_inf,
                                     *subblock_data_ptr);
         net_slack = alloc_net_slack();
 
-        alloc_delay_lookup_matrixes_and_criticalities(placer_opts,
+        alloc_delay_lookup_matrixes_and_criticalities(&placer_opts,
                                                       *subblock_data_ptr,
                                                       chan_width_dist,
                                                       timing_inf,
@@ -3665,11 +3664,9 @@ void read_place(char* place_file,
     /* check_place(&placer_opt,
                 placer_costs_ptr); */
 
-    free_placement_structs(placer_opts.place_cost_type,
-                           placer_opts.num_regions,
+    free_placement_structs(&placer_opts,
                            dummy_x,
-                           dummy_y,
-                           placer_opts);
+                           dummy_y);
 
     if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE ||
             placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE ||

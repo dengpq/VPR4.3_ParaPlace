@@ -114,7 +114,7 @@ enum pic_type {
 /* FIXME: both LINEAR_CONG and NONLINEAR_CONG were used to Wirelength-Driven  *
  *        placement, not used to TIMING_DRIVEN_PLACE. The default setting was *
  *        LINEAR_CONG.                                                        */
-typedef enum place_c_types { /* congestion_type */
+typedef enum place_cong_types { /* congestion_type */
     LINEAR_CONG,
     NONLINEAR_CONG
 } place_cong_types_t;
@@ -419,7 +419,7 @@ typedef struct s_placer_opts {
     place_algorithm_t  place_algorithm;
     double             timing_tradeoff;
     int                block_dist;
-    enum place_c_types place_cost_type;
+    place_cong_types_t place_cost_type;
     double             place_cost_exp;
     int                place_chan_width;
     enum e_pad_loc_type pad_loc_type;

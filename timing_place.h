@@ -7,7 +7,7 @@
  * delta_clb_to_outpad, delta_inpad_to_outpad. They are needed for calculate *
  * delay. And This function also allocate timing_place_crit, which store the *
  * weight of all subnets(or connections).                                    */
-void alloc_delay_lookup_matrixes_and_criticalities(placer_opts_t   placer_opts,
+void alloc_delay_lookup_matrixes_and_criticalities(const placer_opts_t* placer_opts_ptr,
                                                    subblock_data_t subblock_data,
                                                    chan_width_distr_t chan_width_dist,
                                                    timing_info_t   timing_inf,
