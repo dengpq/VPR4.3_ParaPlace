@@ -112,9 +112,13 @@ static void free_routing_structs(router_opts_t router_opts,
                                 );
 
 static void assign_locations(block_types_t source_type,
-                             int source_x_loc, int source_y_loc,
+                             int source_x_loc,
+                             int source_y_loc,
+                             int source_z_loc,
                              block_types_t sink_type,
-                             int sink_x_loc, int sink_y_loc);
+                             int sink_x_loc,
+                             int sink_y_loc,
+                             int sink_z_loc);
 
 static double assign_blocks_and_route_net(block_types_t source_type,
                                           int source_x_loc,
@@ -123,7 +127,6 @@ static double assign_blocks_and_route_net(block_types_t source_type,
                                           int sink_x_loc,
                                           int sink_y_loc,
                                           router_opts_t router_opts);
-
 static void alloc_delta_arrays(void);
 
 static void free_delta_arrays(void);
@@ -341,8 +344,8 @@ static void alloc_routing_structs(router_opts_t router_opts,
 {
     /*calls routines that set up routing resource graph and associated structures*/
     /*must set up dummy blocks for the first pass through*/
-    assign_locations(B_CLB_TYPE, 1, 1,
-                     B_CLB_TYPE, num_grid_columns, num_grid_rows);
+    assign_locations(B_CLB_TYPE, 1, 1, 0,
+                     B_CLB_TYPE, num_grid_columns, num_grid_rows, 0);
 
     clb_opins_used_locally = alloc_route_structs(subblock_data);
     free_rr_graph();
@@ -377,58 +380,71 @@ static void free_routing_structs(router_opts_t router_opts,
 static void assign_locations(block_types_t source_type,
                              int source_x_loc,
                              int source_y_loc,
+                             int source_z_loc,
                              block_types_t sink_type,
                              int sink_x_loc,
-                             int sink_y_loc)
+                             int sink_y_loc,
+                             int sink_z_loc)
 {
     /*all routing occurs between blocks 0 (source) and blocks 1 (sink)*/
     blocks[SOURCE_BLOCK].block_type = source_type;
-    blocks[SINK_BLOCK].block_type = sink_type;
     blocks[SOURCE_BLOCK].x = source_x_loc;
     blocks[SOURCE_BLOCK].y = source_y_loc;
+    blocks[SOURCE_BLOCK].z = source_z_loc;
+
+    blocks[SINK_BLOCK].block_type = sink_type;
     blocks[SINK_BLOCK].x = sink_x_loc;
     blocks[SINK_BLOCK].y = sink_y_loc;
+    blocks[SINK_BLOCK].z = sink_z_loc;
 
-    int isubblk = 0;
+    /* int isubblk = 0; */
     if (source_type == B_CLB_TYPE) {
         net[NET_USED].node_block_pins[NET_USED_SOURCE_BLOCK] = get_first_pin(DRIVER);
-        clb_grids[source_x_loc][source_y_loc].u.blocks = SOURCE_BLOCK;
+        clb_grids[source_x_loc][source_y_loc].in_blocks[source_z_loc] = SOURCE_BLOCK;
         clb_grids[source_x_loc][source_y_loc].m_usage += 1;
     } else {
         net[NET_USED].node_block_pins[NET_USED_SOURCE_BLOCK] = OPEN;
-        isubblk = clb_grids[source_x_loc][source_y_loc].m_usage;
-        clb_grids[source_x_loc][source_y_loc].u.io_blocks[isubblk] = SOURCE_BLOCK;
+        /* isubblk = clb_grids[source_x_loc][source_y_loc].m_usage; */
+        clb_grids[source_x_loc][source_y_loc].in_blocks[source_z_loc] = SOURCE_BLOCK;
         clb_grids[source_x_loc][source_y_loc].m_usage += 1;
     }
 
     if (sink_type == B_CLB_TYPE) {
         net[NET_USED].node_block_pins[NET_USED_SINK_BLOCK] = get_first_pin(RECEIVER);
-        clb_grids[sink_x_loc][sink_y_loc].u.blocks = SINK_BLOCK;
+        clb_grids[sink_x_loc][sink_y_loc].in_blocks[source_z_loc] = SINK_BLOCK;
         clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
     } else {
         net[NET_USED].node_block_pins[NET_USED_SINK_BLOCK] = OPEN;
-        isubblk = clb_grids[sink_x_loc][sink_y_loc].m_usage;
-        clb_grids[sink_x_loc][sink_y_loc].u.io_blocks[isubblk] = SINK_BLOCK;
+        /* isubblk = clb_grids[sink_x_loc][sink_y_loc].m_usage; */
+        clb_grids[sink_x_loc][sink_y_loc].in_blocks[sink_z_loc] = SINK_BLOCK;
         clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
     }
-}
+} /* end of static void assign_locations(block_types_t source_type,) */
 
 /**************************************/
+/*places blocks at the specified locations, and routes a net between them*
+ *returns the Tdel of this net */
 static double assign_blocks_and_route_net(block_types_t source_type,
-                                         int source_x_loc, int source_y_loc,
-                                         block_types_t sink_type,
-                                         int sink_x_loc, int sink_y_loc,
-                                         router_opts_t router_opts)
+                                          int source_x_loc,
+                                          int source_y_loc,
+                                          block_types_t sink_type,
+                                          int sink_x_loc,
+                                          int sink_y_loc,
+                                          router_opts_t router_opts)
 {
-    /*places blocks at the specified locations, and routes a net between them*/
-    /*returns the Tdel of this net */
-    double net_delay_value = IMPOSSIBLE; /*set to known value for debug purposes*/
+
+    /* Only one blocks per tile */
+    int source_z_loc = 0;
+    int sink_z_loc = 0;
     assign_locations(source_type,
                      source_x_loc,
                      source_y_loc,
+                     source_z_loc,
                      sink_type,
                      sink_x_loc,
-                     sink_y_loc);
+                     sink_y_loc,
+                     sink_z_loc);
+
     int** rr_node_indices = gerr_node_t_indices();
     int nodes_per_chan = get_nodes_per_chan();
     load_net_rr_terminals(rr_node_indices,
@@ -454,7 +470,7 @@ static double assign_blocks_and_route_net(block_types_t source_type,
                                                    rt_node_of_sink,
                                                    T_crit,
                                                    net_delay[NET_USED]);
-    net_delay_value = net_delay[NET_USED][NET_USED_SINK_BLOCK];
+    double net_delay_value = net_delay[NET_USED][NET_USED_SINK_BLOCK];
     clb_grids[source_x_loc][source_y_loc].m_usage = 0;
     clb_grids[sink_x_loc][sink_y_loc].m_usage = 0;
     return net_delay_value;

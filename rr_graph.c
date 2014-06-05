@@ -514,9 +514,9 @@ static int which_io_block(int iblk)
         exit(1);
     }
 
-    for (ipad = 0; ipad < clb_grids[i][j].m_usage; ipad++) {
-        test_blk = clb_grids[i][j].u.io_blocks[ipad];
-
+    const int kio_grid_capacity = clb_grids[i][j].m_capacity;
+    for (ipad = 0; ipad < kio_grid_capacity; ++ipad) {
+        test_blk = clb_grids[i][j].in_blocks[ipad];
         if (test_blk == iblk) {
             ifound = ipad;
             break;

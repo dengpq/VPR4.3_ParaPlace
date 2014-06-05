@@ -239,7 +239,7 @@ static int find_affected_nets(int* nets_to_update,
 
 static void find_to(int x_from,
                     int y_from,
-                    int type,
+                    const block_types_t kblock_type,
                     double rlim,
                     int* x_to,
                     int* y_to);
@@ -701,6 +701,9 @@ void try_place(const char*         netlist_file,
     /* Do not forget these 2 type */
     free_placer_paras(placer_paras_ptr);
     free_placer_costs(placer_costs_ptr);
+
+    free(g_grid_capacity);
+    g_grid_capacity = NULL;
 } /* end of try_place() */
 
 
@@ -735,7 +738,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
     for (iblk = 0; iblk < num_blocks; ++iblk) { /* num_blocks = plbs + io_blocks */
         if (blocks[iblk].block_type == B_CLB_TYPE) { /* only place CLBs in center */
             int choice = my_irand(count - 1); /* choice >= 1 && choice <= count-1*/
-            clb_grids[pos[choice].x][pos[choice].y].u.blocks = iblk;
+            clb_grids[pos[choice].x][pos[choice].y].in_blocks[0] = iblk;
             clb_grids[pos[choice].x][pos[choice].y].m_usage = 1;
 
             /* Ensure randomizer doesn't pick this blocks again */
@@ -778,11 +781,12 @@ static void initial_placement(pad_loc_t pad_loc_type,
 
                 int isubblk = clb_grids[pos[choice].x][pos[choice].y].m_usage;
 
-                clb_grids[pos[choice].x][pos[choice].y].u.io_blocks[isubblk] = iblk;
+                clb_grids[pos[choice].x][pos[choice].y].in_blocks[isubblk] = iblk;
                 ++(clb_grids[pos[choice].x][pos[choice].y].m_usage);
                 /* In an I/O pad location of FPGA chip, it may accommodate more
                  * than 1 I/O pad. */
-                if (clb_grids[pos[choice].x][pos[choice].y].m_usage == io_ratio) {
+                if (clb_grids[pos[choice].x][pos[choice].y].m_usage
+                      == clb_grids[pos[choice].x][pos[choice].y].m_capacity) {
                     /* Ensure randomizer doesn't pick this blocks again */
                     pos[choice] = pos[count - 1]; /* overwrite used blocks position */
                     /* the "choice" location had used, so don't choose it again */
@@ -790,7 +794,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
                 }
             }
         }
-    }    /* End randomly place IO_TYPE blocks branch of if */
+    } /* End randomly place IO_TYPE blocks branch of if */
 
     /* All the blocks are placed now. Make the blocks array agree with the *
      * clb array.                                                         */
@@ -799,12 +803,16 @@ static void initial_placement(pad_loc_t pad_loc_type,
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             if (clb_grids[i][j].grid_type == B_CLB_TYPE
                     && clb_grids[i][j].m_usage == 1) {
-                blocks[clb_grids[i][j].u.blocks].x = i;
-                blocks[clb_grids[i][j].u.blocks].y = j;
+                blocks[clb_grids[i][j].in_blocks[0]].x = i;
+                blocks[clb_grids[i][j].in_blocks[0]].y = j;
+                /* Do not forget set z-coordinate */
+                blocks[clb_grids[i][j].in_blocks[0]].z = 0;
             } else if (clb_grids[i][j].grid_type == IO_TYPE) {
-                for (k = 0; k < clb_grids[i][j].m_usage; ++k) {
-                    blocks[clb_grids[i][j].u.io_blocks[k]].x = i;
-                    blocks[clb_grids[i][j].u.io_blocks[k]].y = j;
+                const int kio_bin_usage = clb_grids[i][j].m_usage;
+                for (k = 0; k < kio_bin_usage; ++k) {
+                    blocks[clb_grids[i][j].in_blocks[k]].x = i;
+                    blocks[clb_grids[i][j].in_blocks[k]].y = j;
+                    blocks[clb_grids[i][j].in_blocks[k]].z = k;
                 }
             } else {
                 /* No operation */
@@ -1475,7 +1483,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     static int*  nets_to_update = NULL;
     static int*  net_block_moved = NULL;
 
-    /* Allocate the local bb_coordinate storage, etc. only once. */
+    /* 1) Allocate the local bb_coordinate storage, etc. only once. */
     /* Q: Why did the array allocate double memory space? TODO*/
     if (bb_coord_new == NULL) {
         bb_coord_new = (bbox_t*)my_malloc(2 * pins_per_clb *
@@ -1486,7 +1494,8 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         net_block_moved = (int*)my_malloc(2 * pins_per_clb * sizeof(int));
     }
 
-    /* If the pins are fixed, we never move them from their initial random *
+    /* 2) Set from_block(x_from, y_from, z_from) and to_block(x_to, y_to, z_to) * 
+     * If the pins are fixed, we never move them from their initial random *
      * locations. The code below could be made more efficient by using the *
      * fact that pins appear first in the blocks list, but this shouldn't   *
      * cause any significant slowdown and won't be broken if I ever change *
@@ -1501,6 +1510,8 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
 
     int x_from = blocks[from_block].x;
     int y_from = blocks[from_block].y;
+    int z_from = blocks[from_block].z;
+
     int x_to = 0;
     int y_to = 0;
     /* find the plb or io_pad (x_to, y_to) randomly */
@@ -1511,40 +1522,60 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
             &x_to,
             &y_to);
 
+    int z_to = 0;
+    if (g_grid_capacity[clb_grids[x_to][y_to].grid_type] > 1) {
+        z_to = my_irand(g_grid_capacity[clb_grids[x_to][y_to].grid_type] - 1);
+    }
+
     /* Make the switch in order to let compute the new bounding-box simpler. If *
      * increase is too high, switch them back.(blocks data structures switched,  *
      * clb not switched until success of move is determinded.)                 */
-    int io_num = 0;
-    int to_block = 0;
-    if (blocks[from_block].block_type == B_CLB_TYPE) {
-        if (clb_grids[x_to][y_to].m_usage == 1) { /* target clb location had occupied -- do a switch */
-            /* then swap (x_from, y_from) and (x_to, y_to) coordinate. */
+    /* if (blocks[from_block].block_type == B_CLB_TYPE) {
+        if (clb_grids[x_to][y_to].m_usage == 1) {
             to_block = clb_grids[x_to][y_to].u.blocks;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
             blocks[to_block].x = x_from;
             blocks[to_block].y = y_from;
-        } else { /* if clb[x_to][y_to] was empty, move blocks[from_block] to clb[x_to][y_to] location. */
+        } else {
             to_block = EMPTY;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
         }
-    } else { /* io pads was selected for moving */
+    } else {
         io_num = my_irand(io_ratio - 1);
-        if (io_num >= clb_grids[x_to][y_to].m_usage) { /* Moving to an empty location, why? TODO:*/
+        if (io_num >= clb_grids[x_to][y_to].m_usage) {
             to_block = EMPTY;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
-        } else { /* Swapping two blocks */
+        } else {
             to_block = *(clb_grids[x_to][y_to].u.io_blocks + io_num);
             blocks[to_block].x = x_from;
             blocks[to_block].y = y_from;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
         }
-    }
+    } */
 
-    /*===========  Now Compute the cost ==============*/
+    int to_block = EMPTY;
+    if (clb_grids[x_to][y_to].in_blocks[z_to] == EMPTY) {
+        /* Moving to an empty location */
+        to_block = EMPTY;
+        blocks[from_block].x = x_to;
+        blocks[from_block].y = y_to;
+        blocks[from_block].z = z_to;
+    } else {
+        /* Swapping two blocks */
+        to_block = clb_grids[x_to][y_to].in_blocks[z_to];
+        blocks[to_block].x = x_from;
+        blocks[to_block].y = y_from;
+        blocks[to_block].z = z_from;
+
+        blocks[from_block].x = x_to;
+        blocks[from_block].y = y_to;
+        blocks[from_block].z = z_to;
+    }
+    /*===========  3) Now Compute the cost ==============*/
     /* Now update the cost function. May have to do major optimizations here    *
      * later. I'm using negative values of temp_net_cost as a flag, so DO NOT   *
      * use cost-functions that can go negative.                                 */
@@ -1563,12 +1594,12 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
                         knum_regions);
     }
 
-    /* Then calculate the wirelength_cost and timing_cost_ptr */
+    /* 3.1) calculate the wirelength_cost and timing_cost_ptr */
     double bb_delta_c = 0.0;
     int bb_index = 0; /* Index of new bounding box. */
     int k = -1;
     int inet = -1;
-    int off_from = -1;
+    /* int off_from = -1; */
     for (k = 0; k < num_nets_affected; ++k) {
         inet = nets_to_update[k];
         /* If we swapped two blocks connected to the same net, its bounding box *
@@ -1628,7 +1659,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         bb_delta_c = newcost - placer_costs_ptr->m_bb_cost;
     }
 
-    /* then calculate timing-total_cost_ptr */
+    /* 3.2) then calculate timing-total_cost_ptr */
     double delta_cost = 0.0; /* Change in total_cost_ptr due to this swap. */
     double timing_delta_c = 0.0;
     double delay_delta_c = 0.0;
@@ -1658,10 +1689,10 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         delta_cost = bb_delta_c;
     }
 
-    /* 1: move accepted, 0: rejected. */
+    /* 4) assess_swap, 1: move accepted, 0: rejected. */
     int keep_switch = assess_swap(delta_cost,
                                   placer_paras_ptr->m_temper);
-    if (keep_switch) {
+    if (keep_switch == 1) {
         placer_costs_ptr->m_total_cost += delta_cost;
         placer_costs_ptr->m_bb_cost += bb_delta_c;
 
@@ -1701,38 +1732,47 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         }
 
         /* Update Clb data structures since we kept the move. */
-        if (blocks[from_block].block_type == B_CLB_TYPE) {
+        /* if (blocks[from_block].block_type == B_CLB_TYPE) {
             if (to_block != EMPTY) {
-                clb_grids[x_from][y_from].u.blocks = to_block;
-                clb_grids[x_to][y_to].u.blocks = from_block;
+                clb_grids[x_from][y_from].in_blocks[0] = to_block;
+                clb_grids[x_to][y_to].in_blocks[0] = from_block;
             } else {
-                clb_grids[x_to][y_to].u.blocks = from_block;
+                clb_grids[x_to][y_to].in_blocks[0] = from_block;
                 clb_grids[x_to][y_to].m_usage = 1;
                 clb_grids[x_from][y_from].m_usage = 0;
             }
-        } else {   /* io blocks was selected for moving */
-            /* Get the "sub_block" number of the from_block blocks. */
+        } else {
             for (off_from = 0;; ++off_from) {
-                if (clb_grids[x_from][y_from].u.io_blocks[off_from] == from_block) {
+                if (clb_grids[x_from][y_from].in_blocks[off_from] == from_block) {
                     break;
                 }
             }
 
-            if (to_block != EMPTY) { /* Swapped two blocks. */
-                clb_grids[x_to][y_to].u.io_blocks[io_num] = from_block;
-                clb_grids[x_from][y_from].u.io_blocks[off_from] = to_block;
-            } else {             /* Moved to an empty location */
-                clb_grids[x_to][y_to].u.io_blocks[clb_grids[x_to][y_to].m_usage] = from_block;
+            if (to_block != EMPTY) {
+                clb_grids[x_to][y_to].in_blocks[in_num] = from_block;
+                clb_grids[x_from][y_from].in_blocks[off_from] = to_block;
+            } else {
+                clb_grids[x_to][y_to].in_blocks[clb_grids[x_to][y_to].m_usage] = from_block;
                 ++(clb_grids[x_to][y_to].m_usage);
 
-                for (k = off_from; k < clb_grids[x_from][y_from].m_usage-1; ++k) { /* prevent gap  */
-                    clb_grids[x_from][y_from].u.io_blocks[k] =   /* in io_blocks */
-                        clb_grids[x_from][y_from].u.io_blocks[k + 1];
+                for (k = off_from; k < clb_grids[x_from][y_from].m_usage-1; ++k) {
+                    clb_grids[x_from][y_from].in_blocks[k] =
+                        clb_grids[x_from][y_from].in_blocks[k + 1];
                 }
 
                 --(clb_grids[x_from][y_from].m_usage);
             }
-        } /* end of selecting move io_block */
+        } */
+
+        /* Update fb data structures since we kept the move. */
+        /* Swap physical location */
+        clb_grids[x_to][y_to].in_blocks[z_to] = from_block;
+        clb_grids[x_from][y_from].in_blocks[z_from] = to_block;
+        if (EMPTY == to_block) {
+            /* Moved to an empty location */
+            ++(clb_grids[x_to][y_to].m_usage);
+            --(clb_grids[x_from][y_from].m_usage);
+        }
     } else {  /* Move was rejected.  */
         /* Reset the net total_cost_ptr function flags first. */
         for (k = 0; k < num_nets_affected; k++) {
@@ -1755,7 +1795,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
                                old_region_occ_y,
                                knum_regions);
         }
-    }
+    } /* else reject swap */
 
     return keep_switch;
 } /* end of static int try_swap() */
@@ -2327,7 +2367,7 @@ static int find_affected_nets(int* nets_to_update, int* net_block_moved,
  * this routine to  work.                                           */
 static void find_to(int x_from,
                     int y_from,
-                    int type,
+                    const block_types_t kblock_type,
                     double rlim,
                     int* x_to,
                     int* y_to)
@@ -2345,7 +2385,7 @@ static void find_to(int x_from,
     do {   /* Until (x_to, y_to) different from (x_from, y_from) */
         int x_rel = 0;
         int y_rel = 0;
-        if (type == B_CLB_TYPE) {
+        if (kblock_type == B_CLB_TYPE) {
             x_rel = my_irand(2 * rlx); /* x_rel >= 0 && x_rel <= 2 * rlx */
             y_rel = my_irand(2 * rly);
             /* why? Now I see. */
@@ -2367,7 +2407,7 @@ static void find_to(int x_from,
             if (*y_to < 1) {
                 *y_to = *y_to + num_grid_rows;
             }
-        } else { /* IO_TYPE blocks will be moved. */
+        } else { /* INPAD_TYPE or OUTPAD_TYPE will be moved. */
             int iside = 0;
             int iplace = 0;
             if (rlx >= num_grid_columns) { /* x_range_limit >= num_columns */
@@ -2471,8 +2511,8 @@ static void find_to(int x_from,
         exit(1);
     }
 
-    if (type == CLB_TYPE) {
-        if (clb_grids[*x_to][*y_to].type != CLB_TYPE) {
+    if (kblock_type == B_CLB_TYPE) {
+        if (clb_grids[*x_to][*y_to].type != B_CLB_TYPE) {
             printf("Error: Moving CLB_TYPE to illegal type blocks at (%d,%d)\n",
                    *x_to, *y_to);
             exit(1);
@@ -3479,6 +3519,7 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
         block_done[i] = 0;
     }
 
+    int block_num = EMPTY;
     /* Step through clb array. Check it against blocks array. */
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
@@ -3487,38 +3528,11 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
             }
 
             if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
-                int block_num = clb_grids[i][j].u.blocks;
-                if (blocks[block_num].block_type != B_CLB_TYPE) {
-                    printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
-                           block_num, i, j);
-                    ++error;
-                }
 
-                if ((blocks[block_num].x != i) || (blocks[block_num].y != j)) {
-                    printf("Error:  blocks %d location conflicts with clb(%d,%d)"
-                           "data.\n", block_num, i, j);
-                    ++error;
-                }
-
-                if (clb_grids[i][j].m_usage > 1) {
-                    printf("Error: clb(%d,%d) has occupancy of %d\n",
-                           i, j, clb_grids[i][j].m_usage);
-                    ++error;
-                }
-
-                block_done[block_num]++;
-            } else { /* IO_TYPE blocks */
-                if (clb_grids[i][j].m_usage > io_ratio) {
-                    printf("Error:  clb(%d,%d) has occupancy of %d\n", i, j,
-                           clb_grids[i][j].m_usage);
-                    ++error;
-                }
-
-                for (k = 0; k < clb_grids[i][j].m_usage; ++k) {
-                    int block_num = clb_grids[i][j].u.io_blocks[k];
-
-                    if ((blocks[block_num].block_type != INPAD_TYPE)
-                            && blocks[block_num].block_type != OUTPAD_TYPE) {
+                const int kclb_grid_usage = clb_grids[i][j].m_usage;
+                for (k = 0; k < kclb_grid_usage; ++k) {
+                    block_num = clb_grids[i][j].in_blocks[k];
+                    if (blocks[block_num].block_type != B_CLB_TYPE) {
                         printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
                                block_num, i, j);
                         ++error;
@@ -3527,6 +3541,40 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                     if ((blocks[block_num].x != i) || (blocks[block_num].y != j)) {
                         printf("Error:  blocks %d location conflicts with clb(%d,%d)"
                                "data.\n", block_num, i, j);
+                        ++error;
+                    }
+
+                    if (clb_grids[i][j].m_usage > 1) {
+                        printf("Error: clb(%d,%d) has occupancy of %d\n",
+                               i, j, clb_grids[i][j].m_usage);
+                        ++error;
+                    }
+                } /* end of for(k = 0; k < kclb_grid_usage; ++k) */
+
+                block_done[block_num]++;
+            } else { /* IO_TYPE blocks */
+                if (clb_grids[i][j].m_usage > clb_grids[i][j].m_capacity) {
+                    printf("Error:  clb(%d,%d) has occupancy of %d\n", i, j,
+                           clb_grids[i][j].m_usage);
+                    ++error;
+                }
+
+                const int kio_bin_usage = clb_grids[i][j].m_usage;
+                for (k = 0; k < kio_bin_usage; ++k) {
+
+                    block_num = clb_grids[i][j].in_blocks[k];
+
+                    if ((blocks[block_num].block_type != INPAD_TYPE)
+                            && blocks[block_num].block_type != OUTPAD_TYPE) {
+                        printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
+                               block_num, i, j);
+                        ++error;
+                    }
+
+                    if ((blocks[block_num].x != i) || (blocks[block_num].y != j)
+                          || (blocks[block_num].z != k)) {
+                        printf("Error:  blocks %d location conflicts with clb(%d,%d, %d)"
+                               "data.\n", block_num, i, j, k);
                         ++error;
                     }
 

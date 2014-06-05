@@ -163,7 +163,7 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
 
     int ipin, block_num, iclass, blk_pin;
     if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
-        block_num = clb_grids[i][j].u.blocks;
+        block_num = clb_grids[i][j].in_blocks[0];
 
         const int knum_net_pins = net[inet].num_net_pins;
         for (ipin = 1; ipin < knum_net_pins; ++ipin) { /* All net SINKs */
@@ -183,7 +183,7 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
             }
         }
     } else { /* IO_TYPE pad */
-        block_num = clb_grids[i][j].u.io_blocks[ptc_num];
+        block_num = clb_grids[i][j].in_blocks[ptc_num];
 
         const int knum_net_pins = net[inet].num_net_pins;
         for (ipin = 0; ipin < knum_net_pins; ++ipin) {
@@ -205,33 +205,30 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
                "\n of net %d.\n", ivex, inet);
         exit(1);
     }
-}
+}  /* end of check_sink() */
 
 
 static void check_source(int ivex, int inet)
 {
     /* Checks that the node passed in is a valid source for this net.        */
-    rr_types_t rr_type;
-    int i, j, ptc_num, block_num, blk_pin, iclass;
-    rr_type = rr_node[ivex].type;
-
+    rr_types_t rr_type = rr_node[ivex].type;
     if (rr_type != SOURCE) {
         printf("Error in check_source:  net %d begins with a node of type %d.\n",
                inet, rr_type);
         exit(1);
     }
 
-    i = rr_node[ivex].xlow;
-    j = rr_node[ivex].ylow;
-    ptc_num = rr_node[ivex].ptc_num;
-    block_num = net[inet].node_blocks[0];
-
+    int i = rr_node[ivex].xlow;
+    int j = rr_node[ivex].ylow;
+    int block_num = net[inet].node_blocks[0];
     if (blocks[block_num].x != i || blocks[block_num].y != j) {
         printf("Error in check_source:  net SOURCE is in wrong location (%d,%d)."
                "\n", i, j);
         exit(1);
     }
 
+    int blk_pin, iclass;
+    int ptc_num = rr_node[ivex].ptc_num;
     if (blocks[block_num].block_type == B_CLB_TYPE) {
         blk_pin = net[inet].node_block_pins[0];
         iclass = clb_pin_class[blk_pin];
@@ -242,13 +239,13 @@ static void check_source(int ivex, int inet)
             exit(1);
         }
     } else {  /* IO_TYPE Pad.  NB:  check_node ensured ptc_num < m_usage of this pad.  */
-        if (clb_grids[i][j].u.io_blocks[ptc_num] != block_num) {
+        if (clb_grids[i][j].in_blocks[ptc_num] != block_num) {
             printf("Error in check_source:  net SOURCE is at wrong pad (pad #%d)."
                    "\n", ptc_num);
             exit(1);
         }
     }
-}
+}  /* end of check_source() */
 
 
 static void check_switch(struct s_trace* tptr, int num_switch)

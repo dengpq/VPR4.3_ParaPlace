@@ -9,6 +9,7 @@
 #include "draw.h"
 
 
+#define EMPTY  -1
 /*************** Types local to this module *********************************/
 
 enum e_draw_rr_toggle {DRAW_NO_RR = 0, DRAW_ALL_RR, DRAW_ALL_BUT_BUFFERS_RR,
@@ -376,14 +377,20 @@ static void drawplace(void)
     /* Draw the IO_TYPE Pads first. Want each subblock to border on core. */
     setlinewidth(0);
 
+    const int kio_grid_capacity = g_grid_capacity[IO_TYPE];
     for (i = 1; i <= num_grid_columns; i++) {
-        for (j = 0; j <= num_grid_rows + 1; j += num_grid_rows + 1) { /* top and bottom */
+        /* top and bottom */
+        for (j = 0; j <= num_grid_rows + 1; j += num_grid_rows + 1) {
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
             setlinestyle(SOLID);
 
-            for (k = 0; k < clb_grids[i][j].m_usage; k++) {
-                block_num = clb_grids[i][j].u.io_blocks[k];
+            /* Now IO pad can place randomly, I must use capacity and NOT EMPTY */
+            for (k = 0; k < kio_grid_capacity; ++k) {
+                block_num = clb_grids[i][j].in_blocks[k];
+                if (block_num == EMPTY) {
+                    continue;
+                }
                 setcolor(block_color[block_num]);
                 x1 = x_clb_left[i] + k * io_step;
                 x2 = x1 + io_step;
@@ -392,7 +399,7 @@ static void drawplace(void)
                 drawrect(x1, y1, x2, y2);
                 /* Vertically offset text so these closely spaced names don't overlap. */
                 drawtext((x1 + x2) / 2., y1 + io_step * (k + 0.5),
-                         blocks[clb_grids[i][j].u.io_blocks[k]].name, clb_width);
+                         blocks[clb_grids[i][j].in_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
@@ -406,14 +413,15 @@ static void drawplace(void)
         }
     }
 
+    /* IOs on left and right */
     for (j = 1; j <= num_grid_rows; j++) {
-        for (i = 0; i <= num_grid_columns + 1; i += num_grid_columns + 1) { /* IOs on left and right */
+        for (i = 0; i <= num_grid_columns + 1; i += num_grid_columns + 1) {
             x1 = x_clb_left[i];
             x2 = x1 + clb_width;
             setlinestyle(SOLID);
 
-            for (k = 0; k < clb_grids[i][j].m_usage; k++) {
-                block_num = clb_grids[i][j].u.io_blocks[k];
+            for (k = 0; k < kio_grid_capacity; ++k) {
+                block_num = clb_grids[i][j].in_blocks[k];
                 setcolor(block_color[block_num]);
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
@@ -421,13 +429,13 @@ static void drawplace(void)
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
                 drawtext((x1 + x2) / 2., (y1 + y2) / 2.,
-                         blocks[clb_grids[i][j].u.io_blocks[k]].name, clb_width);
+                         blocks[clb_grids[i][j].in_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb_grids[i][j].m_usage; k < io_ratio; k++) {
+            for (k = clb_grids[i][j].m_usage; k < io_ratio; ++k) {
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -436,7 +444,6 @@ static void drawplace(void)
     }
 
     /* Now do the CLBs in the middle. */
-
     for (i = 1; i <= num_grid_columns; i++) {
         x1 = x_clb_left[i];
         x2 = x1 + clb_width;
@@ -447,13 +454,15 @@ static void drawplace(void)
 
             if (clb_grids[i][j].m_usage != 0) {
                 setlinestyle(SOLID);
-                block_num = clb_grids[i][j].u.blocks;
+
+                block_num = clb_grids[i][j].in_blocks[0];
+
                 setcolor(block_color[block_num]);
                 fillrect(x1, y1, x2, y2);
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
                 drawtext((x1 + x2) / 2., (y1 + y2) / 2.,
-                         blocks[clb_grids[i][j].u.blocks].name,
+                         blocks[clb_grids[i][j].in_blocks[0]].name,
                          clb_width);
             } else {
                 setlinestyle(DASHED);
@@ -509,12 +518,14 @@ static void get_block_center(int block_num, double* x, double* y)
     if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
         *x = x_clb_left[i] + clb_width / 2.;
         *y = y_clb_bottom[j] + clb_width / 2.;
-    } else {  /* IO_TYPE clb.  Have to figure out which subblock it is. */
+    } else {  /* IO_TYPE clb. Have to figure out which subblock it is. */
+        const int kio_grid_capacity = clb_grids[i][j].m_capacity;
         int k = -1;
-        for (k = 0; k < clb_grids[i][j].m_usage; k++)
-            if (clb_grids[i][j].u.io_blocks[k] == block_num) {
+        for (k = 0; k < kio_grid_capacity; ++k) {
+            if (clb_grids[i][j].in_blocks[k] == block_num) {
                 break;
             }
+        }
 
         if (i == 0 || i == num_grid_columns + 1) {   /* clb split vertically */
             *x = x_clb_left[i] + clb_width / 2.;
@@ -1304,25 +1315,24 @@ static int get_track_num(int ivex, int** chanx_track, int** chany_track)
     }
 }
 
-
+/* This routine is called when the user clicks in the graphics area. *
+ * It determines if a clb was clicked on.  If one was, it is         *
+ * highlighted in green, it's fanin nets and clbs are highlighted in *
+ * blue and it's fanout is highlighted in red.  If no clb was        *
+ * clicked on (user clicked on white space) any old highlighting is  *
+ * removed.  Note that even though global nets are not drawn, their  *
+ * fanins and fanouts are highlighted when you click on a blocks      *
+ * attached to them.                                                 */
 static void highlight_blocks(double x, double y)
 {
-    /* This routine is called when the user clicks in the graphics area. *
-     * It determines if a clb was clicked on.  If one was, it is         *
-     * highlighted in green, it's fanin nets and clbs are highlighted in *
-     * blue and it's fanout is highlighted in red.  If no clb was        *
-     * clicked on (user clicked on white space) any old highlighting is  *
-     * removed.  Note that even though global nets are not drawn, their  *
-     * fanins and fanouts are highlighted when you click on a blocks      *
-     * attached to them.                                                 */
-    int i, j, k, hit, block_num, ipin, netnum, fanblk;
-    int class;
-    double io_step;
+    
+    int i, j, k, block_num, ipin, netnum, fanblk;
+    int class = 0;
     char msg[BUFSIZE];
-    io_step = clb_width / io_ratio;
+    double io_step = clb_width / io_ratio;
     deselect_all();
-    hit = 0;
 
+    int hit = 0;
     for (i = 0; i <= num_grid_columns + 1; i++) {
         if (x <= x_clb_left[i] + clb_width) {
             if (x >= x_clb_left[i]) {
@@ -1340,7 +1350,6 @@ static void highlight_blocks(double x, double y)
     }
 
     hit = 0;
-
     for (j = 0; j <= num_grid_rows + 1; j++) {
         if (y <= y_clb_bottom[j] + clb_width) {
             if (y >= y_clb_bottom[j]) {
@@ -1365,7 +1374,7 @@ static void highlight_blocks(double x, double y)
             return;
         }
 
-        block_num = clb_grids[i][j].u.blocks;
+        block_num = clb_grids[i][j].in_blocks[0];
     } else { /* IO_TYPE blocks clb */
         if (i == 0 || i == num_grid_columns + 1) {  /* Vertical columns of IOs */
             k = (int)((y - y_clb_bottom[j]) / io_step);
@@ -1379,7 +1388,7 @@ static void highlight_blocks(double x, double y)
             return;
         }
 
-        block_num = clb_grids[i][j].u.io_blocks[k];
+        block_num = clb_grids[i][j].in_blocks[k];
     }
 
     /* Highlight fanin and fanout. */

@@ -6,24 +6,22 @@
 #include "hash.h"
 #include "read_place.h"
 
-
 static int get_subblock(int i, int j, int block_num);
+
 static void read_place_header(FILE* fp, char* net_file, char* arch_file,
                               char* buf);
-
 
 void read_user_pad_loc(char* pad_loc_file)
 {
     /* Reads in the locations of the IO_TYPE pads from a file. */
     hash_t** hash_table, *h_ptr;
-    int iblk, i, j, xtmp, ytmp, block_num, isubblk;
-    FILE* fp;
     char buf[BUFSIZE], bname[BUFSIZE], *ptr;
     printf("\nReading locations of IO_TYPE pads from %s.\n", pad_loc_file);
     linenum = 0;
-    fp = my_fopen(pad_loc_file, "r");
+    FILE* fp = my_fopen(pad_loc_file, "r");
     hash_table = alloc_hash_table();
 
+    int iblk, i, j, xtmp, ytmp, block_num, isubblk;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
         if (blocks[iblk].block_type == INPAD_TYPE
               || blocks[iblk].block_type == OUTPAD_TYPE) {
@@ -36,14 +34,13 @@ void read_user_pad_loc(char* pad_loc_file)
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             if (clb_grids[i][j].grid_type == IO_TYPE) {
                 for (isubblk = 0; isubblk < io_ratio; ++isubblk) {
-                    clb_grids[i][j].u.io_blocks[isubblk] = OPEN;    /* Flag for err. check */
+                    clb_grids[i][j].in_blocks[isubblk] = OPEN;    /* Flag for err. check */
                 }
             }
         }
     }
 
     ptr = my_fgets(buf, BUFSIZE, fp);
-
     while (ptr != NULL) {
         ptr = my_strtok(buf, TOKENS, fp, buf);
 
@@ -123,8 +120,8 @@ void read_user_pad_loc(char* pad_loc_file)
             exit(1);
         }
 
-        clb_grids[i][j].u.io_blocks[isubblk] = block_num;
-        clb_grids[i][j].m_usage++;
+        clb_grids[i][j].in_blocks[isubblk] = block_num;
+        ++clb_grids[i][j].m_usage;
         ptr = my_fgets(buf, BUFSIZE, fp);
     }
 
@@ -140,8 +137,8 @@ void read_user_pad_loc(char* pad_loc_file)
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             if (clb_grids[i][j].grid_type == IO_TYPE) {
-                for (isubblk = 0; isubblk < clb_grids[i][j].m_usage; isubblk++) {
-                    if (clb_grids[i][j].u.io_blocks[isubblk] == OPEN) {
+                for (isubblk = 0; isubblk < clb_grids[i][j].m_usage; ++isubblk) {
+                    if (clb_grids[i][j].in_blocks[isubblk] == OPEN) {
                         printf("Error:  The IO_TYPE blocks at (%d, %d) do not have \n"
                                "consecutive subblock numbers starting at 0.\n", i, j);
                         exit(1);
@@ -169,14 +166,15 @@ void dump_clbs(void)
                    clb_grids[i][j].m_usage);
 
             if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
-                printf("blocks: %d\n", clb_grids[i][j].u.blocks);
+                printf("blocks: %d\n", clb_grids[i][j].in_blocks[0]);
             }
 
             if (clb_grids[i][j].grid_type == IO_TYPE) {
                 printf("io_blocks: ");
 
-                for (index = 0; index < clb_grids[i][j].m_usage; index++) {
-                    printf("%d  ", clb_grids[i][j].u.io_blocks[index]);
+                const int kio_bin_capacity = clb_grids[i][j].m_capacity;
+                for (index = 0; index < kio_bin_capacity; ++index) {
+                    printf("%d  ", clb_grids[i][j].in_blocks[index]);
                 }
 
                 printf("\n");
@@ -184,8 +182,9 @@ void dump_clbs(void)
         }
     }
 
-    for (i = 0; i < num_blocks; i++) {
-        printf("blocks: %d, (i,j): (%d, %d)\n", i, blocks[i].x, blocks[i].y);
+    for (i = 0; i < num_blocks; ++i) {
+        printf("blocks: %d, (i,j,k): (%d, %d, %d)\n", i,
+               blocks[i].x, blocks[i].y, blocks[i].z);
     }
 }
 
@@ -232,9 +231,8 @@ static int get_subblock(int i, int j, int block_num)
     /* Use this routine only for IO_TYPE blocks.  It passes back the index of the *
      * subblock containing blocks block_num at location (i,j).                     */
     int k;
-
-    for (k = 0; k < io_ratio; k++) {
-        if (clb_grids[i][j].u.io_blocks[k] == block_num) {
+    for (k = 0; k < io_ratio; ++k) {
+        if (clb_grids[i][j].in_blocks[k] == block_num) {
             return (k);
         }
     }
@@ -257,13 +255,14 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
     linenum = 0;
     read_place_header(fp, net_file, arch_file, buf);
 
+    const int kio_bin_capacity = g_grid_capacity[IO_TYPE];
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             clb_grids[i][j].m_usage = 0;
 
             if (clb_grids[i][j].grid_type == IO_TYPE) {
-                for (isubblock = 0; isubblock < io_ratio; ++isubblock) {
-                    clb_grids[i][j].u.io_blocks[isubblock] = OPEN;
+                for (isubblock = 0; isubblock < kio_bin_capacity; ++isubblock) {
+                    clb_grids[i][j].in_blocks[isubblock] = OPEN;
                 }
             }
         }
@@ -280,7 +279,6 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
     }
 
     ptr = my_fgets(buf, BUFSIZE, fp);
-
     while (ptr != NULL) {
         ptr = my_strtok(buf, TOKENS, fp, buf);
 
@@ -307,7 +305,6 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
 
         sscanf(ptr, "%d", &ytmp);
         ptr = my_strtok(NULL, TOKENS, fp, buf);
-
         if (ptr == NULL) {
             printf("Error:  line %d is incomplete.\n", linenum);
             exit(1);
@@ -315,24 +312,21 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
 
         sscanf(ptr, "%d", &isubblock);
         ptr = my_strtok(NULL, TOKENS, fp, buf);
-
         if (ptr != NULL) {
             printf("Error:  extra characters at end of line %d.\n", linenum);
             exit(1);
         }
 
         h_ptr = get_hash_entry(hash_table, bname);
-
         if (h_ptr == NULL) {
             printf("Error:  blocks %s on line %d does not exist in the netlist.\n",
                    bname, linenum);
             exit(1);
         }
 
-        block_num = h_ptr->index;
         i = xtmp;
         j = ytmp;
-
+        block_num = h_ptr->index;
         if (blocks[block_num].x != OPEN) {
             printf("Error:  line %d.  Block %s listed twice in placement file.\n",
                    linenum, bname);
@@ -356,9 +350,10 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
                 exit(1);
             }
 
-            clb_grids[i][j].u.blocks = block_num;
-            clb_grids[i][j].m_usage++;
+            clb_grids[i][j].in_blocks[0] = block_num;
+            ++clb_grids[i][j].m_usage;
         } else if (clb_grids[i][j].grid_type == IO_TYPE) {
+
             if (blocks[block_num].block_type != INPAD_TYPE
                   && blocks[block_num].block_type != OUTPAD_TYPE) {
                 printf("Error in read_place.  Attempt to place blocks #%d (%s) in\n",
@@ -373,8 +368,8 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
                 exit(1);
             }
 
-            clb_grids[i][j].u.io_blocks[isubblock] = block_num;
-            clb_grids[i][j].m_usage++;
+            clb_grids[i][j].in_blocks[isubblock] = block_num;
+            ++clb_grids[i][j].m_usage;
         } else {  /* Block type was ILLEGAL or some unknown value */
             printf("Error in read_place.  Block #%d (%s) is in an illegal ",
                    block_num, bname);
@@ -399,8 +394,8 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             if (clb_grids[i][j].grid_type == IO_TYPE) {
-                for (isubblock = 0; isubblock < clb_grids[i][j].m_usage; isubblock++) {
-                    if (clb_grids[i][j].u.io_blocks[isubblock] == OPEN) {
+                for (isubblock = 0; isubblock < clb_grids[i][j].m_usage; ++isubblock) {
+                    if (clb_grids[i][j].in_blocks[isubblock] == OPEN) {
                         printf("Error:  The IO_TYPE blocks at (%d, %d) do not have \n"
                                "consecutive subblock numbers starting at 0.\n", i, j);
                         exit(1);

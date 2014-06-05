@@ -184,21 +184,20 @@ typedef struct s_block {
  * m_usage:  number of logical blocks in this physical group.        *
  * u.blocks: number of the blocks occupying this group if it is a CLB_TYPE. *
  * u.io_blocks[]: numbers of other blocks occupying groups (for      *
- *                IO_TYPE's), up to u.io_blocks[m_usage-1]                   */
+ *                IO_TYPE's), up to u.io_blocks[m_usage-1]           */
 typedef struct s_clb {
     block_types_t  grid_type;
+    int  m_capacity;
     int  m_usage;
     int  m_offset;
-    union {
-        int   blocks;
-        int*  io_blocks;
-    } u;
+
+    int* in_blocks;
 } grid_tile_t;
 
 
 /* Stores the bounding box of a net in terms of the minimum and  *
  * maximum coordinates of the blocks forming the net, clipped to *
- * the region (1..num_grid_columns, 1..num_grid_rows).                                    */
+ * the region (1..num_grid_columns, 1..num_grid_rows).          */
 typedef struct s_bb {
     int xmin;
     int xmax;

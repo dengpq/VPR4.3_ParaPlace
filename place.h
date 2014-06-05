@@ -16,7 +16,7 @@ struct s_pos {
     int x;
     int y;
     int z;
-} *pos;
+}* pos;
 
 /* This functions was used for placement using single-thread */
 void try_place(const char*  netlist_file,

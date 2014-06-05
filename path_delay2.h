@@ -53,11 +53,11 @@ typedef enum s_vertex_type_t {
     CONSTANT_GEN_SOURCE
 } vertex_type_t;
 
-/* type:  What is this vertexes? (Pad pin, clb pin, subblock pin, etc.)         *
- * ipin:  Number of the CLB_TYPE or subblock pin this vertexes represents, if        *
- *        applicable.                                                        *
- * isubblk: Number of the subblock this vertexes is part of, if applicable.     *
- * iblk:  Number of the blocks (CLB_TYPE or PAD) this vertexes is part of.            */
+/* type:  What is this vertexes? (Pad pin, clb pin, subblock pin, etc.)       *
+ * ipin:  Number of the CLB_TYPE or subblock pin this vertexes represents, if *
+ *        applicable.                                                         *
+ * isubblk: Number of the subblock this vertexes is part of, if applicable.   *
+ * iblk:  Number of the blocks (CLB_TYPE or PAD) this vertexes is part of.    */
 typedef struct {
     vertex_type_t type;
     short  ipin;

@@ -101,8 +101,16 @@ static int add_net(char* ptr,
                    int doall);
 
 static char* get_token(char* buf, int doall, FILE* fp_net);
-static void add_io(int doall, int type, FILE* fp_net, char* buf);
-static char* add_clb(int doall, FILE* fp_net, char* buf);
+
+static void add_io(int doall,
+                   const block_types_t kblock_type,
+                   FILE* fp_net,
+                   char* buf);
+
+static char* add_clb(int doall,
+                     FILE* fp_net,
+                     char* buf);
+
 static void add_global(int doall, FILE* fp_net, char* buf);
 static void init_parse(int doall);
 static void free_parse(void);
@@ -540,13 +548,13 @@ static char* add_clb(int doall, FILE* fp_net, char* buf)
  * by calling add_net.  If doall is zero this is a counting pass; if it *
  * is 1 this is the final (loading) pass.                               */
 static void add_io(int doall,
-                   int block_type,
+                   const block_types_t kblock_type,
                    FILE* fp_net,
                    char* buf)
 {
     ++num_blocks;
     int inet, i;
-    pin_types_t type;
+    pin_types_t pin_type;
 
     if (doall == 0) {
         set_subblock_count(num_blocks - 1, 0); /* No subblocks for IO_TYPE */
@@ -554,16 +562,16 @@ static void add_io(int doall,
 
     parse_name_and_pinlist(doall, fp_net, buf);
 
-    if (block_type == INPAD_TYPE) {
+    if (kblock_type == INPAD_TYPE) {
         ++num_primary_inputs;
-        type = DRIVER;
+        pin_type = DRIVER;
     } else {
         ++num_primary_outputs;
-        type = RECEIVER;
+        pin_type = RECEIVER;
     }
 
-    if (doall) {
-        blocks[num_blocks - 1].block_type = block_type; /* INPAD_TYPE or OUTPAD_TYPE */
+    if (doall) { /* INPAD_TYPE or OUTPAD_TYPE */
+        blocks[num_blocks - 1].block_type = kblock_type;
     }
 
     int   pin_index = -1;
@@ -586,7 +594,7 @@ static void add_io(int doall,
          * them to OPEN because I want the code to crash if I try to look up the   *
          * class of an I/O pin (since I/O pins don't have classes).                */
         inet = add_net(ptr,
-                       type,
+                       pin_type,
                        num_blocks - 1,
                        OPEN,
                        doall);
