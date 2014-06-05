@@ -336,10 +336,12 @@ void try_place(const char*         netlist_file,
     double** net_slack = NULL; /* FIXME */
     double** net_delay = NULL; /* FIXME */
     double** remember_net_delay_original_ptr = NULL; /*used to free net_delay if it is re-assigned*/
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+    const place_algorithm_t kplace_algo = placer_opts.place_algorithm;
+
+    if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+          || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           /* new added for support PATH Timing-Driven Placement */
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE
+          || kplace_algo == NEW_TIMING_DRIVEN_PLACE
           || placer_opts.enable_timing_computations) {
         /*do this before the initial placement to avoid messing up the initial placement */
         alloc_and_load_timing_graph(placer_opts,
@@ -407,9 +409,9 @@ void try_place(const char*         netlist_file,
                                                   placer_opts.num_regions);
     /*=========   Now compute initial_cost after initial placement    ========*/
     placer_paras_ptr->m_outer_crit_iter_count = 0;
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+    if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+          || kplace_algo == PATH_TIMING_DRIVEN_PLACE
+          || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
         placer_paras_ptr->m_crit_exponent = placer_opts.td_place_exp_first;
 
         compute_net_pin_index_values();
@@ -419,9 +421,8 @@ void try_place(const char*         netlist_file,
         printf("\nThere are %d point to point connections in this circuit\n\n",
                 placer_paras_ptr->m_num_connections);
 
-        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE) {
+        if (kplace_algo == NET_TIMING_DRIVEN_PLACE) {
             for (inet = 0; inet < num_nets; ++inet) {
-
                 const int knum_net_pins = net[inet].num_net_pins;
                 for (ipin = 1; ipin < knum_net_pins; ++ipin) {
                     timing_place_crit[inet][ipin] = 0.0; /*dummy crit values*/
@@ -429,8 +430,14 @@ void try_place(const char*         netlist_file,
             }
             /* first pass gets delay_cost, which is used in criticality computations *
              * in the next call to compute_timing_driven_cost_by_orig_algo. */
-            compute_timing_driven_cost_by_orig_algo(&placer_costs_ptr->m_timing_cost,
-                                                    &placer_costs_ptr->m_delay_cost);
+            if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+                  || kplace_algo == PATH_TIMING_DRIVEN_PLACE){
+                compute_timing_driven_cost_by_orig_algo(&placer_costs_ptr->m_timing_cost,
+                                                        &placer_costs_ptr->m_delay_cost);
+            } else { /* NEW_TIMING_DRIVEN_PLACE */
+                compute_timing_driven_costs_by_path_algo(&placer_costs_ptr->m_timing_cost,
+                                                         &placer_costs_ptr->m_delay_cost);
+            }
 
             /* Used for computing criticalities, but why did it subdivide *
              * num_connections? (FIXME)                                   */
@@ -450,8 +457,8 @@ void try_place(const char*         netlist_file,
          * each time that compute_timing_driven_cost_by_orig_algo is *
          * called, and is also updated after any swap is accepted.   *
          * point_to_point_delay was pin_to_pin_delay.                */
-        if (placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+        if (kplace_algo == PATH_TIMING_DRIVEN_PLACE
+              || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
             net_delay = point_to_point_delay_cost;
         }
 
@@ -482,11 +489,13 @@ void try_place(const char*         netlist_file,
     } else { /*BOUNDING_BOX_PLACE*/
         placer_costs_ptr->m_total_cost = placer_costs_ptr->m_bb_cost;
         placer_costs_ptr->m_timing_cost = placer_costs_ptr->m_delay_cost = 0.0;
-        placer_costs_ptr->m_inverse_prev_bb_cost = placer_costs_ptr->m_inverse_prev_timing_cost = 0.0;
+        placer_costs_ptr->m_inverse_prev_bb_cost = 0.0;
+        placer_costs_ptr->m_inverse_prev_timing_cost = 0.0;
 
         placer_paras_ptr->m_place_delay_value = placer_paras_ptr->m_max_delay = 0.0;
         placer_paras_ptr->m_crit_exponent = 0.0;
-        placer_paras_ptr->m_outer_crit_iter_count = placer_paras_ptr->m_num_connections = 0;
+        placer_paras_ptr->m_outer_crit_iter_count = 0;
+        placer_paras_ptr->m_num_connections = 0;
     }
     /*-------------    Compute initial placemnt cost end    ---------------- */
 
@@ -609,7 +618,7 @@ void try_place(const char*         netlist_file,
                 placer_costs_ptr);
 
     if (placer_opts.enable_timing_computations &&
-            placer_opts.place_algorithm == BOUNDING_BOX_PLACE) {
+          kplace_algo == BOUNDING_BOX_PLACE) {
         /*need this done since the timing data has not been kept up to date*
          *in bounding_box mode */
         for (inet = 0; inet < num_nets; ++inet) {
@@ -619,15 +628,21 @@ void try_place(const char*         netlist_file,
             }
         }
         /*computes point_to_point_delay_cost*/
-        compute_timing_driven_cost_by_orig_algo(&placer_costs_ptr->m_timing_cost,
-                                                &placer_costs_ptr->m_delay_cost);
+        if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+              || kplace_algo == PATH_TIMING_DRIVEN_PLACE) {
+            compute_timing_driven_cost_by_orig_algo(&placer_costs_ptr->m_timing_cost,
+                                                    &placer_costs_ptr->m_delay_cost);
+        } else {
+            compute_timing_driven_costs_by_path_algo(&placer_costs_ptr->m_timing_cost,
+                                                     &placer_costs_ptr->m_delay_cost);
+        }
     }
 
     double place_est_crit = 0.0;
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+    if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+          || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           /* new added for supporting PATH algorithm */
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE
+          || kplace_algo == NEW_TIMING_DRIVEN_PLACE
           || placer_opts.enable_timing_computations) {
         /* this makes net_delay up to date with    *
          * the same values that the placer is using*/
@@ -670,10 +685,10 @@ void try_place(const char*         netlist_file,
                   FALSE);
 
     printf("Total moves attempted: %d.\n", placer_paras_ptr->m_total_iter);
-    if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+    if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+          || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           /* new added for supporting PATH timing-driven placement */
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE
+          || kplace_algo == NEW_TIMING_DRIVEN_PLACE
           || placer_opts.enable_timing_computations) {
         net_delay = remember_net_delay_original_ptr;
         free_placement_structs(placer_opts.place_cost_type,
@@ -760,7 +775,8 @@ static void initial_placement(pad_loc_t pad_loc_type,
         }
         /* current time, the count == num_of_io_pads */
         for (iblk = 0; iblk < num_blocks; ++iblk) {
-            if (blocks[iblk].block_type == INPAD_TYPE || blocks[iblk].block_type == OUTPAD_TYPE) {
+            if (blocks[iblk].block_type == INPAD_TYPE
+                  || blocks[iblk].block_type == OUTPAD_TYPE) {
                 int choice = my_irand(count - 1);
 
                 int isubblk = clb_grids[pos[choice].x][pos[choice].y].m_usage;
@@ -820,13 +836,15 @@ static void run_main_placement(const placer_opts_t  placer_opts,
     int moves_since_cost_recompute = 0;
     placer_paras_ptr->m_total_iter = 0;
     char msg[BUFSIZE] = "";
+    const int kplace_algo = placer_opts.place_algorithm;
+
     while (exit_crit(placer_paras_ptr->m_temper,
                      placer_costs_ptr->m_total_cost,
                      annealing_sched) == 0) { /* FIXME: outer loop of VPR */
-        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+        if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+              || kplace_algo == PATH_TIMING_DRIVEN_PLACE
               /* New added for support PATH Timing-Driven Placement */
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+              || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
             placer_costs_ptr->m_total_cost = 1.0;
         }
 
@@ -838,10 +856,10 @@ static void run_main_placement(const placer_opts_t  placer_opts,
         /* for timing_driven_placement, outer_crit_iter_count initial as 1 */
         const int kouter_crit_iter_count = placer_paras_ptr->m_outer_crit_iter_count;
         const int krecompute_crit_iter = placer_opts.recompute_crit_iter;
-        if ((placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+        if ((kplace_algo == NET_TIMING_DRIVEN_PLACE
+              || kplace_algo == PATH_TIMING_DRIVEN_PLACE
               /* new added for supporting PATH Timing-Driven Placement */
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE)
+              || kplace_algo == NEW_TIMING_DRIVEN_PLACE)
               && (kouter_crit_iter_count >= krecompute_crit_iter
                     || placer_opts.inner_loop_recompute_divider != 0)) {
             perform_timing_analyze(&placer_opts,
@@ -878,10 +896,10 @@ static void run_main_placement(const placer_opts_t  placer_opts,
             } /* -------------     end of try_swap() success   -------------*/
 
             /*--------------   Update Timing-Driven Placement Cost  After swap ------------*/
-            if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-                  || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+            if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+                  || kplace_algo == PATH_TIMING_DRIVEN_PLACE
                   /* New added for supporting PATH Timing-Driven Placement */
-                  || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+                  || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
                 recompute_td_cost_after_swap_certain_times(&placer_opts,
                                                            inner_iter,
                                                            net_delay,
@@ -948,10 +966,10 @@ static void run_main_placement(const placer_opts_t  placer_opts,
         update_range_limit(&placer_paras_ptr->m_range_limit,
                            placer_paras_ptr->m_success_ratio);
 
-        if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-              || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+        if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+              || kplace_algo == PATH_TIMING_DRIVEN_PLACE
               /* new added for supporting PATH timing-driven placement */
-              || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+              || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
             /* FIXME: update timing_critical_exponent */
             placer_paras_ptr->m_crit_exponent = update_crit_exponent(&placer_opts,
                                                                      placer_paras_ptr);
@@ -980,10 +998,11 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
     /* before run low-temperature placement, it should do timing_analyze! */
     const int kouter_crit_iter_count = placer_paras_ptr->m_outer_crit_iter_count;
     const int krecompute_crit_iter = placer_opts.recompute_crit_iter; /* 1 */
-    if ((placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-          || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
-          /* new added for supporting PATH timing-driven placement */
-          || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE)
+    const place_algorithm_t kplace_algo = placer_opts.place_algorithm;
+
+    if ((kplace_algo == NET_TIMING_DRIVEN_PLACE
+          || kplace_algo == PATH_TIMING_DRIVEN_PLACE
+          || kplace_algo == NEW_TIMING_DRIVEN_PLACE)
           && (kouter_crit_iter_count >= krecompute_crit_iter
                 || placer_opts.inner_loop_recompute_divider != 0)) {
             /*at each temperature change we update these values to be used   */
@@ -1021,10 +1040,10 @@ static void  run_low_temperature_place(const placer_opts_t  placer_opts,
             placer_paras_ptr->m_sum_of_squares +=
                 placer_costs_ptr->m_total_cost * placer_costs_ptr->m_total_cost;
 
-            if (placer_opts.place_algorithm == NET_TIMING_DRIVEN_PLACE
-                  || placer_opts.place_algorithm == PATH_TIMING_DRIVEN_PLACE
+            if (kplace_algo == NET_TIMING_DRIVEN_PLACE
+                  || kplace_algo == PATH_TIMING_DRIVEN_PLACE
                   /* new added for supporting PATH timing-driven placement */
-                  || placer_opts.place_algorithm == NEW_TIMING_DRIVEN_PLACE) {
+                  || kplace_algo == NEW_TIMING_DRIVEN_PLACE) {
                 recompute_td_cost_after_swap_certain_times(&placer_opts,
                                                            inner_iter,
                                                            net_delay,
