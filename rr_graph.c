@@ -342,19 +342,23 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
 
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].type == CLB_TYPE) {
+            if (clb_grids[i][j].block_type == CLB_TYPE) {
+
                 build_rr_clb(rr_node_indices, Fc_output, clb_opin_to_tracks,
                              nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
                              seg_details_y);
+
                 build_rr_xchan(rr_node_indices, route_type, tracks_to_clb_ipin,
                                tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
                                wire_to_ipin_switch, seg_details_x, seg_details_y,
                                CHANX_COST_INDEX_START);
+
                 build_rr_ychan(rr_node_indices, route_type, tracks_to_clb_ipin,
                                tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
                                wire_to_ipin_switch, seg_details_x, seg_details_y,
                                CHANX_COST_INDEX_START + num_segment);
-            } else if (clb_grids[i][j].type == IO_TYPE) {
+
+            } else if (clb_grids[i][j].block_type == IO_TYPE) {
                 build_rr_pads(rr_node_indices, Fc_pad, pads_to_tracks,
                               nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
                               seg_details_y);
@@ -370,10 +374,10 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
                                    tracks_to_pads, i, j, nodes_per_chan, switch_block_type,
                                    wire_to_ipin_switch, seg_details_x, seg_details_y,
                                    CHANX_COST_INDEX_START + num_segment);
-            } else if (clb_grids[i][j].type != EMPTY_TYPE) {
+            } else if (clb_grids[i][j].block_type != EMPTY_TYPE) {
                 printf("Error in alloc_and_load_rr_graph.\n"
                        "Block at (%d, %d) has unknown type (%d).\n", i, j,
-                       clb_grids[i][j].type);
+                       clb_grids[i][j].block_type);
                 exit(1);
             }
         }
@@ -443,7 +447,7 @@ void load_net_rr_terminals(int** rr_node_indices,
             i = blocks[iblk].x;
             j = blocks[iblk].y;
 
-            if (clb_grids[i][j].type == CLB_TYPE) {
+            if (clb_grids[i][j].block_type == CLB_TYPE) {
                 blk_pin = net[inet].node_block_pins[ipin];
                 iclass = clb_pin_class[blk_pin];
             } else {
@@ -473,7 +477,7 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
         for (iclass = 0; iclass < num_pin_class; iclass++) {
-            if (blocks[iblk].type == CLB_TYPE) {
+            if (blocks[iblk].block_type == CLB_TYPE) {
                 i = blocks[iblk].x;
                 j = blocks[iblk].y;
 
@@ -504,7 +508,8 @@ static int which_io_block(int iblk)
     int i = blocks[iblk].x;
     int j = blocks[iblk].y;
 
-    if (blocks[iblk].type != INPAD_TYPE && blocks[iblk].type != OUTPAD_TYPE) {
+    if (blocks[iblk].block_type != INPAD_TYPE
+          && blocks[iblk].block_type != OUTPAD_TYPE) {
         printf("Error in which_io_block:  blocks %d is not an IO_TYPE blocks.\n", iblk);
         exit(1);
     }

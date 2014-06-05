@@ -506,7 +506,7 @@ static void get_block_center(int block_num, double* x, double* y)
     int i = blocks[block_num].x;
     int j = blocks[block_num].y;
 
-    if (clb_grids[i][j].type == CLB_TYPE) {
+    if (clb_grids[i][j].block_type == CLB_TYPE) {
         *x = x_clb_left[i] + clb_width / 2.;
         *y = y_clb_bottom[j] + clb_width / 2.;
     } else {  /* IO_TYPE clb.  Have to figure out which subblock it is. */
@@ -1027,9 +1027,8 @@ static void draw_rr_pin(int ivex, enum color_types color)
     ipin = rr_node[ivex].ptc_num;
     setcolor(color);
 
-    if (clb_grids[i][j].type == CLB_TYPE) {
-
-        for (iside = 0; iside <= 3; iside++) {
+    if (clb_grids[i][j].block_type == CLB_TYPE) {
+        for (iside = 0; iside <= 3; ++iside) {
             if (pinloc[iside][ipin] == 1) {   /* Pin exists on this side. */
                 get_rr_pin_draw_coords(ivex, iside, &xcen, &ycen);
                 fillrect(xcen - pin_size, ycen - pin_size, xcen + pin_size, ycen + pin_size);
@@ -1069,7 +1068,7 @@ static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,
     xc = x_clb_left[i];
     yc = y_clb_bottom[j];
 
-    if (clb_grids[i][j].type == CLB_TYPE) {
+    if (clb_grids[i][j].block_type == CLB_TYPE) {
         ipin = rr_node[ivex].ptc_num;
         step_size = clb_width / (pins_per_clb + 1.);
         offset = (ipin + 1.) * step_size;
@@ -1359,7 +1358,7 @@ static void highlight_blocks(double x, double y)
     }
 
     /* The user selected the clb at location (i,j). */
-    if (clb_grids[i][j].type == CLB_TYPE) {
+    if (clb_grids[i][j].block_type == CLB_TYPE) {
         if (clb_grids[i][j].m_usage == 0) {
             update_message(default_message);
             drawscreen();
@@ -1385,12 +1384,12 @@ static void highlight_blocks(double x, double y)
 
     /* Highlight fanin and fanout. */
 
-    if (blocks[block_num].type == OUTPAD_TYPE) {
+    if (blocks[block_num].block_type == OUTPAD_TYPE) {
         netnum = blocks[block_num].nets[0];    /* Only net. */
         net_color[netnum] = BLUE;        /* Outpad drives nothing */
         fanblk = net[netnum].node_blocks[0];    /* Net driver */
         block_color[fanblk] = BLUE;
-    } else if (blocks[block_num].type == INPAD_TYPE) {
+    } else if (blocks[block_num].block_type == INPAD_TYPE) {
         netnum = blocks[block_num].nets[0];    /* Only net. */
         net_color[netnum] = RED;         /* Driven by INPAD_TYPE */
 

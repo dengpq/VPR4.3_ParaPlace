@@ -18,11 +18,11 @@
 
 /* Block Types in input netlist file */
 typedef enum e_block_types {
-    CLB_TYPE,
-    OUTPAD_TYPE,
-    INPAD_TYPE,
+    CLB_TYPE = 0,
     IO_TYPE,
-    EMPTY_TYPE
+    EMPTY_TYPE,
+    OUTPAD_TYPE,
+    INPAD_TYPE
 } block_types_t;
 
 /* Gives the Tdels through a subblock.                                    *
@@ -157,12 +157,12 @@ typedef struct s_net {
     int*  node_block_pins; /* int*  blk_pin; */
 } net_t;
 
-typedef enum e_grid_loc_type {
+/* typedef enum e_grid_loc_type {
     BOUNDARY = 0,
     FILL,
     COL_REPEAT,
     COL_REL
-} grid_loc_type_t;
+} grid_loc_type_t; */
 
 /* Define how to place type in the grid *
  * grid_loc_type - where the type gones and which numbers are valid;
@@ -172,53 +172,53 @@ typedef enum e_grid_loc_type {
  *          COL_REPEAT. 0 means do not repeat;
  * rel_col - the fraction column to place type;
  * priority - in the event of confict, which type gets picked.     */
-typedef struct s_grid_loc_def {
+/* typedef struct s_grid_loc_def {
     grid_loc_type_t grid_loc_type;
     int    start_col;
     int    repeat;
     double  col_rel;
     int    priority;
-} grid_loc_def_t;
+} grid_loc_def_t; */
 
-typedef  struct s_type_descriptor {
+/* typedef  struct s_type_descriptor {
     const char*   m_name;
     int     m_num_pins;
     int     m_capacity;
     int     m_height;
-    int***  m_pinloc; /* [0..height-1][0..3][0..num_pins-1] */
+    int***  m_pinloc; [0..height-1][0..3][0..num_pins-1]
 
     int     m_num_class;
-    struct s_pin_class*  m_class_info; /* [0..num_class-1] */
-    int*    m_pin_class;               /* [0..num_pins-1] */
+    struct s_pin_class*  m_class_info;  [0..num_class-1]
+    int*    m_pin_class;                [0..num_pins-1]
 
-    boolean*  is_global_pin;  /* [0..num_pins-1] */
+    boolean*  is_global_pin;  [0..num_pins-1]
 
     boolean   is_Fc_factor;
     boolean   is_Fc_out_full_flex;
     double    m_Fc_in;
     double    m_Fc_out;
 
-    /* subblock info */
+    subblock info
     int  m_max_subblocks;
     int  m_max_subblocks_inputs;
     int  m_max_subblocks_outputs;
 
-    /* grid_location info */
+    grid_location info
     grid_loc_def_t* m_grid_loc_def;
     int    m_num_grid_loc_def;
 
-    /* timing info */
+    timing info
     timing_info_t  m_timing_inf;
-    
-    /* This can be determinded from class_info and pin_class_t but store for
-     * fast access */
+
+     * This can be determinded from class_info and pin_class_t but store for
+     * fast access *
     int  m_num_drivers;
     int  m_num_receivers;
 
-    /* index of type_descriptor in array(allow for index reference) */
+    * index of type_descriptor in array(allow for index reference) *
     int  m_index;
 } type_descriptor_t;
-typedef const type_descriptor_t*  block_type_ptr;
+typedef const type_descriptor_t*  block_type_ptr; */
 
 
 /* FIXME: Data Structure about clbs or io pads in circuit netlist.   */
@@ -229,11 +229,11 @@ typedef const type_descriptor_t*  block_type_ptr;
  * x,y:  physical location of the placed blocks.                      */
 typedef struct s_block {
     char* name;
-    enum  e_block_types type; /* CLB_TYPE,INPAD_TYPE,OUTPAD_TYPE,IO_TYPE,ILLEGAL */
+    block_types_t  block_type; /* CLB_TYPE,INPAD_TYPE,OUTPAD_TYPE,IO_TYPE,ILLEGAL */
     int*  nets; /* [0..pins_per_clb-1] */
     int   x;
     int   y;
-    int   z;
+    int   z;  /* z: 0 for clb, 0, 1, 2.., io_ratio-1 for IO */
 } block_t;
 
 /* FIXME: Data Structure about clb in FPGA chip architecture.        */
@@ -243,7 +243,7 @@ typedef struct s_block {
  * u.io_blocks[]: numbers of other blocks occupying groups (for      *
  *                IO_TYPE's), up to u.io_blocks[m_usage-1]                   */
 typedef struct s_clb {
-    block_types_t type;
+    block_types_t  block_type;
     int  m_usage;
     int  m_offset;
     union {

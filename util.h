@@ -182,7 +182,7 @@ char* my_strdup(const char* str);
 
 char* my_strncpy(char* dest,
                  const char* src,
-                 size_t size);
+                 int size);
 
 /*********************** Portable random number generators *******************/
 void my_srandom(int seed);

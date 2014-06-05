@@ -311,7 +311,8 @@ static void free_and_reset_internal_structures(net_t* original_net,
     num_blocks = original_num_blocks;
     free_matrix(net_delay, 0, NET_COUNT - 1, 1, sizeof(double));
     free_matrix(net_slack, 0, NET_COUNT - 1, 1, sizeof(double));
-}
+}  /* end of static void free_and_reset_internal_structures(net_t* original_net,) */
+
 /**************************************/
 static void setup_chan_width(router_opts_t router_opts,
                              chan_width_distr_t chan_width_dist)
@@ -378,8 +379,8 @@ static void assign_locations(block_types_t source_type,
                              int sink_x_loc, int sink_y_loc)
 {
     /*all routing occurs between blocks 0 (source) and blocks 1 (sink)*/
-    blocks[SOURCE_BLOCK].type = source_type;
-    blocks[SINK_BLOCK].type = sink_type;
+    blocks[SOURCE_BLOCK].block_type = source_type;
+    blocks[SINK_BLOCK].block_type = sink_type;
     blocks[SOURCE_BLOCK].x = source_x_loc;
     blocks[SOURCE_BLOCK].y = source_y_loc;
     blocks[SINK_BLOCK].x = sink_x_loc;

@@ -1,10 +1,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <math.h>
+#include <assert.h>
+
 #include "util.h"
 #include "vpr_types.h"
 #include "globals.h"
 #include "read_arch.h"
+
+#define  NUM_GRID_TYPES  3
 
 /* This source file reads in the architectural description of an FPGA.     *
  * A # symbol anywhere in the input file denotes a comment to the end      *
@@ -210,7 +214,7 @@ static void countpass(FILE* fp_arch, router_types_t route_type,
                       detail_routing_arch_t* det_routing_arch_ptr,
                       timing_info_t*  timing_inf);
 
-
+static void init_grid_capacity(void);
 
 /****************** Subroutine definitions **********************************/
 /* Reads in the architecture description file for the FPGA. */
@@ -226,6 +230,7 @@ void read_arch(char* arch_file, router_types_t route_type,
               det_routing_arch,
               timing_inf_ptr);
     rewind(fp_arch);
+
     linenum = 0;
     int pinnum = 0;
     int next_segment = 0;
@@ -436,8 +441,12 @@ void read_arch(char* arch_file, router_types_t route_type,
         load_extra_switch_types(det_routing_arch, timing_inf_ptr);
     }
 
-    check_arch(arch_file, route_type, *det_routing_arch, *segment_inf_ptr,
-               *timing_inf_ptr, subblock_data_ptr->max_subblocks_per_block,
+    check_arch(arch_file,
+               route_type,
+               *det_routing_arch,
+               *segment_inf_ptr,
+               *timing_inf_ptr,
+               subblock_data_ptr->max_subblocks_per_block,
                *chan_width_dist_ptr);
     fclose(fp_arch);
 }
@@ -510,19 +519,19 @@ static void countpass(FILE* fp_arch,
 
     /* I've now got a count of how many classes there are and how many    *
      * pins belong to each class.  Allocate the proper memory.            */
-    class_inf = (pin_class_t*) my_malloc(num_pin_class * sizeof(pin_class_t));
+    class_inf = (pin_class_t*)my_malloc(num_pin_class * sizeof(pin_class_t));
     pins_per_clb = 0;
     for (i = 0; i < num_pin_class; ++i) {
         class_inf[i].type = OPEN;   /* Flag for not set yet. */
         class_inf[i].num_pins = 0;
-        class_inf[i].pinlist = (int*) my_malloc(pins_per_class[i] *
+        class_inf[i].pinlist = (int*)my_malloc(pins_per_class[i] *
                                                 sizeof(int));
         pins_per_clb += pins_per_class[i];
     }
 
     free(pins_per_class);
-    clb_pin_class = (int*) my_malloc(pins_per_clb * sizeof(int));
-    is_global_clb_pin = (boolean*) my_malloc(pins_per_clb * sizeof(int));
+    clb_pin_class = (int*)my_malloc(pins_per_clb * sizeof(int));
+    is_global_clb_pin = (boolean*)my_malloc(pins_per_clb * sizeof(int));
 
     /* Now allocate space for segment and switch information if the route_type   *
      * is DETAILED.  Otherwise ignore the segment and switch information, and    *
@@ -1599,6 +1608,8 @@ void init_arch(double aspect_ratio, boolean user_sized)
     chan_width_x = (int*)my_malloc((num_grid_rows + 1) * sizeof(int));
     chan_width_y = (int*)my_malloc((num_grid_columns + 1) * sizeof(int));
 
+    init_grid_capacity();
+
     fill_arch();
 }  /* end of void init_arch(double aspect_ratio, boolean user_sized) */
 
@@ -1626,25 +1637,45 @@ static void fill_arch(void)
 
     /* Initialize type, and occupancy. */
     for (i = 1; i <= num_grid_columns; ++i) {
-        clb_grids[i][0].type = IO_TYPE;
-        clb_grids[i][num_grid_rows + 1].type = IO_TYPE; /* perimeter (IO_TYPE) cells */
+        clb_grids[i][0].block_type = IO_TYPE;
+        clb_grids[i][0].m_offset = 0;
+
+        clb_grids[i][num_grid_rows + 1].block_type = IO_TYPE; /* perimeter (IO_TYPE) cells */
+        clb_grids[i][num_grid_rows + 1].m_offset = 0;
     }
 
     for (i = 1; i <= num_grid_rows; ++i) {
-        clb_grids[0][i].type = IO_TYPE;
-        clb_grids[num_grid_columns + 1][i].type = IO_TYPE;
+        clb_grids[0][i].block_type = IO_TYPE;
+        clb_grids[0][i].m_offset = 0;
+
+        clb_grids[num_grid_columns + 1][i].block_type = IO_TYPE;
+        clb_grids[num_grid_columns + 1][i].m_offset = 0;
     }
 
     for (i = 1; i <= num_grid_columns; ++i) { /* interior (LUT) cells */
         int j = 0;
         for (j = 1; j <= num_grid_rows; ++j) {
-            clb_grids[i][j].type = CLB_TYPE;
+            clb_grids[i][j].block_type = CLB_TYPE;
+            clb_grids[i][j].m_offset = 0;
         }
     }
 
-    /* Nothing goes in the corners.      */
-    clb_grids[0][0].type = clb_grids[num_grid_columns + 1][0].type = EMPTY_TYPE;
-    clb_grids[0][num_grid_rows + 1].type =
-        clb_grids[num_grid_columns + 1][num_grid_rows + 1].type = EMPTY_TYPE;
+    /* Nothing goes in the corners.  */
+    clb_grids[0][0].block_type = clb_grids[num_grid_columns + 1][0].block_type =
+        EMPTY_TYPE;
+    clb_grids[0][num_grid_rows + 1].block_type =
+        clb_grids[num_grid_columns + 1][num_grid_rows + 1].block_type = EMPTY_TYPE;
 } /* end of static void fill_arch(void) */
+
+static void init_grid_capacity(void)
+{
+    g_num_grid_types = NUM_GRID_TYPES;
+    g_grid_capacity = (int*)my_malloc(g_num_grid_types * sizeof(int));
+    g_grid_capacity[CLB_TYPE] = 1;
+
+    assert(io_ratio > 0);
+    g_grid_capacity[IO_TYPE] = io_ratio;
+
+    g_grid_capacity[EMPTY_TYPE] = 0;
+} /* attention, Do not forget free memory after placement! */
 

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "util.h"
-#include <stdarg.h>
+#include <stddef.h>
 
 #include "vpr_types.h"
 
@@ -34,10 +34,10 @@ int limit_value(int cur,
  * people would expect. This ensures null termination */
 char* my_strncpy(char* dest,
                  const char* src,
-                 size_t size)
+                 int size)
 {
     /* Find string's length */
-    size_t len = strlen(src);
+    int len = strlen(src);
 
     /* Cap length at (num - 1) to leave room for \0 */
     if (size <= len) {

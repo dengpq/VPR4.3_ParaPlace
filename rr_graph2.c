@@ -430,13 +430,13 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
         for (j = 0; j <= num_grid_rows + 1; j++) {
             rr_node_indices[i][j] = index;
 
-            if (clb_grids[i][j].type == CLB_TYPE) {
+            if (clb_grids[i][j].block_type == CLB_TYPE) {
                 index += nodes_per_clb;
                 index = load_chanx_rr_indices(seg_details_x, nodes_per_chan, index,
                                               i, j);
                 index = load_chany_rr_indices(seg_details_y, nodes_per_chan, index,
                                               i, j);
-            } else if (clb_grids[i][j].type == IO_TYPE) {
+            } else if (clb_grids[i][j].block_type == IO_TYPE) {
                 index += nodes_per_pad;
                 if (j == 0)    /* Bottom row */
                     index = load_chanx_rr_indices(seg_details_x, nodes_per_chan,
@@ -445,7 +445,7 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
                 if (i == 0)    /* Leftmost column */
                     index = load_chany_rr_indices(seg_details_y, nodes_per_chan,
                                                   index, i, j);
-            } else if (clb_grids[i][j].type != EMPTY_TYPE) {
+            } else if (clb_grids[i][j].block_type != EMPTY_TYPE) {
                 printf("Error in alloc_and_load_rr_node_indices.  Unexpected clb"
                        " type.\n");
                 exit(1);
@@ -555,7 +555,7 @@ int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
     int  index = rr_node_indices[i][j];  /* Start of that blocks */
 
     int iclass = 0;
-    switch (clb_grids[i][j].type) {
+    switch (clb_grids[i][j].block_type) {
         case CLB_TYPE:
             switch (rr_type) {
                 case SOURCE:
@@ -648,7 +648,8 @@ int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
 
         default:
             printf("Error in gerr_node_t_index:  unexpected blocks type (%d) at "
-                   "(%d, %d).\nrr_type: %d.\n", clb_grids[i][j].type, i, j, rr_type);
+                   "(%d, %d).\nrr_type: %d.\n", clb_grids[i][j].block_type,
+                   i, j, rr_type);
             exit(1);
     }
 }

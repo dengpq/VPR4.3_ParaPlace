@@ -391,8 +391,10 @@ void try_place(const char*         netlist_file,
 
     /* Storing the number of pins on each type of blocks makes the swap routine *
      * slightly more efficient.                                                */
-    int pins_on_block[3];  /* 0: CLB_TYPE, 1: OUTPAD_TYPE, 2: INPAD_TYPE */
+    int pins_on_block[5];
     pins_on_block[CLB_TYPE] = pins_per_clb;
+    pins_on_block[IO_TYPE] = 1;
+    pins_on_block[EMPTY_TYPE] = 0;
     pins_on_block[OUTPAD_TYPE] = 1;
     pins_on_block[INPAD_TYPE] = 1;
 
@@ -719,7 +721,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
 
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) { /* num_blocks = plbs + io_blocks */
-        if (blocks[iblk].type == CLB_TYPE) { /* only place CLBs in center */
+        if (blocks[iblk].block_type == CLB_TYPE) { /* only place CLBs in center */
             int choice = my_irand(count - 1); /* choice >= 1 && choice <= count-1*/
             clb_grids[pos[choice].x][pos[choice].y].u.blocks = iblk;
             clb_grids[pos[choice].x][pos[choice].y].m_usage = 1;
@@ -758,7 +760,7 @@ static void initial_placement(pad_loc_t pad_loc_type,
         }
         /* current time, the count == num_of_io_pads */
         for (iblk = 0; iblk < num_blocks; ++iblk) {
-            if (blocks[iblk].type == INPAD_TYPE || blocks[iblk].type == OUTPAD_TYPE) {
+            if (blocks[iblk].block_type == INPAD_TYPE || blocks[iblk].block_type == OUTPAD_TYPE) {
                 int choice = my_irand(count - 1);
 
                 int isubblk = clb_grids[pos[choice].x][pos[choice].y].m_usage;
@@ -782,10 +784,11 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int k = 0;
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].type == CLB_TYPE && clb_grids[i][j].m_usage == 1) {
+            if (clb_grids[i][j].block_type == CLB_TYPE
+                    && clb_grids[i][j].m_usage == 1) {
                 blocks[clb_grids[i][j].u.blocks].x = i;
                 blocks[clb_grids[i][j].u.blocks].y = j;
-            } else if (clb_grids[i][j].type == IO_TYPE) {
+            } else if (clb_grids[i][j].block_type == IO_TYPE) {
                 for (k = 0; k < clb_grids[i][j].m_usage; ++k) {
                     blocks[clb_grids[i][j].u.io_blocks[k]].x = i;
                     blocks[clb_grids[i][j].u.io_blocks[k]].y = j;
@@ -1270,9 +1273,9 @@ static void compute_net_pin_index_values(void)  /* FIXME */
             const int blk_index = net[inet].node_blocks[netpin];
             /* there is only one blocks pin, so it is 0, and it is driving the *
              * net since this is an INPAD_TYPE.                                    */
-            if (blocks[blk_index].type == INPAD_TYPE) {
+            if (blocks[blk_index].block_type == INPAD_TYPE) {
                 net_pin_index[blk_index][0] = 0;
-            } else if (blocks[blk_index].type == OUTPAD_TYPE) {
+            } else if (blocks[blk_index].block_type == OUTPAD_TYPE) {
               /*there is only one blocks pin, it is 0 */
                 net_pin_index[blk_index][0] = netpin;
             } else { /* CLB_TYPE, [block_index][cur_block_pin_index] = netpin */
@@ -1475,7 +1478,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
      * blocks list.                                                         */
     int from_block = my_irand(num_blocks - 1); /* choose from blocks randomly */
     if (placer_paras_ptr->m_fixed_pins == TRUE) {
-        while (blocks[from_block].type != CLB_TYPE) {
+        while (blocks[from_block].block_type != CLB_TYPE) {
             from_block = my_irand(num_blocks - 1);
         }
     }
@@ -1487,7 +1490,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* find the plb or io_pad (x_to, y_to) randomly */
     find_to(x_from,
             y_from,
-            blocks[from_block].type,
+            blocks[from_block].block_type,
             placer_paras_ptr->m_range_limit,
             &x_to,
             &y_to);
@@ -1497,7 +1500,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
      * clb not switched until success of move is determinded.)                 */
     int io_num = 0;
     int to_block = 0;
-    if (blocks[from_block].type == CLB_TYPE) {
+    if (blocks[from_block].block_type == CLB_TYPE) {
         if (clb_grids[x_to][y_to].m_usage == 1) { /* target clb location had occupied -- do a switch */
             /* then swap (x_from, y_from) and (x_to, y_to) coordinate. */
             to_block = clb_grids[x_to][y_to].u.blocks;
@@ -1529,7 +1532,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* Now update the cost function. May have to do major optimizations here    *
      * later. I'm using negative values of temp_net_cost as a flag, so DO NOT   *
      * use cost-functions that can go negative.                                 */
-    const int num_of_pins = pins_on_block[blocks[from_block].type];
+    const int num_of_pins = pins_on_block[blocks[from_block].block_type];
     /* When blocks[to_block] was a EMPTY, it only deal with blocks[from_block] */
     const int num_nets_affected = find_affected_nets(nets_to_update,
                                                      net_block_moved,
@@ -1681,7 +1684,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         }
 
         /* Update Clb data structures since we kept the move. */
-        if (blocks[from_block].type == CLB_TYPE) {
+        if (blocks[from_block].block_type == CLB_TYPE) {
             if (to_block != EMPTY) {
                 clb_grids[x_from][y_from].u.blocks = to_block;
                 clb_grids[x_to][y_to].u.blocks = from_block;
@@ -2310,7 +2313,7 @@ static void find_to(int x_from,
                     double rlim,
                     int* x_to,
                     int* y_to)
-{ 
+{
     const int rlx = min(num_grid_columns, rlim); /* x_range_limit, Only needed when num_grid_columns < num_grid_rows. */
     const int rly = min(num_grid_rows, rlim);  /* y_range_limit, Added rly for aspect_ratio != 1 case. */
 
@@ -2546,10 +2549,10 @@ static double compute_point_to_point_delay(int inet,
                                            int sink_pin)
 {
     int source_block_index = net[inet].node_blocks[0];
-    block_types_t source_type = blocks[source_block_index].type; /* it maybe plb, or io pads*/
+    block_types_t source_type = blocks[source_block_index].block_type; /* it maybe plb, or io pads*/
 
     int sink_block_index = net[inet].node_blocks[sink_pin];
-    block_types_t sink_type = blocks[sink_block_index].type;
+    block_types_t sink_type = blocks[sink_block_index].block_type;
 
     int delta_x = abs(blocks[sink_block_index].x - blocks[source_block_index].x);
     int delta_y = abs(blocks[sink_block_index].y - blocks[source_block_index].y);
@@ -3465,9 +3468,9 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                 continue;
             }
 
-            if (clb_grids[i][j].type == CLB_TYPE) {
+            if (clb_grids[i][j].block_type == CLB_TYPE) {
                 int block_num = clb_grids[i][j].u.blocks;
-                if (blocks[block_num].type != CLB_TYPE) {
+                if (blocks[block_num].block_type != CLB_TYPE) {
                     printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
                            block_num, i, j);
                     ++error;
@@ -3496,7 +3499,8 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                 for (k = 0; k < clb_grids[i][j].m_usage; ++k) {
                     int block_num = clb_grids[i][j].u.io_blocks[k];
 
-                    if ((blocks[block_num].type != INPAD_TYPE) && blocks[block_num].type != OUTPAD_TYPE) {
+                    if ((blocks[block_num].block_type != INPAD_TYPE)
+                            && blocks[block_num].block_type != OUTPAD_TYPE) {
                         printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
                                block_num, i, j);
                         ++error;

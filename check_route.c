@@ -162,7 +162,7 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
     int ifound = 0;
 
     int ipin, block_num, iclass, blk_pin;
-    if (clb_grids[i][j].type == CLB_TYPE) {
+    if (clb_grids[i][j].block_type == CLB_TYPE) {
         block_num = clb_grids[i][j].u.blocks;
 
         const int knum_net_pins = net[inet].num_net_pins;
@@ -232,7 +232,7 @@ static void check_source(int ivex, int inet)
         exit(1);
     }
 
-    if (blocks[block_num].type == CLB_TYPE) {
+    if (blocks[block_num].block_type == CLB_TYPE) {
         blk_pin = net[inet].node_block_pins[0];
         iclass = clb_pin_class[blk_pin];
 
@@ -335,7 +335,7 @@ static boolean check_adjacent(int from_node, int to_node)
         case SOURCE:
             if (to_type == OPIN) {
                 if (from_xlow == to_xlow && from_ylow == to_ylow) {
-                    if (clb_grids[to_xlow][to_ylow].type == CLB_TYPE) {
+                    if (clb_grids[to_xlow][to_ylow].block_type == CLB_TYPE) {
                         int iclass = clb_pin_class[to_ptc];
                         if (iclass == from_ptc) {
                             ++num_adj;
@@ -352,7 +352,7 @@ static boolean check_adjacent(int from_node, int to_node)
         case SINK:
             if (to_type == SOURCE) {   /* Feedthrough.  Not in code as yet. */
                 if (from_xlow == to_xlow && from_ylow == to_ylow &&
-                        clb_grids[to_xlow][to_ylow].type == CLB_TYPE) {
+                        clb_grids[to_xlow][to_ylow].block_type == CLB_TYPE) {
                     ++num_adj;
                 }
             }
@@ -367,7 +367,7 @@ static boolean check_adjacent(int from_node, int to_node)
 
         case IPIN:
             if (to_type == SINK && from_xlow == to_xlow && from_ylow == to_ylow) {
-                if (clb_grids[from_xlow][from_ylow].type == CLB_TYPE) {
+                if (clb_grids[from_xlow][from_ylow].block_type == CLB_TYPE) {
 
                     int iclass = clb_pin_class[from_ptc];
                     if (iclass == to_ptc) {
@@ -468,7 +468,7 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
     int chan_xhigh = rr_node[chan_node].xhigh;
     int chan_yhigh = rr_node[chan_node].yhigh;
 
-    if (clb_grids[pin_x][pin_y].type == CLB_TYPE) {
+    if (clb_grids[pin_x][pin_y].block_type == CLB_TYPE) {
         if (chan_type == CHANX) {
             if (chan_ylow == pin_y) {   /* CHANX above CLB_TYPE */
                 if (pinloc[TOP][pin_ptc] == 1 && pin_x <= chan_xhigh &&

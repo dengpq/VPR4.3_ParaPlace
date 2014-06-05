@@ -82,7 +82,7 @@ int alloc_and_load_timing_graph_edge_levels(void)
     int num_sinks = -1;
 
     /* [0..num_of_vertexs-1]. This function calc all vertexes' fanin value and *
-     * return the number of sink nodes(fanout = 0).                           */ 
+     * return the number of sink nodes(fanout = 0).                           */
     int* tnode_fanin_left = alloc_and_load_tnode_fanin_and_check_edges(&num_sinks);
     /* Very conservative -> max number of levels = num_of_vertexs.  Realloc later.*
      * Temporarily need one extra level on the end because I look at the first  *

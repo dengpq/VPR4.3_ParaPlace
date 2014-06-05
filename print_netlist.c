@@ -52,9 +52,9 @@ void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)
             fprintf(fp, "\t");    /* Name field is 16 chars wide */
         }
 
-        fprintf(fp, "%d", blocks[i].type);
+        fprintf(fp, "%d", blocks[i].block_type);
 
-        if (blocks[i].type == INPAD_TYPE || blocks[i].type == OUTPAD_TYPE) {
+        if (blocks[i].block_type == INPAD_TYPE || blocks[i].block_type == OUTPAD_TYPE) {
             max_pin = 1;
         } else {
             max_pin = pins_per_clb;
@@ -73,7 +73,7 @@ void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)
     fprintf(fp, "\n\nSubblock List:\n\n");
 
     for (i = 0; i < num_blocks; i++) {
-        if (blocks[i].type != CLB_TYPE) {
+        if (blocks[i].block_type != CLB_TYPE) {
             continue;
         }
 

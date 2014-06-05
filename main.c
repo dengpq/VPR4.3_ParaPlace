@@ -16,24 +16,31 @@
 
 /******************** Global variables *************************/
 /********** Netlist to be mapped stuff ****************/
-int  num_nets;
+block_t* blocks;
 int  num_blocks; /* num_blocks = num_clbs + num_primary_inputs + num_primary_outputs */
 int  num_primary_inputs; /* maybe it was num_of_primary_inputs */
 int  num_primary_outputs; /* maybe it was num_of_primary_outputs */
 int  num_clbs;
-int  num_globals;
+
 net_t*   net;
-block_t* blocks;
+int  num_nets;
+int  num_globals;
 /*  Global signals are not routed.  */
 boolean* is_global; /* FALSE if a net is normal, TRUE if it is. */
+
+/* New added for support parallel placement. */
+/* current time, it only had 3 types: CLB_TYPE, IO_TYPE and EMPTY_TYPE. *
+ * CLB_TYPE default capacity is 1, IO_TYPE is io_ratio, the EMPTY_TYPE was 0. */
+int  g_num_grid_types;
+int* g_grid_capacity;
 
 double ground_num;
 
 /********** Physical architecture stuff ****************/
-int num_grid_columns;  /* num_of_block_columns */
-int num_grid_rows;  /* num_of_block_rows */
-int io_ratio;
-int pins_per_clb;
+int  num_grid_columns;  /* num_of_block_columns */
+int  num_grid_rows;  /* num_of_block_rows */
+int  io_ratio;
+int  pins_per_clb;
 
 /* Pinloc[0..3][0..pins_per_clb-1].  For each pin pinloc[0..3][i] is 1 if    *
  * pin[i] exists on that side of the clb. See vpr_types.h for correspondence *
@@ -62,28 +69,30 @@ grid_tile_t** clb_grids;   /* Architecture blocks list */
 
 /******** Structures defining the routing ***********/
 /* [0..num_nets-1] of linked list start pointers. Define the routing. */
-struct s_trace** trace_head;
-struct s_trace** trace_tail;
+struct s_trace**  trace_head;
+struct s_trace**  trace_tail;
 
 /**** Structures defining the FPGA routing architecture ****/
 
-int num_rr_nodes;
+int  num_rr_nodes;
 rr_node_t* rr_node; /* [0..num_rr_nodes-1]  */
 
-int num_rr_indexed_data;
+int  num_rr_indexed_data;
 rr_indexed_data_t* rr_indexed_data; /* [0..num_rr_indexed_data-1] */
 
-/* Gives the rr_node indices of net terminals.    */
 
+/* Gives the rr_node indices of net terminals.    */
 int** net_rr_terminals; /* [0..num_nets-1][0..num_pins-1]. */
+
 
 /* Gives information about all the switch types                      *
  * (part of routing architecture, but loaded in read_arch.c          */
-
 switch_info_t* switch_inf; /* [0..det_routing_arch.num_switch-1] */
+
 
 /* Stores the SOURCE and SINK nodes of all CLBs (not valid for pads).     */
 int** rr_clb_source; /* [0..num_blocks-1][0..num_pin_class-1]*/
+
 
 /********************** Subroutines local to this module ********************/
 static void get_input(char* netlist_file, char* arch_file, int place_cost_type,
@@ -1330,6 +1339,7 @@ static void get_input(char* netlist_file,
     * both the algorithms to be used and the FPGA architecture.                */
     printf("Reading the FPGA architectural description from %s.\n",
            arch_file);
+
     read_arch(arch_file,
               route_type,
               det_routing_arch,
@@ -1337,9 +1347,10 @@ static void get_input(char* netlist_file,
               timing_inf_ptr,
               subblock_data_ptr,
               chan_width_dist_ptr);
+
     printf("Successfully read %s.\n", arch_file);
     printf("Pins per clb: %d.  Pads per row/column: %d.\n",
-            pins_per_clb,io_ratio);
+            pins_per_clb, io_ratio);
     printf("Subblocks per clb: %d.  Subblock LUT size: %d.\n",
            subblock_data_ptr->max_subblocks_per_block,
            subblock_data_ptr->subblock_lut_size);
@@ -1372,12 +1383,15 @@ static void get_input(char* netlist_file,
 
     printf("\n");
     printf("Reading the circuit netlist from %s.\n", netlist_file);
+
     read_netlist(netlist_file, subblock_data_ptr);
+
     printf("Successfully read %s.\n", netlist_file);
     printf("%d blocks, %d nets, %d global nets.\n", num_blocks, num_nets,
            num_globals);
     printf("%d clbs, %d inputs, %d outputs.\n", num_clbs, num_primary_inputs,
            num_primary_outputs);
+
     /* Set up some physical FPGA data structures that need to   *
     *  know num_blocks.                                        */
     init_arch(aspect_ratio,

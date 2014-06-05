@@ -1,10 +1,9 @@
-#ifndef PLACE_PARALLEL_H
-#define PLACE_PARALLEL_H
+#ifndef PLACE_H
+#define PLACE_H
 
-#include "vpr_types.h"
-/* #include "vpr_types_parallel.h"
- * #include "mst.h"
-#include "const.h" */
+#include "vpr_types_parallel.h"
+#include "mst.h"
+#include "const.h"
 
 /*The propose of start_finish_nets is to evenly divide up the work allocated
  * to each processor for:
@@ -21,16 +20,8 @@
  * of work.  */
 
 struct start_finish_nets {  /* FIXME, important data structs for timing_driven placement */
-    int start_edge;
-    int finish_edge;
-    int start_sinks;
-    int finish_sinks;
-
-    int edge_partition_size;
-    int sink_partition_size;
-    int counter_edge;
-    int counter_sink;
-
+    int start_edge, finish_edge, start_sinks, finish_sinks;
+    int edge_partition_size, sink_partition_size, counter_edge, counter_sink;
     unsigned long edges_in_this_partition;
     unsigned long sinks_in_this_partition;
 } start_finish_nets[NUM_OF_THREADS] __attribute__ ((aligned(64)));
@@ -69,13 +60,11 @@ typedef struct pthread_data {
     annealing_sched_t annealing_sched;
     int* success_sum, *move_lim, *tot_iter;
     int* inner_iter_num;
-
     double* av_cost, *av_bb_cost, *av_timing_cost, *av_delay_cost, *sum_of_squares;
     double* timing_cost, *delay_cost;
     double* inverse_prev_bb_cost;
     double* inverse_prev_timing_cost;
     double* cost, *bb_cost, *success_rat, *std_dev;
-
     double* max_delay;
     int*    num_connections;
     double* place_delay_value;
@@ -195,15 +184,16 @@ typedef struct {
     int     usecs;
 } TIME_DIFF;
 
-void try_place_use_multi_threads(const char*  netlist_file,
-                                 const placer_opts_t placer_opts,
-                                 const annealing_sched_t annealing_sched,
+void try_place_use_multi_threads(placer_opts_t placer_opts,
+                                 annealing_sched_t annealing_sched,
                                  chan_width_distr_t chan_width_dist,
-                                 router_opts_t  router_opts,
+                                 router_opts_t router_opts,
                                  detail_routing_arch_t det_routing_arch,
-                                 segment_info_t*  segment_inf,
-                                 timing_info_t    timing_inf,
-                                 subblock_data_t* subblock_data_ptr);
+                                 segment_info_t* segment_inf,
+                                 timing_info_t timing_inf,
+                                 subblock_data_t* subblock_data_ptr,
+                                 t_mst_edge** * mst,
+                                 operation_types_t operation);
 
 #endif
 

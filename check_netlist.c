@@ -71,7 +71,7 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
     for (block_index = 0; block_index < num_blocks; ++block_index) {
         num_connections = get_num_conn(block_index);
 
-        if (blocks[block_index].type == CLB_TYPE) {
+        if (blocks[block_index].block_type == CLB_TYPE) {
             error += check_clb_conn(block_index,
                                     num_connections);
             error += check_subblocks(block_index,
@@ -82,7 +82,8 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
         /* This error check is a redundant double check.*/
             if (num_connections != 1) {
                 printf("Error:  io blocks #%d (%s) of type %d"
-                       "has %d pins.\n", block_index, blocks[block_index].name, blocks[block_index].type,
+                       "has %d pins.\n", block_index, blocks[block_index].name,
+                       blocks[block_index].block_type,
                        num_connections);
                 error++;
             }
@@ -122,7 +123,7 @@ static int check_connections_to_global_clb_pins(int inet)
     for (ipin = 0; ipin < knum_net_pins; ++ipin) {
         int iblk = net[inet].node_blocks[ipin];
 
-        if (blocks[iblk].type == CLB_TYPE) {  /* I/O pads are exempt. */
+        if (blocks[iblk].block_type == CLB_TYPE) {  /* I/O pads are exempt. */
             int blk_pin = net[inet].node_block_pins[ipin];
 
             if (is_global_clb_pin[blk_pin] != is_global[inet]) {
