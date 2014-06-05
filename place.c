@@ -706,116 +706,93 @@ void try_place(const char*         netlist_file,
     g_grid_capacity = NULL;
 } /* end of try_place() */
 
-
 static void initial_placement(pad_loc_t pad_loc_type,
-                              char* pad_loc_file) /* FIXME */
+                              char* pad_loc_file)
 {
-    /* Randomly places the blocks to create an initial placement. */
-    int max_value = max(num_grid_columns * num_grid_rows,
-                          2 * (num_grid_columns + num_grid_rows));
-    pos = (struct s_pos*)my_malloc(max_value * sizeof(struct s_pos));
+    /* Randomly places the blocks to create an initial placement.     */
+    pos = (struct s_pos**)my_malloc(g_num_grid_types * sizeof(struct s_pos*));
 
+    int* avail_diff_type_grids = (int*)my_calloc(g_num_grid_types, sizeof(int));
     /* Initialize all occupancy to zero. */
-    int i = -1;
-    int j = -1;
+    int i, j, k, iblk;
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
             clb_grids[i][j].m_usage = 0;
-        } /* clb[rows][columns] described FPGA Architecture */
-    }  /* clb[0~(1-num_grid_columns)~num_grid_columns+1][0~(1-num_grid_rows)~num_grid_rows+1] */
 
-    /* initialize all clb location from left to right, from bottom to top */
-    int count = 0;
-    for (i = 1; i <= num_grid_columns; ++i) {  /* from left to right */
-        for (j = 1; j <= num_grid_rows; ++j) { /* from bottom to top */
-            pos[count].x = i;
-            pos[count].y = j;
-            ++count; /* total num_grid_columns * num_grid_rows clbs clb locations */
-        }
-    }
-
-    int iblk = -1;
-    for (iblk = 0; iblk < num_blocks; ++iblk) { /* num_blocks = plbs + io_blocks */
-        if (blocks[iblk].block_type == B_CLB_TYPE) { /* only place CLBs in center */
-            int choice = my_irand(count - 1); /* choice >= 1 && choice <= count-1*/
-            clb_grids[pos[choice].x][pos[choice].y].in_blocks[0] = iblk;
-            clb_grids[pos[choice].x][pos[choice].y].m_usage = 1;
-
-            /* Ensure randomizer doesn't pick this blocks again */
-            pos[choice] = pos[count - 1]; /* overwrite used blocks position */
-            /* I think it should be pos[count-1] = pos[choice] */
-            --count;
-        }
-    }
-
-    /* Now do the io blocks around the periphery */
-    if (pad_loc_type == USER) {
-        read_user_pad_loc(pad_loc_file);
-    } else {
-        /*========   Now place the I/O pads randomly. ========*/
-        count = 0;
-        for (i = 1; i <= num_grid_columns; ++i) {
-            /* initial I/O pad locations at BOTTEOM side*/
-            pos[count].x = i;
-            pos[count].y = 0;
-            /* initial I/O pad locations at TOP side */
-            pos[count + 1].x = i;
-            pos[count + 1].y = num_grid_rows + 1;
-            count += 2;
-        }
-
-        for (j = 1; j <= num_grid_rows; ++j) {
-            /* initial I/O pad locations at LEFT side */
-            pos[count].x = 0;
-            pos[count].y = j;
-            /* initial I/O pad locations at RIGHT side */
-            pos[count + 1].x = num_grid_columns + 1;
-            pos[count + 1].y = j;
-            count += 2;
-        }
-        /* current time, the count == num_of_io_pads */
-        for (iblk = 0; iblk < num_blocks; ++iblk) {
-            if (blocks[iblk].block_type == INPAD_TYPE
-                  || blocks[iblk].block_type == OUTPAD_TYPE) {
-                int choice = my_irand(count - 1);
-
-                int isubblk = clb_grids[pos[choice].x][pos[choice].y].m_usage;
-
-                clb_grids[pos[choice].x][pos[choice].y].in_blocks[isubblk] = iblk;
-                ++(clb_grids[pos[choice].x][pos[choice].y].m_usage);
-                /* In an I/O pad location of FPGA chip, it may accommodate more
-                 * than 1 I/O pad. */
-                if (clb_grids[pos[choice].x][pos[choice].y].m_usage
-                      == clb_grids[pos[choice].x][pos[choice].y].m_capacity) {
-                    /* Ensure randomizer doesn't pick this blocks again */
-                    pos[choice] = pos[count - 1]; /* overwrite used blocks position */
-                    /* the "choice" location had used, so don't choose it again */
-                    --count;
+            for (k = 0; k < clb_grids[i][j].m_capacity; ++k) {
+                clb_grids[i][j].in_blocks[k] = EMPTY;
+                if (clb_grids[i][j].m_offset == 0) {
+                    ++avail_diff_type_grids[clb_grids[i][j].grid_type];
                 }
             }
         }
-    } /* End randomly place IO_TYPE blocks branch of if */
+    }
 
-    /* All the blocks are placed now. Make the blocks array agree with the *
-     * clb array.                                                         */
-    int k = 0;
+    for (i = 0; i < g_num_grid_types; ++i) {
+        pos[i] = (struct s_pos*)my_malloc(avail_diff_type_grids[i]
+                                            * sizeof(struct s_pos));
+    }
+
+    int* index = (int*)my_calloc(g_num_grid_types, sizeof(int));
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].grid_type == B_CLB_TYPE
-                    && clb_grids[i][j].m_usage == 1) {
-                blocks[clb_grids[i][j].in_blocks[0]].x = i;
-                blocks[clb_grids[i][j].in_blocks[0]].y = j;
-                /* Do not forget set z-coordinate */
-                blocks[clb_grids[i][j].in_blocks[0]].z = 0;
-            } else if (clb_grids[i][j].grid_type == IO_TYPE) {
-                const int kio_bin_usage = clb_grids[i][j].m_usage;
-                for (k = 0; k < kio_bin_usage; ++k) {
-                    blocks[clb_grids[i][j].in_blocks[k]].x = i;
-                    blocks[clb_grids[i][j].in_blocks[k]].y = j;
-                    blocks[clb_grids[i][j].in_blocks[k]].z = k;
+            for (k = 0; k < clb_grids[i][j].m_capacity; ++k) {
+                if (clb_grids[i][j].m_offset == 0) {
+                    int type_index = clb_grids[i][j].grid_type;
+                    pos[type_index][index[type_index]].x = i;
+                    pos[type_index][index[type_index]].y = j;
+                    pos[type_index][index[type_index]].z = k;
+                    ++index[type_index];
                 }
-            } else {
-                /* No operation */
+            }
+        }
+    }
+
+    /* Now assgin location randomly for all blocks */
+    for (iblk = 0; iblk < num_blocks; ++iblk) {
+        /* Don't do IOs if the user specifies IOs */
+        if (!(blocks[iblk].block_type == IO_TYPE && pad_loc_type == USER)) {
+            int type_index = blocks[iblk].block_type;
+
+            if (blocks[iblk].block_type == INPAD_TYPE
+                  || blocks[iblk].block_type == OUTPAD_TYPE) {
+                type_index = IO_TYPE;
+            }
+            assert(avail_diff_type_grids[type_index] > 0);
+
+            /* choice >= 0 && choice <= avail_diff_type_grids[type_index] -1 */
+            int choice = my_irand(avail_diff_type_grids[type_index] - 1);
+            int x = pos[type_index][choice].x;
+            int y = pos[type_index][choice].y;
+            int z = pos[type_index][choice].z;
+            clb_grids[x][y].in_blocks[z] = iblk;
+            ++clb_grids[x][y].m_usage;
+
+            /* Ensure randomizer doesn't pick this blocks again */
+            /* overwrite used blocks position */
+            pos[type_index][choice] =
+                pos[type_index][avail_diff_type_grids[type_index] - 1];
+            --avail_diff_type_grids[type_index];
+        }
+    }
+
+    if (pad_loc_type == USER) {
+        read_user_pad_loc(pad_loc_file);
+    }
+
+    /* All the blocks are placed now.  Make the blocks array agree with the    *
+     * clb array.                                                             */
+    for (i = 0; i <= (num_grid_columns + 1); ++i) {
+        for (j = 0; j <= (num_grid_rows + 1); ++j) {
+            for (k = 0; k < clb_grids[i][j].m_capacity; ++k) {
+                assert(clb_grids[i][j].in_blocks != NULL);
+
+                iblk = clb_grids[i][j].in_blocks[k];
+                if (iblk != EMPTY) {
+                    blocks[iblk].x = i;
+                    blocks[iblk].y = j;
+                    blocks[iblk].z = k;
+                }
             }
         }
     }
@@ -824,8 +801,15 @@ static void initial_placement(pad_loc_t pad_loc_type,
     printf("At end of initial_placement.\n");
     dump_clbs();
 #endif
-    free(pos);
-} /* end of void initial_placement() */
+
+    for (i = 0; i < g_num_grid_types; ++i) {
+        free(pos[i]);
+    }
+
+    free(pos);          /* Free the mapping list */
+    free(index);
+    free(avail_diff_type_grids);
+}
 
 static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
                                const annealing_sched_t annealing_sched,
@@ -1478,23 +1462,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
                     double**    old_region_occ_y,
                     placer_costs_t*  placer_costs_ptr)
 {
-    static bbox_t* bb_coord_new = NULL;
-    static bbox_t* bb_edge_new = NULL;
-    static int*  nets_to_update = NULL;
-    static int*  net_block_moved = NULL;
-
-    /* 1) Allocate the local bb_coordinate storage, etc. only once. */
-    /* Q: Why did the array allocate double memory space? TODO*/
-    if (bb_coord_new == NULL) {
-        bb_coord_new = (bbox_t*)my_malloc(2 * pins_per_clb *
-                                                sizeof(bbox_t));
-        bb_edge_new = (bbox_t*)my_malloc(2 * pins_per_clb *
-                                               sizeof(bbox_t));
-        nets_to_update = (int*)my_malloc(2 * pins_per_clb * sizeof(int));
-        net_block_moved = (int*)my_malloc(2 * pins_per_clb * sizeof(int));
-    }
-
-    /* 2) Set from_block(x_from, y_from, z_from) and to_block(x_to, y_to, z_to) * 
+    /* 1) Set from_block(x_from, y_from, z_from) and to_block(x_to, y_to, z_to) * 
      * If the pins are fixed, we never move them from their initial random *
      * locations. The code below could be made more efficient by using the *
      * fact that pins appear first in the blocks list, but this shouldn't   *
@@ -1523,16 +1491,18 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
             &y_to);
 
     int z_to = 0;
-    if (g_grid_capacity[clb_grids[x_to][y_to].grid_type] > 1) {
-        z_to = my_irand(g_grid_capacity[clb_grids[x_to][y_to].grid_type] - 1);
+    if (clb_grids[x_to][y_to].m_capacity > 1) {
+        z_to = my_irand(clb_grids[x_to][y_to].m_capacity - 1);
     }
 
     /* Make the switch in order to let compute the new bounding-box simpler. If *
      * increase is too high, switch them back.(blocks data structures switched,  *
      * clb not switched until success of move is determinded.)                 */
-    /* if (blocks[from_block].block_type == B_CLB_TYPE) {
+    /* int to_block = 0;
+    int io_num = 0;
+     if (blocks[from_block].block_type == B_CLB_TYPE) {
         if (clb_grids[x_to][y_to].m_usage == 1) {
-            to_block = clb_grids[x_to][y_to].u.blocks;
+            to_block = clb_grids[x_to][y_to].in_blocks[0];
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
             blocks[to_block].x = x_from;
@@ -1549,7 +1519,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
         } else {
-            to_block = *(clb_grids[x_to][y_to].u.io_blocks + io_num);
+            to_block = clb_grids[x_to][y_to].in_blocks[io_num];
             blocks[to_block].x = x_from;
             blocks[to_block].y = y_from;
             blocks[from_block].x = x_to;
@@ -1565,7 +1535,6 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         blocks[from_block].y = y_to;
         blocks[from_block].z = z_to;
     } else {
-        /* Swapping two blocks */
         to_block = clb_grids[x_to][y_to].in_blocks[z_to];
         blocks[to_block].x = x_from;
         blocks[to_block].y = y_from;
@@ -1574,6 +1543,21 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         blocks[from_block].x = x_to;
         blocks[from_block].y = y_to;
         blocks[from_block].z = z_to;
+    }
+
+    static bbox_t* bb_coord_new = NULL;
+    static bbox_t* bb_edge_new = NULL;
+    static int*  nets_to_update = NULL;
+    static int*  net_block_moved = NULL;
+    /* 1) Allocate the local bb_coordinate storage, etc. only once. */
+    /* Q: Why did the array allocate double memory space? TODO*/
+    if (bb_coord_new == NULL) {
+        bb_coord_new = (bbox_t*)my_malloc(2 * pins_per_clb *
+                                                sizeof(bbox_t));
+        bb_edge_new = (bbox_t*)my_malloc(2 * pins_per_clb *
+                                               sizeof(bbox_t));
+        nets_to_update = (int*)my_malloc(2 * pins_per_clb * sizeof(int));
+        net_block_moved = (int*)my_malloc(2 * pins_per_clb * sizeof(int));
     }
     /*===========  3) Now Compute the cost ==============*/
     /* Now update the cost function. May have to do major optimizations here    *
@@ -1783,10 +1767,11 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         /* Restore the blocks data structures to their state before the move. */
         blocks[from_block].x = x_from;
         blocks[from_block].y = y_from;
-
+        blocks[from_block].z = z_from;
         if (to_block != EMPTY) {
             blocks[to_block].x = x_to;
             blocks[to_block].y = y_to;
+            blocks[to_block].z = z_to;
         }
 
         /* Restore the region occupancies to their state before the move. */
@@ -3511,8 +3496,7 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
         }
     } /* end of check timing_driven_placement cost */
 
-    static int* block_done;
-    block_done = (int*)my_malloc(num_blocks * sizeof(int));
+    int* block_done = (int*)my_malloc(num_blocks * sizeof(int));
 
     int i, j, k;
     for (i = 0; i < num_blocks; ++i) {
@@ -3528,19 +3512,20 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
             }
 
             if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
-
-                const int kclb_grid_usage = clb_grids[i][j].m_usage;
-                for (k = 0; k < kclb_grid_usage; ++k) {
+                /* const int kclb_grid_usage = clb_grids[i][j].m_usage; */
+                const int kclb_grid_capacity = clb_grids[i][j].m_capacity;
+                for (k = 0; k < kclb_grid_capacity; ++k) {
                     block_num = clb_grids[i][j].in_blocks[k];
                     if (blocks[block_num].block_type != B_CLB_TYPE) {
-                        printf("Error:  blocks %d type does not match clb(%d,%d) type.\n",
-                               block_num, i, j);
+                        printf("Error:  blocks %d type does not match clb(%d,%d,%d) type.\n",
+                               block_num, i, j, k);
                         ++error;
                     }
 
-                    if ((blocks[block_num].x != i) || (blocks[block_num].y != j)) {
-                        printf("Error:  blocks %d location conflicts with clb(%d,%d)"
-                               "data.\n", block_num, i, j);
+                    if ((blocks[block_num].x != i) || (blocks[block_num].y != j)
+                          || (blocks[block_num].z != k)) {
+                        printf("Error:  blocks %d location conflicts with clb(%d,%d,%d)"
+                               "data.\n", block_num, i, j, k);
                         ++error;
                     }
 
@@ -3549,9 +3534,8 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                                i, j, clb_grids[i][j].m_usage);
                         ++error;
                     }
+                    block_done[block_num]++;
                 } /* end of for(k = 0; k < kclb_grid_usage; ++k) */
-
-                block_done[block_num]++;
             } else { /* IO_TYPE blocks */
                 if (clb_grids[i][j].m_usage > clb_grids[i][j].m_capacity) {
                     printf("Error:  clb(%d,%d) has occupancy of %d\n", i, j,
@@ -3559,10 +3543,12 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                     ++error;
                 }
 
-                const int kio_bin_usage = clb_grids[i][j].m_usage;
-                for (k = 0; k < kio_bin_usage; ++k) {
-
+                const int kio_bin_capacity = clb_grids[i][j].m_capacity;
+                for (k = 0; k < kio_bin_capacity; ++k) {
                     block_num = clb_grids[i][j].in_blocks[k];
+                    if (block_num == EMPTY) {
+                        continue;
+                    }
 
                     if ((blocks[block_num].block_type != INPAD_TYPE)
                             && blocks[block_num].block_type != OUTPAD_TYPE) {
@@ -3573,11 +3559,10 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
 
                     if ((blocks[block_num].x != i) || (blocks[block_num].y != j)
                           || (blocks[block_num].z != k)) {
-                        printf("Error:  blocks %d location conflicts with clb(%d,%d, %d)"
+                        printf("Error:  blocks %d location conflicts with clb(%d,%d,%d)"
                                "data.\n", block_num, i, j, k);
                         ++error;
                     }
-
                     block_done[block_num]++;
                 }
             }  /* end of else IO_TYPE */
@@ -3585,12 +3570,13 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
     }  /* end of for(i = 0; i <= num_grid_columns+1; ++i) */
 
     /* Check that every blocks exists in the clb and blocks arrays somewhere. */
-    for (i = 0; i < num_blocks; ++i)
+    for (i = 0; i < num_blocks; ++i) {
         if (block_done[i] != 1) {
             printf("Error:  blocks %d listed %d times in data structures.\n",
                    i, block_done[i]);
             ++error;
         }
+    }
 
     free(block_done);
 
