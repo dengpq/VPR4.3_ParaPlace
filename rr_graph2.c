@@ -430,7 +430,7 @@ int** alloc_and_load_rr_node_indices(int nodes_per_clb,
         for (j = 0; j <= num_grid_rows + 1; j++) {
             rr_node_indices[i][j] = index;
 
-            if (clb_grids[i][j].grid_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
                 index += nodes_per_clb;
                 index = load_chanx_rr_indices(seg_details_x, nodes_per_chan, index,
                                               i, j);
@@ -556,7 +556,7 @@ int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
 
     int iclass = 0;
     switch (clb_grids[i][j].grid_type) {
-        case CLB_TYPE:
+        case B_CLB_TYPE:
             switch (rr_type) {
                 case SOURCE:
                     assert(ioff < num_pin_class);

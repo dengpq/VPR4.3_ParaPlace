@@ -42,7 +42,7 @@ void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)
 
     fprintf(fp, "\n\n\nBlock List:\t\tBlock Type Legend:\n");
     fprintf(fp, "\t\t\tINPAD = %d\tOUTPAD = %d\n", INPAD_TYPE, OUTPAD_TYPE);
-    fprintf(fp, "\t\t\tCLB = %d\n\n", CLB_TYPE);
+    fprintf(fp, "\t\t\tCLB = %d\n\n", B_CLB_TYPE);
     fprintf(fp, "\nBlock\tName\t\tType\tPin Connections\n\n");
 
     for (i = 0; i < num_blocks; i++) {
@@ -73,7 +73,7 @@ void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)
     fprintf(fp, "\n\nSubblock List:\n\n");
 
     for (i = 0; i < num_blocks; i++) {
-        if (blocks[i].block_type != CLB_TYPE) {
+        if (blocks[i].block_type != B_CLB_TYPE) {
             continue;
         }
 

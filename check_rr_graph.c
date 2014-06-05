@@ -198,7 +198,7 @@ void check_node(int ivex, router_types_t route_type)
                 exit(1);
             }
 
-            if (clb_grids[xlow][ylow].grid_type != CLB_TYPE
+            if (clb_grids[xlow][ylow].grid_type != B_CLB_TYPE
                   && clb_grids[xlow][ylow].grid_type != IO_TYPE) {
                 printf("Error in check_node:  Node %d (type %d) is at an illegal\n"
                        " clb[%d][%d]).\n", ivex, rr_type, xlow, ylow);
@@ -244,7 +244,7 @@ void check_node(int ivex, router_types_t route_type)
 
     switch (rr_type) {
         case SOURCE:
-            if (clb_grids[xlow][ylow].grid_type == CLB_TYPE) {
+            if (clb_grids[xlow][ylow].grid_type == B_CLB_TYPE) {
                 if (ptc_num >= num_pin_class || class_inf[ptc_num].type != DRIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
@@ -273,7 +273,7 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case SINK:
-            if (clb_grids[xlow][ylow].grid_type == CLB_TYPE) {
+            if (clb_grids[xlow][ylow].grid_type == B_CLB_TYPE) {
                 if (ptc_num >= num_pin_class || class_inf[ptc_num].type != RECEIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
                            "of %d.\n", ivex, rr_type, ptc_num);
@@ -302,7 +302,7 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case OPIN:
-            if (clb_grids[xlow][ylow].grid_type == CLB_TYPE) {
+            if (clb_grids[xlow][ylow].grid_type == B_CLB_TYPE) {
                 if (ptc_num >= pins_per_clb || class_inf[clb_pin_class[ptc_num]].type
                         != DRIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"
@@ -326,7 +326,7 @@ void check_node(int ivex, router_types_t route_type)
             break;
 
         case IPIN:
-            if (clb_grids[xlow][ylow].grid_type == CLB_TYPE) {
+            if (clb_grids[xlow][ylow].grid_type == B_CLB_TYPE) {
                 if (ptc_num >= pins_per_clb || class_inf[clb_pin_class[ptc_num]].type
                         != RECEIVER) {
                     printf("Error in check_node.  Inode %d (type %d) had a ptc_num\n"

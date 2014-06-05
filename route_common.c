@@ -619,7 +619,7 @@ static vector_t** alloc_and_load_clb_opins_used_locally(subblock_data_t
     subblock_inf = subblock_data.subblock_inf;
 
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].block_type != CLB_TYPE) {
+        if (blocks[iblk].block_type != B_CLB_TYPE) {
             for (iclass = 0; iclass < num_pin_class; ++iclass) {
                 clb_opins_used_locally[iblk][iclass].nelem = 0;
                 clb_opins_used_locally[iblk][iclass].list = NULL;
@@ -1042,7 +1042,7 @@ void print_route(char* route_file)
                 switch (rr_type) {
                     case IPIN:
                     case OPIN:
-                        if (clb_grids[ilow][jlow].grid_type == CLB_TYPE) {
+                        if (clb_grids[ilow][jlow].grid_type == B_CLB_TYPE) {
                             fprintf(fp, " Pin: ");
                         } else { /* IO_TYPE Pad. */
                             fprintf(fp, " Pad: ");
@@ -1057,7 +1057,7 @@ void print_route(char* route_file)
 
                     case SOURCE:
                     case SINK:
-                        if (clb_grids[ilow][jlow].grid_type == CLB_TYPE) {
+                        if (clb_grids[ilow][jlow].grid_type == B_CLB_TYPE) {
                             fprintf(fp, " Class: ");
                         } else { /* IO_TYPE Pad. */
                             fprintf(fp, " Pad: ");
@@ -1087,7 +1087,7 @@ void print_route(char* route_file)
             for (ipin = 0; ipin < knum_net_pins; ++ipin) {
                 block_num = net[inet].node_blocks[ipin];
 
-                if (blocks[block_num].block_type == CLB_TYPE) {
+                if (blocks[block_num].block_type == B_CLB_TYPE) {
                     blk_pin = net[inet].node_block_pins[ipin];
                     iclass = clb_pin_class[blk_pin];
                 } else {            /* IO_TYPE pad */

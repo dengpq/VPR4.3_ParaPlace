@@ -341,7 +341,8 @@ static void alloc_routing_structs(router_opts_t router_opts,
 {
     /*calls routines that set up routing resource graph and associated structures*/
     /*must set up dummy blocks for the first pass through*/
-    assign_locations(CLB_TYPE, 1, 1, CLB_TYPE, num_grid_columns, num_grid_rows);
+    assign_locations(B_CLB_TYPE, 1, 1,
+                     B_CLB_TYPE, num_grid_columns, num_grid_rows);
 
     clb_opins_used_locally = alloc_route_structs(subblock_data);
     free_rr_graph();
@@ -374,9 +375,11 @@ static void free_routing_structs(router_opts_t router_opts,
 }
 /**************************************/
 static void assign_locations(block_types_t source_type,
-                             int source_x_loc, int source_y_loc,
+                             int source_x_loc,
+                             int source_y_loc,
                              block_types_t sink_type,
-                             int sink_x_loc, int sink_y_loc)
+                             int sink_x_loc,
+                             int sink_y_loc)
 {
     /*all routing occurs between blocks 0 (source) and blocks 1 (sink)*/
     blocks[SOURCE_BLOCK].block_type = source_type;
@@ -387,7 +390,7 @@ static void assign_locations(block_types_t source_type,
     blocks[SINK_BLOCK].y = sink_y_loc;
 
     int isubblk = 0;
-    if (source_type == CLB_TYPE) {
+    if (source_type == B_CLB_TYPE) {
         net[NET_USED].node_block_pins[NET_USED_SOURCE_BLOCK] = get_first_pin(DRIVER);
         clb_grids[source_x_loc][source_y_loc].u.blocks = SOURCE_BLOCK;
         clb_grids[source_x_loc][source_y_loc].m_usage += 1;
@@ -398,7 +401,7 @@ static void assign_locations(block_types_t source_type,
         clb_grids[source_x_loc][source_y_loc].m_usage += 1;
     }
 
-    if (sink_type == CLB_TYPE) {
+    if (sink_type == B_CLB_TYPE) {
         net[NET_USED].node_block_pins[NET_USED_SINK_BLOCK] = get_first_pin(RECEIVER);
         clb_grids[sink_x_loc][sink_y_loc].u.blocks = SINK_BLOCK;
         clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
@@ -584,8 +587,8 @@ static void generic_compute_matrix(double*** matrix_ptr,
 static void compute_delta_clb_to_clb(router_opts_t router_opts,
                                      int longest_length)
 {
-    block_types_t source_type = CLB_TYPE;
-    block_types_t sink_type = CLB_TYPE;
+    block_types_t source_type = B_CLB_TYPE;
+    block_types_t sink_type = B_CLB_TYPE;
 
     int start_x = 0;
     if (longest_length < 0.5 * (num_grid_columns)) {
@@ -703,7 +706,7 @@ static void compute_delta_inpad_to_clb(router_opts_t router_opts,
                                        timing_info_t timing_inf)
 {
     block_types_t source_type = INPAD_TYPE;
-    block_types_t sink_type = CLB_TYPE;
+    block_types_t sink_type = B_CLB_TYPE;
     delta_inpad_to_clb[0][0] = IMPOSSIBLE;
     delta_inpad_to_clb[num_grid_columns][num_grid_rows] = IMPOSSIBLE;
     int source_x = 0;
@@ -766,7 +769,7 @@ static void compute_delta_inpad_to_clb(router_opts_t router_opts,
 /**************************************/
 static void compute_delta_clb_to_outpad(router_opts_t router_opts)
 {
-    block_types_t source_type = CLB_TYPE;
+    block_types_t source_type = B_CLB_TYPE;
     block_types_t sink_type = OUTPAD_TYPE;
     delta_clb_to_outpad[0][0] = IMPOSSIBLE;
     delta_clb_to_outpad[num_grid_columns][num_grid_rows] = IMPOSSIBLE;

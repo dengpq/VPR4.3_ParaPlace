@@ -1655,7 +1655,7 @@ static void fill_arch(void)
     for (i = 1; i <= num_grid_columns; ++i) { /* interior (LUT) cells */
         int j = 0;
         for (j = 1; j <= num_grid_rows; ++j) {
-            clb_grids[i][j].grid_type = CLB_TYPE;
+            clb_grids[i][j].grid_type = B_CLB_TYPE;
             clb_grids[i][j].m_offset = 0;
         }
     }
@@ -1671,7 +1671,7 @@ static void init_grid_capacity(void)
 {
     g_num_grid_types = NUM_GRID_TYPES;
     g_grid_capacity = (int*)my_malloc(g_num_grid_types * sizeof(int));
-    g_grid_capacity[CLB_TYPE] = 1;
+    g_grid_capacity[B_CLB_TYPE] = 1;
 
     assert(io_ratio > 0);
     g_grid_capacity[IO_TYPE] = io_ratio;

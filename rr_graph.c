@@ -342,7 +342,7 @@ static void alloc_and_load_rr_graph(int**  rr_node_indices,
 
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].grid_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
 
                 build_rr_clb(rr_node_indices, Fc_output, clb_opin_to_tracks,
                              nodes_per_chan, i, j, Tdelless_switch, seg_details_x,
@@ -447,7 +447,7 @@ void load_net_rr_terminals(int** rr_node_indices,
             i = blocks[iblk].x;
             j = blocks[iblk].y;
 
-            if (clb_grids[i][j].grid_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
                 blk_pin = net[inet].node_block_pins[ipin];
                 iclass = clb_pin_class[blk_pin];
             } else {
@@ -477,7 +477,7 @@ static void alloc_and_load_rr_clb_source(int** rr_node_indices,
 
     for (iblk = 0; iblk < num_blocks; iblk++) {
         for (iclass = 0; iclass < num_pin_class; iclass++) {
-            if (blocks[iblk].block_type == CLB_TYPE) {
+            if (blocks[iblk].block_type == B_CLB_TYPE) {
                 i = blocks[iblk].x;
                 j = blocks[iblk].y;
 

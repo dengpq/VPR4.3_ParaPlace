@@ -168,7 +168,7 @@ void dump_clbs(void)
                    i, j, clb_grids[i][j].grid_type,
                    clb_grids[i][j].m_usage);
 
-            if (clb_grids[i][j].grid_type == CLB_TYPE) {
+            if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
                 printf("blocks: %d\n", clb_grids[i][j].u.blocks);
             }
 
@@ -213,7 +213,7 @@ void print_place(char* place_file, char* net_file, char* arch_file)
 
         fprintf(fp, "%d\t%d", blocks[i].x, blocks[i].y);
 
-        if (blocks[i].block_type == CLB_TYPE) {
+        if (blocks[i].block_type == B_CLB_TYPE) {
             fprintf(fp, "\t%d", 0);       /* Sub blocks number not meaningful. */
         } else {              /* IO_TYPE blocks.  Save sub blocks number. */
             subblock = get_subblock(blocks[i].x, blocks[i].y, i);
@@ -348,8 +348,8 @@ void parse_placement_file(char* place_file, char* net_file, char* arch_file)
         blocks[block_num].x = i;
         blocks[block_num].y = j;
 
-        if (clb_grids[i][j].grid_type == CLB_TYPE) {
-            if (blocks[block_num].block_type != CLB_TYPE) {
+        if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
+            if (blocks[block_num].block_type != B_CLB_TYPE) {
                 printf("Error in read_place.  Attempt to place blocks #%d (%s) in\n",
                        block_num, bname);
                 printf("a logic blocks location (%d, %d).\n", i, j);

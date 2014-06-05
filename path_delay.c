@@ -549,7 +549,7 @@ static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,
     int ipin = -1;
     int curr_tnode = 0;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].block_type == CLB_TYPE) {
+        if (blocks[iblk].block_type == B_CLB_TYPE) {
             /* First deal with CLB_TYPE's pin mapping */
             for (ipin = 0; ipin < pins_per_clb; ++ipin) {
                 if (blocks[iblk].nets[ipin] == OPEN) {
@@ -637,7 +637,7 @@ static void free_pin_mappings(int** block_pin_to_tnode,
 
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].block_type == CLB_TYPE) {
+        if (blocks[iblk].block_type == B_CLB_TYPE) {
             free_matrix(sblk_pin_to_tnode[iblk],
                         0,
                         num_subblocks_per_block[iblk] - 1,
@@ -671,7 +671,7 @@ static void alloc_and_load_fanout_counts(int*** num_uses_of_clb_ipin_ptr,
 
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].block_type != CLB_TYPE) {
+        if (blocks[iblk].block_type != B_CLB_TYPE) {
             num_uses_of_clb_ipin[iblk] = NULL;
             num_uses_of_sblk_opin[iblk] = NULL;
         } else { /* CLB_TYPE */
@@ -699,7 +699,7 @@ static void free_fanout_counts(int** num_uses_of_clb_ipin,
     /* Frees the fanout count arrays. */
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        if (blocks[iblk].block_type == CLB_TYPE) {
+        if (blocks[iblk].block_type == B_CLB_TYPE) {
             free(num_uses_of_clb_ipin[iblk]);
             free(num_uses_of_sblk_opin[iblk]);
         }
@@ -738,7 +738,7 @@ static void alloc_and_load_tnodes_and_net_mapping(int** num_uses_of_clb_ipin,
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
         switch (blocks[iblk].block_type) { /* netlist blocks type: CLB_TYPE, INPAD_TYPE, OUTPAD_TYPE */
-            case CLB_TYPE:
+            case B_CLB_TYPE:
                 build_clb_tnodes(iblk,
                                  num_uses_of_clb_ipin[iblk],
                                  block_pin_to_tnode,
@@ -909,7 +909,7 @@ static void build_block_output_tnode(int ivex,
         int to_blk = net[inet].node_blocks[iedge + 1];
 
         int to_pin = -1;
-        if (blocks[to_blk].block_type == CLB_TYPE) {
+        if (blocks[to_blk].block_type == B_CLB_TYPE) {
             to_pin = net[inet].node_block_pins[iedge + 1];
         } else { /* OUTPAD_TYPE */
             to_pin = 0;

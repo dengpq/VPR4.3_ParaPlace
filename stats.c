@@ -338,7 +338,7 @@ void print_lambda(void)
     double lambda;
 
     for (block_num = 0; block_num < num_blocks; ++block_num) {
-        if (blocks[block_num].block_type == CLB_TYPE) {
+        if (blocks[block_num].block_type == B_CLB_TYPE) {
             for (ipin = 0; ipin < pins_per_clb; ipin++) {
                 iclass = clb_pin_class[ipin];
 

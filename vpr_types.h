@@ -18,12 +18,19 @@
 
 /* Block Types in input netlist file */
 typedef enum e_block_types {
-    CLB_TYPE = 0, /* 1 */
+    B_CLB_TYPE = 0, /* 1 */
     IO_TYPE,      /* io_ratio */
     EMPTY_TYPE,
+
     OUTPAD_TYPE,
     INPAD_TYPE
 } block_types_t;
+
+typedef enum e_grid_types {
+    G_CLB_TYPE,
+    G_IO_TYPE,
+    G_EMPTY_TYPE
+} grid_types_t;
 
 /* Gives the Tdels through a subblock.                                    *
  * T_comb: The Tdel from input to output when the subblock is used in     *
@@ -157,70 +164,6 @@ typedef struct s_net {
     int*  node_block_pins; /* int*  blk_pin; */
 } net_t;
 
-/* typedef enum e_grid_loc_type {
-    BOUNDARY = 0,
-    FILL,
-    COL_REPEAT,
-    COL_REL
-} grid_loc_type_t; */
-
-/* Define how to place type in the grid *
- * grid_loc_type - where the type gones and which numbers are valid;
- * start_col - the absolute value of the starting column from the left to fill,
- *             used with COL_REPEAT;
- * repeat - the number of columns to skip before placing the same type, used with
- *          COL_REPEAT. 0 means do not repeat;
- * rel_col - the fraction column to place type;
- * priority - in the event of confict, which type gets picked.     */
-/* typedef struct s_grid_loc_def {
-    grid_loc_type_t grid_loc_type;
-    int    start_col;
-    int    repeat;
-    double  col_rel;
-    int    priority;
-} grid_loc_def_t; */
-
-/* typedef  struct s_type_descriptor {
-    const char*   m_name;
-    int     m_num_pins;
-    int     m_capacity;
-    int     m_height;
-    int***  m_pinloc; [0..height-1][0..3][0..num_pins-1]
-
-    int     m_num_class;
-    struct s_pin_class*  m_class_info;  [0..num_class-1]
-    int*    m_pin_class;                [0..num_pins-1]
-
-    boolean*  is_global_pin;  [0..num_pins-1]
-
-    boolean   is_Fc_factor;
-    boolean   is_Fc_out_full_flex;
-    double    m_Fc_in;
-    double    m_Fc_out;
-
-    subblock info
-    int  m_max_subblocks;
-    int  m_max_subblocks_inputs;
-    int  m_max_subblocks_outputs;
-
-    grid_location info
-    grid_loc_def_t* m_grid_loc_def;
-    int    m_num_grid_loc_def;
-
-    timing info
-    timing_info_t  m_timing_inf;
-
-     * This can be determinded from class_info and pin_class_t but store for
-     * fast access *
-    int  m_num_drivers;
-    int  m_num_receivers;
-
-    * index of type_descriptor in array(allow for index reference) *
-    int  m_index;
-} type_descriptor_t;
-typedef const type_descriptor_t*  block_type_ptr; */
-
-
 /* FIXME: Data Structure about clbs or io pads in circuit netlist.   */
 /* name:  Taken from the net which it drives.                        *
  * type:  CLB_TYPE, INPAD_TYPE or OUTPAD_TYPE                        *
@@ -252,13 +195,6 @@ typedef struct s_clb {
     } u;
 } grid_tile_t;
 
-/* the grid_tile_t was similar with grid_tile_t 
-typedef struct s_grid_tile {
-    block_type_ptr  m_type;
-    int   m_offset;
-    int   m_usage;
-    int*  m_blocks;
-} grid_tile_t; */
 
 /* Stores the bounding box of a net in terms of the minimum and  *
  * maximum coordinates of the blocks forming the net, clipped to *

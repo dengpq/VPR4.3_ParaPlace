@@ -486,7 +486,7 @@ static char* add_clb(int doall, FILE* fp_net, char* buf)
                            buf);
     ++num_clbs;
     if (doall) {
-        blocks[num_blocks - 1].block_type = CLB_TYPE;
+        blocks[num_blocks - 1].block_type = B_CLB_TYPE;
     }
 
     /* then resolve the pinlist */
