@@ -717,12 +717,12 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int i, j, k, iblk;
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            clb_grids[i][j].m_usage = 0;
+            bin_grids[i][j].m_usage = 0;
 
-            for (k = 0; k < clb_grids[i][j].m_capacity; ++k) {
-                clb_grids[i][j].in_blocks[k] = EMPTY;
-                if (clb_grids[i][j].m_offset == 0) {
-                    ++avail_diff_type_grids[clb_grids[i][j].grid_type];
+            for (k = 0; k < bin_grids[i][j].m_capacity; ++k) {
+                bin_grids[i][j].in_blocks[k] = EMPTY;
+                if (bin_grids[i][j].m_offset == 0) {
+                    ++avail_diff_type_grids[bin_grids[i][j].grid_type];
                 }
             }
         }
@@ -736,9 +736,9 @@ static void initial_placement(pad_loc_t pad_loc_type,
     int* index = (int*)my_calloc(g_num_grid_types, sizeof(int));
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            for (k = 0; k < clb_grids[i][j].m_capacity; ++k) {
-                if (clb_grids[i][j].m_offset == 0) {
-                    int type_index = clb_grids[i][j].grid_type;
+            for (k = 0; k < bin_grids[i][j].m_capacity; ++k) {
+                if (bin_grids[i][j].m_offset == 0) {
+                    int type_index = bin_grids[i][j].grid_type;
                     pos[type_index][index[type_index]].x = i;
                     pos[type_index][index[type_index]].y = j;
                     pos[type_index][index[type_index]].z = k;
@@ -751,9 +751,14 @@ static void initial_placement(pad_loc_t pad_loc_type,
     /* Now assgin location randomly for all blocks */
     for (iblk = 0; iblk < num_blocks; ++iblk) {
         /* Don't do IOs if the user specifies IOs */
-        if (!(blocks[iblk].block_type == IO_TYPE && pad_loc_type == USER)) {
+        if (!((blocks[iblk].block_type == INPAD_TYPE
+                 || blocks[iblk].block_type == OUTPAD_TYPE)
+                    && pad_loc_type == USER)) {
             int type_index = blocks[iblk].block_type;
 
+            /* Attention, in VPR4.3, the blocks only had CLB_TYPE, INPAD_TYPE *
+             * and OUTPAD_TYPE, but bin_grids only had B_CLB_TYPE, IO_TYPE and*
+             * EMPTY, so the INPAD_TYPE and OUTPAD_TYPE should change to IO_TYPE*/
             if (blocks[iblk].block_type == INPAD_TYPE
                   || blocks[iblk].block_type == OUTPAD_TYPE) {
                 type_index = IO_TYPE;
@@ -765,8 +770,8 @@ static void initial_placement(pad_loc_t pad_loc_type,
             int x = pos[type_index][choice].x;
             int y = pos[type_index][choice].y;
             int z = pos[type_index][choice].z;
-            clb_grids[x][y].in_blocks[z] = iblk;
-            ++clb_grids[x][y].m_usage;
+            bin_grids[x][y].in_blocks[z] = iblk;
+            ++bin_grids[x][y].m_usage;
 
             /* Ensure randomizer doesn't pick this blocks again */
             /* overwrite used blocks position */
@@ -784,10 +789,10 @@ static void initial_placement(pad_loc_t pad_loc_type,
      * clb array.                                                             */
     for (i = 0; i <= (num_grid_columns + 1); ++i) {
         for (j = 0; j <= (num_grid_rows + 1); ++j) {
-            for (k = 0; k < clb_grids[i][j].m_capacity; ++k) {
-                assert(clb_grids[i][j].in_blocks != NULL);
+            for (k = 0; k < bin_grids[i][j].m_capacity; ++k) {
+                assert(bin_grids[i][j].in_blocks != NULL);
 
-                iblk = clb_grids[i][j].in_blocks[k];
+                iblk = bin_grids[i][j].in_blocks[k];
                 if (iblk != EMPTY) {
                     blocks[iblk].x = i;
                     blocks[iblk].y = j;
@@ -1491,8 +1496,8 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
             &y_to);
 
     int z_to = 0;
-    if (clb_grids[x_to][y_to].m_capacity > 1) {
-        z_to = my_irand(clb_grids[x_to][y_to].m_capacity - 1);
+    if (bin_grids[x_to][y_to].m_capacity > 1) {
+        z_to = my_irand(bin_grids[x_to][y_to].m_capacity - 1);
     }
 
     /* Make the switch in order to let compute the new bounding-box simpler. If *
@@ -1501,8 +1506,8 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* int to_block = 0;
     int io_num = 0;
      if (blocks[from_block].block_type == B_CLB_TYPE) {
-        if (clb_grids[x_to][y_to].m_usage == 1) {
-            to_block = clb_grids[x_to][y_to].in_blocks[0];
+        if (bin_grids[x_to][y_to].m_usage == 1) {
+            to_block = bin_grids[x_to][y_to].in_blocks[0];
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
             blocks[to_block].x = x_from;
@@ -1514,12 +1519,12 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         }
     } else {
         io_num = my_irand(io_ratio - 1);
-        if (io_num >= clb_grids[x_to][y_to].m_usage) {
+        if (io_num >= bin_grids[x_to][y_to].m_usage) {
             to_block = EMPTY;
             blocks[from_block].x = x_to;
             blocks[from_block].y = y_to;
         } else {
-            to_block = clb_grids[x_to][y_to].in_blocks[io_num];
+            to_block = bin_grids[x_to][y_to].in_blocks[io_num];
             blocks[to_block].x = x_from;
             blocks[to_block].y = y_from;
             blocks[from_block].x = x_to;
@@ -1528,14 +1533,14 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     } */
 
     int to_block = EMPTY;
-    if (clb_grids[x_to][y_to].in_blocks[z_to] == EMPTY) {
+    if (bin_grids[x_to][y_to].in_blocks[z_to] == EMPTY) {
         /* Moving to an empty location */
         to_block = EMPTY;
         blocks[from_block].x = x_to;
         blocks[from_block].y = y_to;
         blocks[from_block].z = z_to;
     } else {
-        to_block = clb_grids[x_to][y_to].in_blocks[z_to];
+        to_block = bin_grids[x_to][y_to].in_blocks[z_to];
         blocks[to_block].x = x_from;
         blocks[to_block].y = y_from;
         blocks[to_block].z = z_from;
@@ -1718,44 +1723,44 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
         /* Update Clb data structures since we kept the move. */
         /* if (blocks[from_block].block_type == B_CLB_TYPE) {
             if (to_block != EMPTY) {
-                clb_grids[x_from][y_from].in_blocks[0] = to_block;
-                clb_grids[x_to][y_to].in_blocks[0] = from_block;
+                bin_grids[x_from][y_from].in_blocks[0] = to_block;
+                bin_grids[x_to][y_to].in_blocks[0] = from_block;
             } else {
-                clb_grids[x_to][y_to].in_blocks[0] = from_block;
-                clb_grids[x_to][y_to].m_usage = 1;
-                clb_grids[x_from][y_from].m_usage = 0;
+                bin_grids[x_to][y_to].in_blocks[0] = from_block;
+                bin_grids[x_to][y_to].m_usage = 1;
+                bin_grids[x_from][y_from].m_usage = 0;
             }
         } else {
             for (off_from = 0;; ++off_from) {
-                if (clb_grids[x_from][y_from].in_blocks[off_from] == from_block) {
+                if (bin_grids[x_from][y_from].in_blocks[off_from] == from_block) {
                     break;
                 }
             }
 
             if (to_block != EMPTY) {
-                clb_grids[x_to][y_to].in_blocks[in_num] = from_block;
-                clb_grids[x_from][y_from].in_blocks[off_from] = to_block;
+                bin_grids[x_to][y_to].in_blocks[in_num] = from_block;
+                bin_grids[x_from][y_from].in_blocks[off_from] = to_block;
             } else {
-                clb_grids[x_to][y_to].in_blocks[clb_grids[x_to][y_to].m_usage] = from_block;
-                ++(clb_grids[x_to][y_to].m_usage);
+                bin_grids[x_to][y_to].in_blocks[bin_grids[x_to][y_to].m_usage] = from_block;
+                ++(bin_grids[x_to][y_to].m_usage);
 
-                for (k = off_from; k < clb_grids[x_from][y_from].m_usage-1; ++k) {
-                    clb_grids[x_from][y_from].in_blocks[k] =
-                        clb_grids[x_from][y_from].in_blocks[k + 1];
+                for (k = off_from; k < bin_grids[x_from][y_from].m_usage-1; ++k) {
+                    bin_grids[x_from][y_from].in_blocks[k] =
+                        bin_grids[x_from][y_from].in_blocks[k + 1];
                 }
 
-                --(clb_grids[x_from][y_from].m_usage);
+                --(bin_grids[x_from][y_from].m_usage);
             }
         } */
 
         /* Update fb data structures since we kept the move. */
         /* Swap physical location */
-        clb_grids[x_to][y_to].in_blocks[z_to] = from_block;
-        clb_grids[x_from][y_from].in_blocks[z_from] = to_block;
+        bin_grids[x_to][y_to].in_blocks[z_to] = from_block;
+        bin_grids[x_from][y_from].in_blocks[z_from] = to_block;
         if (EMPTY == to_block) {
             /* Moved to an empty location */
-            ++(clb_grids[x_to][y_to].m_usage);
-            --(clb_grids[x_from][y_from].m_usage);
+            ++(bin_grids[x_to][y_to].m_usage);
+            --(bin_grids[x_from][y_from].m_usage);
         }
     } else {  /* Move was rejected.  */
         /* Reset the net total_cost_ptr function flags first. */
@@ -2497,13 +2502,13 @@ static void find_to(int x_from,
     }
 
     if (kblock_type == B_CLB_TYPE) {
-        if (clb_grids[*x_to][*y_to].type != B_CLB_TYPE) {
+        if (bin_grids[*x_to][*y_to].type != B_CLB_TYPE) {
             printf("Error: Moving CLB_TYPE to illegal type blocks at (%d,%d)\n",
                    *x_to, *y_to);
             exit(1);
         }
     } else {
-        if (clb_grids[*x_to][*y_to].type != IO_TYPE) {
+        if (bin_grids[*x_to][*y_to].type != IO_TYPE) {
             printf("Error: Moving IO_TYPE blocks to illegal type location at "
                    "(%d,%d)\n", *x_to, *y_to);
             exit(1);
@@ -3507,15 +3512,15 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
     /* Step through clb array. Check it against blocks array. */
     for (i = 0; i <= num_grid_columns + 1; ++i) {
         for (j = 0; j <= num_grid_rows + 1; ++j) {
-            if (clb_grids[i][j].m_usage == 0) {
+            if (bin_grids[i][j].m_usage == 0) {
                 continue;
             }
 
-            if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
-                /* const int kclb_grid_usage = clb_grids[i][j].m_usage; */
-                const int kclb_grid_capacity = clb_grids[i][j].m_capacity;
+            if (bin_grids[i][j].grid_type == B_CLB_TYPE) {
+                /* const int kclb_grid_usage = bin_grids[i][j].m_usage; */
+                const int kclb_grid_capacity = bin_grids[i][j].m_capacity;
                 for (k = 0; k < kclb_grid_capacity; ++k) {
-                    block_num = clb_grids[i][j].in_blocks[k];
+                    block_num = bin_grids[i][j].in_blocks[k];
                     if (blocks[block_num].block_type != B_CLB_TYPE) {
                         printf("Error:  blocks %d type does not match clb(%d,%d,%d) type.\n",
                                block_num, i, j, k);
@@ -3529,23 +3534,23 @@ static void check_place(const placer_opts_t*  placer_opts_ptr,
                         ++error;
                     }
 
-                    if (clb_grids[i][j].m_usage > 1) {
+                    if (bin_grids[i][j].m_usage > 1) {
                         printf("Error: clb(%d,%d) has occupancy of %d\n",
-                               i, j, clb_grids[i][j].m_usage);
+                               i, j, bin_grids[i][j].m_usage);
                         ++error;
                     }
                     block_done[block_num]++;
                 } /* end of for(k = 0; k < kclb_grid_usage; ++k) */
             } else { /* IO_TYPE blocks */
-                if (clb_grids[i][j].m_usage > clb_grids[i][j].m_capacity) {
+                if (bin_grids[i][j].m_usage > bin_grids[i][j].m_capacity) {
                     printf("Error:  clb(%d,%d) has occupancy of %d\n", i, j,
-                           clb_grids[i][j].m_usage);
+                           bin_grids[i][j].m_usage);
                     ++error;
                 }
 
-                const int kio_bin_capacity = clb_grids[i][j].m_capacity;
+                const int kio_bin_capacity = bin_grids[i][j].m_capacity;
                 for (k = 0; k < kio_bin_capacity; ++k) {
-                    block_num = clb_grids[i][j].in_blocks[k];
+                    block_num = bin_grids[i][j].in_blocks[k];
                     if (block_num == EMPTY) {
                         continue;
                     }

@@ -247,7 +247,7 @@ static void init_occ(void)
     int i, j;
     for (i = 0; i <= num_grid_columns + 1; i++) {
         for (j = 0; j <= num_grid_rows + 1; j++) {
-            clb_grids[i][j].m_usage = 0;
+            bin_grids[i][j].m_usage = 0;
         }
     }
 }
@@ -400,24 +400,24 @@ static void assign_locations(block_types_t source_type,
     /* int isubblk = 0; */
     if (source_type == B_CLB_TYPE) {
         net[NET_USED].node_block_pins[NET_USED_SOURCE_BLOCK] = get_first_pin(DRIVER);
-        clb_grids[source_x_loc][source_y_loc].in_blocks[source_z_loc] = SOURCE_BLOCK;
-        clb_grids[source_x_loc][source_y_loc].m_usage += 1;
+        bin_grids[source_x_loc][source_y_loc].in_blocks[source_z_loc] = SOURCE_BLOCK;
+        bin_grids[source_x_loc][source_y_loc].m_usage += 1;
     } else {
         net[NET_USED].node_block_pins[NET_USED_SOURCE_BLOCK] = OPEN;
-        /* isubblk = clb_grids[source_x_loc][source_y_loc].m_usage; */
-        clb_grids[source_x_loc][source_y_loc].in_blocks[source_z_loc] = SOURCE_BLOCK;
-        clb_grids[source_x_loc][source_y_loc].m_usage += 1;
+        /* isubblk = bin_grids[source_x_loc][source_y_loc].m_usage; */
+        bin_grids[source_x_loc][source_y_loc].in_blocks[source_z_loc] = SOURCE_BLOCK;
+        bin_grids[source_x_loc][source_y_loc].m_usage += 1;
     }
 
     if (sink_type == B_CLB_TYPE) {
         net[NET_USED].node_block_pins[NET_USED_SINK_BLOCK] = get_first_pin(RECEIVER);
-        clb_grids[sink_x_loc][sink_y_loc].in_blocks[source_z_loc] = SINK_BLOCK;
-        clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
+        bin_grids[sink_x_loc][sink_y_loc].in_blocks[source_z_loc] = SINK_BLOCK;
+        bin_grids[sink_x_loc][sink_y_loc].m_usage += 1;
     } else {
         net[NET_USED].node_block_pins[NET_USED_SINK_BLOCK] = OPEN;
-        /* isubblk = clb_grids[sink_x_loc][sink_y_loc].m_usage; */
-        clb_grids[sink_x_loc][sink_y_loc].in_blocks[sink_z_loc] = SINK_BLOCK;
-        clb_grids[sink_x_loc][sink_y_loc].m_usage += 1;
+        /* isubblk = bin_grids[sink_x_loc][sink_y_loc].m_usage; */
+        bin_grids[sink_x_loc][sink_y_loc].in_blocks[sink_z_loc] = SINK_BLOCK;
+        bin_grids[sink_x_loc][sink_y_loc].m_usage += 1;
     }
 } /* end of static void assign_locations(block_types_t source_type,) */
 
@@ -471,8 +471,8 @@ static double assign_blocks_and_route_net(block_types_t source_type,
                                                    T_crit,
                                                    net_delay[NET_USED]);
     double net_delay_value = net_delay[NET_USED][NET_USED_SINK_BLOCK];
-    clb_grids[source_x_loc][source_y_loc].m_usage = 0;
-    clb_grids[sink_x_loc][sink_y_loc].m_usage = 0;
+    bin_grids[source_x_loc][source_y_loc].m_usage = 0;
+    bin_grids[sink_x_loc][sink_y_loc].m_usage = 0;
     return net_delay_value;
 }
 

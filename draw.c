@@ -387,7 +387,7 @@ static void drawplace(void)
 
             /* Now IO pad can place randomly, I must use capacity and NOT EMPTY */
             for (k = 0; k < kio_grid_capacity; ++k) {
-                block_num = clb_grids[i][j].in_blocks[k];
+                block_num = bin_grids[i][j].in_blocks[k];
                 if (block_num == EMPTY) {
                     continue;
                 }
@@ -399,13 +399,13 @@ static void drawplace(void)
                 drawrect(x1, y1, x2, y2);
                 /* Vertically offset text so these closely spaced names don't overlap. */
                 drawtext((x1 + x2) / 2., y1 + io_step * (k + 0.5),
-                         blocks[clb_grids[i][j].in_blocks[k]].name, clb_width);
+                         blocks[bin_grids[i][j].in_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb_grids[i][j].m_usage; k < io_ratio; k++) {
+            for (k = bin_grids[i][j].m_usage; k < io_ratio; k++) {
                 x1 = x_clb_left[i] + k * io_step;
                 x2 = x1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -421,7 +421,7 @@ static void drawplace(void)
             setlinestyle(SOLID);
 
             for (k = 0; k < kio_grid_capacity; ++k) {
-                block_num = clb_grids[i][j].in_blocks[k];
+                block_num = bin_grids[i][j].in_blocks[k];
                 setcolor(block_color[block_num]);
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
@@ -429,13 +429,13 @@ static void drawplace(void)
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
                 drawtext((x1 + x2) / 2., (y1 + y2) / 2.,
-                         blocks[clb_grids[i][j].in_blocks[k]].name, clb_width);
+                         blocks[bin_grids[i][j].in_blocks[k]].name, clb_width);
             }
 
             setlinestyle(DASHED);
             setcolor(BLACK);
 
-            for (k = clb_grids[i][j].m_usage; k < io_ratio; ++k) {
+            for (k = bin_grids[i][j].m_usage; k < io_ratio; ++k) {
                 y1 = y_clb_bottom[j] + k * io_step;
                 y2 = y1 + io_step;
                 drawrect(x1, y1, x2, y2);
@@ -452,17 +452,17 @@ static void drawplace(void)
             y1 = y_clb_bottom[j];
             y2 = y1 + clb_width;
 
-            if (clb_grids[i][j].m_usage != 0) {
+            if (bin_grids[i][j].m_usage != 0) {
                 setlinestyle(SOLID);
 
-                block_num = clb_grids[i][j].in_blocks[0];
+                block_num = bin_grids[i][j].in_blocks[0];
 
                 setcolor(block_color[block_num]);
                 fillrect(x1, y1, x2, y2);
                 setcolor(BLACK);
                 drawrect(x1, y1, x2, y2);
                 drawtext((x1 + x2) / 2., (y1 + y2) / 2.,
-                         blocks[clb_grids[i][j].in_blocks[0]].name,
+                         blocks[bin_grids[i][j].in_blocks[0]].name,
                          clb_width);
             } else {
                 setlinestyle(DASHED);
@@ -515,14 +515,14 @@ static void get_block_center(int block_num, double* x, double* y)
     int i = blocks[block_num].x;
     int j = blocks[block_num].y;
 
-    if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
+    if (bin_grids[i][j].grid_type == B_CLB_TYPE) {
         *x = x_clb_left[i] + clb_width / 2.;
         *y = y_clb_bottom[j] + clb_width / 2.;
     } else {  /* IO_TYPE clb. Have to figure out which subblock it is. */
-        const int kio_grid_capacity = clb_grids[i][j].m_capacity;
+        const int kio_grid_capacity = bin_grids[i][j].m_capacity;
         int k = -1;
         for (k = 0; k < kio_grid_capacity; ++k) {
-            if (clb_grids[i][j].in_blocks[k] == block_num) {
+            if (bin_grids[i][j].in_blocks[k] == block_num) {
                 break;
             }
         }
@@ -1038,7 +1038,7 @@ static void draw_rr_pin(int ivex, enum color_types color)
     setcolor(color);
 
     int iside = -1;
-    if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
+    if (bin_grids[i][j].grid_type == B_CLB_TYPE) {
         for (iside = 0; iside <= 3; ++iside) {
             if (pinloc[iside][ipin] == 1) {   /* Pin exists on this side. */
                 get_rr_pin_draw_coords(ivex, iside, &xcen, &ycen);
@@ -1079,7 +1079,7 @@ static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,
     xc = x_clb_left[i];
     yc = y_clb_bottom[j];
 
-    if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
+    if (bin_grids[i][j].grid_type == B_CLB_TYPE) {
         ipin = rr_node[ivex].ptc_num;
         step_size = clb_width / (pins_per_clb + 1.);
         offset = (ipin + 1.) * step_size;
@@ -1367,14 +1367,14 @@ static void highlight_blocks(double x, double y)
     }
 
     /* The user selected the clb at location (i,j). */
-    if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
-        if (clb_grids[i][j].m_usage == 0) {
+    if (bin_grids[i][j].grid_type == B_CLB_TYPE) {
+        if (bin_grids[i][j].m_usage == 0) {
             update_message(default_message);
             drawscreen();
             return;
         }
 
-        block_num = clb_grids[i][j].in_blocks[0];
+        block_num = bin_grids[i][j].in_blocks[0];
     } else { /* IO_TYPE blocks clb */
         if (i == 0 || i == num_grid_columns + 1) {  /* Vertical columns of IOs */
             k = (int)((y - y_clb_bottom[j]) / io_step);
@@ -1382,13 +1382,13 @@ static void highlight_blocks(double x, double y)
             k = (int)((x - x_clb_left[i]) / io_step);
         }
 
-        if (k >= clb_grids[i][j].m_usage) {   /* Empty spot */
+        if (k >= bin_grids[i][j].m_usage) {   /* Empty spot */
             update_message(default_message);
             drawscreen();
             return;
         }
 
-        block_num = clb_grids[i][j].in_blocks[k];
+        block_num = bin_grids[i][j].in_blocks[k];
     }
 
     /* Highlight fanin and fanout. */

@@ -1604,7 +1604,7 @@ void init_arch(double aspect_ratio, boolean user_sized)
         exit(1);
     }
 
-    clb_grids = (grid_tile_t**)alloc_matrix(0, num_grid_columns + 1,
+    bin_grids = (grid_tile_t**)alloc_matrix(0, num_grid_columns + 1,
                                             0, num_grid_rows + 1,
                                             sizeof(grid_tile_t));
     chan_width_x = (int*)my_malloc((num_grid_rows + 1) * sizeof(int));
@@ -1625,41 +1625,41 @@ static void fill_arch(void)
     int i = 0;
     int k = -1;
     for (i = 1; i <= num_grid_columns; ++i) {
-        clb_grids[i][0].in_blocks = (int*)my_malloc(kio_bin_capacity * sizeof(int));
-        clb_grids[i][num_grid_rows + 1].in_blocks =
+        bin_grids[i][0].in_blocks = (int*)my_malloc(kio_bin_capacity * sizeof(int));
+        bin_grids[i][num_grid_rows + 1].in_blocks =
             (int*)my_malloc(kio_bin_capacity * sizeof(int));
         for (k = 0; k < kio_bin_capacity; ++k) {
-            clb_grids[i][0].in_blocks[k] =
-              clb_grids[i][num_grid_rows + 1].in_blocks[k] = EMPTY;
+            bin_grids[i][0].in_blocks[k] =
+              bin_grids[i][num_grid_rows + 1].in_blocks[k] = EMPTY;
         }
     }
 
     for (i = 1; i <= num_grid_rows; ++i) {
-        clb_grids[0][i].in_blocks = (int*)my_malloc(kio_bin_capacity * sizeof(int));
-        clb_grids[num_grid_columns + 1][i].in_blocks =
+        bin_grids[0][i].in_blocks = (int*)my_malloc(kio_bin_capacity * sizeof(int));
+        bin_grids[num_grid_columns + 1][i].in_blocks =
             (int*)my_malloc(kio_bin_capacity * sizeof(int));
         for (k = 0; k < kio_bin_capacity; ++k) {
-            clb_grids[0][i].in_blocks[k] =
-              clb_grids[num_grid_columns + 1][i].in_blocks[k] = EMPTY;
+            bin_grids[0][i].in_blocks[k] =
+              bin_grids[num_grid_columns + 1][i].in_blocks[k] = EMPTY;
         }
     }
 
     /* Initialize type, and occupancy. */
     for (i = 1; i <= num_grid_columns; ++i) {
-        clb_grids[i][0].grid_type = clb_grids[i][num_grid_rows + 1].grid_type
+        bin_grids[i][0].grid_type = bin_grids[i][num_grid_rows + 1].grid_type
           = IO_TYPE;
-        clb_grids[i][0].m_offset = clb_grids[i][num_grid_rows + 1].m_offset = 0;
-        clb_grids[i][0].m_usage = clb_grids[i][num_grid_rows + 1].m_usage = 0;
-        clb_grids[i][0].m_capacity = clb_grids[i][num_grid_rows + 1].m_capacity
+        bin_grids[i][0].m_offset = bin_grids[i][num_grid_rows + 1].m_offset = 0;
+        bin_grids[i][0].m_usage = bin_grids[i][num_grid_rows + 1].m_usage = 0;
+        bin_grids[i][0].m_capacity = bin_grids[i][num_grid_rows + 1].m_capacity
           = kio_bin_capacity;
     }
 
     for (i = 1; i <= num_grid_rows; ++i) {
-        clb_grids[0][i].grid_type = clb_grids[num_grid_columns + 1][i].grid_type
+        bin_grids[0][i].grid_type = bin_grids[num_grid_columns + 1][i].grid_type
           = IO_TYPE;
-        clb_grids[0][i].m_offset = clb_grids[num_grid_columns + 1][i].m_offset = 0;
-        clb_grids[0][i].m_usage = clb_grids[num_grid_columns + 1][i].m_usage = 0;
-        clb_grids[0][i].m_capacity = clb_grids[num_grid_columns + 1][i].m_capacity
+        bin_grids[0][i].m_offset = bin_grids[num_grid_columns + 1][i].m_offset = 0;
+        bin_grids[0][i].m_usage = bin_grids[num_grid_columns + 1][i].m_usage = 0;
+        bin_grids[0][i].m_capacity = bin_grids[num_grid_columns + 1][i].m_capacity
           = kio_bin_capacity;
     }
 
@@ -1667,32 +1667,32 @@ static void fill_arch(void)
     for (i = 1; i <= num_grid_columns; ++i) { /* interior (LUT) cells */
         int j = 0;
         for (j = 1; j <= num_grid_rows; ++j) {
-            clb_grids[i][j].in_blocks =
+            bin_grids[i][j].in_blocks =
               (int*)my_malloc(kclb_bin_capacity * sizeof(int));
-            clb_grids[i][j].grid_type = B_CLB_TYPE;
-            clb_grids[i][j].m_capacity = kclb_bin_capacity;
-            clb_grids[i][j].m_usage = 0;
-            clb_grids[i][j].m_offset = 0;
+            bin_grids[i][j].grid_type = B_CLB_TYPE;
+            bin_grids[i][j].m_capacity = kclb_bin_capacity;
+            bin_grids[i][j].m_usage = 0;
+            bin_grids[i][j].m_offset = 0;
             for (k = 0; k < kclb_bin_capacity; ++k) {
-                clb_grids[i][j].in_blocks[k] = EMPTY;
+                bin_grids[i][j].in_blocks[k] = EMPTY;
             }
         }
     }
 
     /* Nothing goes in the corners. */
-    clb_grids[0][0].grid_type = clb_grids[num_grid_columns + 1][0].grid_type =
+    bin_grids[0][0].grid_type = bin_grids[num_grid_columns + 1][0].grid_type =
         EMPTY_TYPE;
-    clb_grids[0][0].m_capacity = clb_grids[num_grid_columns + 1][0].m_capacity
+    bin_grids[0][0].m_capacity = bin_grids[num_grid_columns + 1][0].m_capacity
       = 0;
-    clb_grids[0][0].m_offset = clb_grids[num_grid_columns + 1][0].m_offset
+    bin_grids[0][0].m_offset = bin_grids[num_grid_columns + 1][0].m_offset
       = 0;
 
-    clb_grids[0][num_grid_rows + 1].grid_type =
-        clb_grids[num_grid_columns + 1][num_grid_rows + 1].grid_type = EMPTY_TYPE;
-    clb_grids[0][num_grid_rows + 1].m_capacity =
-      clb_grids[num_grid_columns + 1][num_grid_rows + 1].m_capacity = 0;
-    clb_grids[0][num_grid_rows + 1].m_offset =
-      clb_grids[num_grid_columns + 1][num_grid_rows + 1].m_offset = 0;
+    bin_grids[0][num_grid_rows + 1].grid_type =
+        bin_grids[num_grid_columns + 1][num_grid_rows + 1].grid_type = EMPTY_TYPE;
+    bin_grids[0][num_grid_rows + 1].m_capacity =
+      bin_grids[num_grid_columns + 1][num_grid_rows + 1].m_capacity = 0;
+    bin_grids[0][num_grid_rows + 1].m_offset =
+      bin_grids[num_grid_columns + 1][num_grid_rows + 1].m_offset = 0;
 } /* end of static void fill_arch(void) */
 
 static void init_grid_capacity(void)

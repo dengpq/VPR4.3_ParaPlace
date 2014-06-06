@@ -162,8 +162,8 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
     int ifound = 0;
 
     int ipin, block_num, iclass, blk_pin;
-    if (clb_grids[i][j].grid_type == B_CLB_TYPE) {
-        block_num = clb_grids[i][j].in_blocks[0];
+    if (bin_grids[i][j].grid_type == B_CLB_TYPE) {
+        block_num = bin_grids[i][j].in_blocks[0];
 
         const int knum_net_pins = net[inet].num_net_pins;
         for (ipin = 1; ipin < knum_net_pins; ++ipin) { /* All net SINKs */
@@ -183,7 +183,7 @@ static void check_sink(int ivex, int inet, boolean* pin_done)
             }
         }
     } else { /* IO_TYPE pad */
-        block_num = clb_grids[i][j].in_blocks[ptc_num];
+        block_num = bin_grids[i][j].in_blocks[ptc_num];
 
         const int knum_net_pins = net[inet].num_net_pins;
         for (ipin = 0; ipin < knum_net_pins; ++ipin) {
@@ -239,7 +239,7 @@ static void check_source(int ivex, int inet)
             exit(1);
         }
     } else {  /* IO_TYPE Pad.  NB:  check_node ensured ptc_num < m_usage of this pad.  */
-        if (clb_grids[i][j].in_blocks[ptc_num] != block_num) {
+        if (bin_grids[i][j].in_blocks[ptc_num] != block_num) {
             printf("Error in check_source:  net SOURCE is at wrong pad (pad #%d)."
                    "\n", ptc_num);
             exit(1);
@@ -332,7 +332,7 @@ static boolean check_adjacent(int from_node, int to_node)
         case SOURCE:
             if (to_type == OPIN) {
                 if (from_xlow == to_xlow && from_ylow == to_ylow) {
-                    if (clb_grids[to_xlow][to_ylow].grid_type == B_CLB_TYPE) {
+                    if (bin_grids[to_xlow][to_ylow].grid_type == B_CLB_TYPE) {
                         int iclass = clb_pin_class[to_ptc];
                         if (iclass == from_ptc) {
                             ++num_adj;
@@ -349,7 +349,7 @@ static boolean check_adjacent(int from_node, int to_node)
         case SINK:
             if (to_type == SOURCE) {   /* Feedthrough.  Not in code as yet. */
                 if (from_xlow == to_xlow && from_ylow == to_ylow &&
-                        clb_grids[to_xlow][to_ylow].grid_type == B_CLB_TYPE) {
+                        bin_grids[to_xlow][to_ylow].grid_type == B_CLB_TYPE) {
                     ++num_adj;
                 }
             }
@@ -364,7 +364,7 @@ static boolean check_adjacent(int from_node, int to_node)
 
         case IPIN:
             if (to_type == SINK && from_xlow == to_xlow && from_ylow == to_ylow) {
-                if (clb_grids[from_xlow][from_ylow].grid_type == B_CLB_TYPE) {
+                if (bin_grids[from_xlow][from_ylow].grid_type == B_CLB_TYPE) {
 
                     int iclass = clb_pin_class[from_ptc];
                     if (iclass == to_ptc) {
@@ -465,7 +465,7 @@ static int pin_and_chan_adjacent(int pin_node, int chan_node)
     int chan_xhigh = rr_node[chan_node].xhigh;
     int chan_yhigh = rr_node[chan_node].yhigh;
 
-    if (clb_grids[pin_x][pin_y].grid_type == B_CLB_TYPE) {
+    if (bin_grids[pin_x][pin_y].grid_type == B_CLB_TYPE) {
         if (chan_type == CHANX) {
             if (chan_ylow == pin_y) {   /* CHANX above CLB_TYPE */
                 if (pinloc[TOP][pin_ptc] == 1 && pin_x <= chan_xhigh &&

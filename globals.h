@@ -36,7 +36,7 @@ extern int* chan_width_x;
 extern int* chan_width_y; /* numerical form */
 
 
-extern grid_tile_t** clb_grids;
+extern grid_tile_t** bin_grids;
 
 /* [0..num_nets-1] of linked list start pointers.  Defines the routing.  */
 extern struct s_trace**  trace_head;
