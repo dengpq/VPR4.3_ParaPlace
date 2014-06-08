@@ -57,7 +57,7 @@ void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)
         if (blocks[i].block_type == INPAD_TYPE || blocks[i].block_type == OUTPAD_TYPE) {
             max_pin = 1;
         } else {
-            max_pin = pins_per_clb;
+            max_pin = max_pins_per_clb;
         }
 
         for (j = 0; j < max_pin; j++) {

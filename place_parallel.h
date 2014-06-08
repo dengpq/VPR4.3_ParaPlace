@@ -1,9 +1,7 @@
-#ifndef PLACE_H
-#define PLACE_H
+#ifndef PLACE_PARALLEL_H
+#define PLACE_PARALLEL_H
 
-#include "vpr_types_parallel.h"
-#include "mst.h"
-#include "const.h"
+#include "vpr_types.h"
 
 /*The propose of start_finish_nets is to evenly divide up the work allocated
  * to each processor for:
@@ -184,16 +182,14 @@ typedef struct {
     int     usecs;
 } TIME_DIFF;
 
-void try_place_use_multi_threads(placer_opts_t placer_opts,
-                                 annealing_sched_t annealing_sched,
-                                 chan_width_distr_t chan_width_dist,
-                                 router_opts_t router_opts,
+void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
+                                 annealing_sched_t  annealing_sched,
+                                 chan_width_distr_t  chan_width_dist,
+                                 router_opts_t  router_opts,
                                  detail_routing_arch_t det_routing_arch,
-                                 segment_info_t* segment_inf,
-                                 timing_info_t timing_inf,
-                                 subblock_data_t* subblock_data_ptr,
-                                 t_mst_edge** * mst,
-                                 operation_types_t operation);
+                                 segment_info_t*  segment_inf,
+                                 timing_info_t    timing_inf,
+                                 subblock_data_t* subblock_data_ptr);
 
 #endif
 

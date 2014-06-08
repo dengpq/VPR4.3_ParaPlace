@@ -47,12 +47,12 @@ void load_one_clb_fanout_count(int subblock_lut_size,
         int ipin = -1;
         for (ipin = 0; ipin < subblock_lut_size; ++ipin) {
             int input_pin = subblock_inf[isub].inputs[ipin];
-            if (input_pin != OPEN && input_pin < pins_per_clb) { /* Driven by CLB_TYPE ipin */
+            if (input_pin != OPEN && input_pin < max_pins_per_clb) { /* Driven by CLB_TYPE ipin */
                 ++num_uses_of_clb_ipin[input_pin];
-            } else if (input_pin != OPEN && input_pin >= pins_per_clb) {
+            } else if (input_pin != OPEN && input_pin >= max_pins_per_clb) {
                 /* Driven by sblk output in same clb(sharing signals) *
                  * This pin must connect more than 1 net.             */
-                ++num_uses_of_sblk_opin[input_pin - pins_per_clb];
+                ++num_uses_of_sblk_opin[input_pin - max_pins_per_clb];
             } else {
                 ; /* No Operations */
             }
@@ -60,12 +60,12 @@ void load_one_clb_fanout_count(int subblock_lut_size,
 
         /* Last deal with the subblocks' CLOCK input pin */
         int clock_pin = subblock_inf[isub].clock;
-        if (clock_pin != OPEN && clock_pin < pins_per_clb) { /* Driven by CLB_TYPE ipin */
+        if (clock_pin != OPEN && clock_pin < max_pins_per_clb) { /* Driven by CLB_TYPE ipin */
             ++num_uses_of_clb_ipin[clock_pin];
-        } else if (clock_pin != OPEN && clock_pin >= pins_per_clb) {
+        } else if (clock_pin != OPEN && clock_pin >= max_pins_per_clb) {
             /* Driven by sblk output in same clb(sharing signals) *
              * This pin must connect more than 1 net. */
-            ++num_uses_of_sblk_opin[clock_pin - pins_per_clb];
+            ++num_uses_of_sblk_opin[clock_pin - max_pins_per_clb];
         } else {
             ; /* No operations */
         }

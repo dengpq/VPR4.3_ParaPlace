@@ -347,7 +347,7 @@ void init_draw_coords(double clb_width_val)
     }
 
     clb_width = clb_width_val;
-    pin_size = clb_width / (4. * pins_per_clb);
+    pin_size = clb_width / (4. * max_pins_per_clb);
     pin_size = min(pin_size, clb_width / (4. * io_ratio));
     pin_size = min(pin_size, 0.3);
     x_clb_left[0] = 0.;
@@ -1081,7 +1081,7 @@ static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,
 
     if (bin_grids[i][j].grid_type == B_CLB_TYPE) {
         ipin = rr_node[ivex].ptc_num;
-        step_size = clb_width / (pins_per_clb + 1.);
+        step_size = clb_width / (max_pins_per_clb + 1.);
         offset = (ipin + 1.) * step_size;
     } else {                                      /* IO_TYPE pad. */
         ipad = rr_node[ivex].ptc_num;
@@ -1409,7 +1409,7 @@ static void highlight_blocks(double x, double y)
             block_color[fanblk] = RED;
         }
     } else {     /* CLB_TYPE blocks. */
-        for (k = 0; k < pins_per_clb; k++) { /* Each pin on a CLB_TYPE */
+        for (k = 0; k < max_pins_per_clb; k++) { /* Each pin on a CLB_TYPE */
             netnum = blocks[block_num].nets[k];
             if (netnum == OPEN) {
                 continue;

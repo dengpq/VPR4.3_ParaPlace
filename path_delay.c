@@ -209,14 +209,14 @@ void alloc_and_load_timing_graph(const placer_opts_t*  placer_opts_ptr,
                subblock_data.max_subblocks_per_block);
         exit(1);
     }
-    if (pins_per_clb > MAX_SHORT) {
-        printf("Error in alloc_and_load_timing_graph: pins_per_clb is %d."
-               "\tWill cause short overflow in tnode_descript.\n", pins_per_clb);
+    if (max_pins_per_clb > MAX_SHORT) {
+        printf("Error in alloc_and_load_timing_graph: max_pins_per_clb is %d."
+               "\tWill cause short overflow in tnode_descript.\n", max_pins_per_clb);
         exit(1);
     }
 
     /* The two arrays below are valid only for CLBs, not pads. */
-    /* [0..num_blocks-1][0..pins_per_clb-1] */
+    /* [0..num_blocks-1][0..max_pins_per_clb-1] */
     int** num_uses_of_clb_ipin = NULL;
     /* [0..num_blocks-1][0..num_subs_per[iblk]-1] */
     int** num_uses_of_sblk_opin = NULL;
@@ -236,7 +236,7 @@ void alloc_and_load_timing_graph(const placer_opts_t*  placer_opts_ptr,
                                                  num_uses_of_sblk_opin);
     printf("Now check block_pin_to_tnode[%d][%d]...\n",
            num_blocks,
-           pins_per_clb);
+           max_pins_per_clb);
     check_block_pin_to_tnode(block_pin_to_tnode);
 
     /* then create the 2 arrays needed by PATH algo */
@@ -467,7 +467,7 @@ void check_block_pin_to_tnode(int** block_pin_to_tnode)
     int iblock = -1;
     int ipin = -1;
     for (iblock = 0; iblock < num_blocks; ++iblock) {
-        for (ipin = 0; ipin < pins_per_clb; ++ipin) {
+        for (ipin = 0; ipin < max_pins_per_clb; ++ipin) {
             sprintf(message, "block_pin_to_tnode[%d][%d] = %d\n",
                     iblock, ipin, block_pin_to_tnode[iblock][ipin]);
             fputs(message, output_file);
@@ -540,7 +540,7 @@ static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,
     int** block_pin_to_tnode = (int**)alloc_matrix(0,
                                                    num_blocks-1,
                                                    0,
-                                                   pins_per_clb-1,
+                                                   max_pins_per_clb-1,
                                                    sizeof(int));
     int*** sblk_pin_to_tnode = (int***)my_malloc(num_blocks * sizeof(int**));
 
@@ -551,7 +551,7 @@ static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,
     for (iblk = 0; iblk < num_blocks; ++iblk) {
         if (blocks[iblk].block_type == B_CLB_TYPE) {
             /* First deal with CLB_TYPE's pin mapping */
-            for (ipin = 0; ipin < pins_per_clb; ++ipin) {
+            for (ipin = 0; ipin < max_pins_per_clb; ++ipin) {
                 if (blocks[iblk].nets[ipin] == OPEN) {
                     block_pin_to_tnode[iblk][ipin] = OPEN;
                 } else {
@@ -609,7 +609,7 @@ static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,
             block_pin_to_tnode[iblk][1] = curr_tnode + 1; /* Pad output */
             curr_tnode += 2;
 
-            for (ipin = 2; ipin < pins_per_clb; ++ipin) {
+            for (ipin = 2; ipin < max_pins_per_clb; ++ipin) {
                 block_pin_to_tnode[iblk][ipin] = OPEN;
             }
             /* There was no subblocks in IO_TYPE pads. */
@@ -675,7 +675,7 @@ static void alloc_and_load_fanout_counts(int*** num_uses_of_clb_ipin_ptr,
             num_uses_of_clb_ipin[iblk] = NULL;
             num_uses_of_sblk_opin[iblk] = NULL;
         } else { /* CLB_TYPE */
-            num_uses_of_clb_ipin[iblk] = (int*)my_calloc(pins_per_clb,
+            num_uses_of_clb_ipin[iblk] = (int*)my_calloc(max_pins_per_clb,
                                                          sizeof(int));
             num_uses_of_sblk_opin[iblk] = (int*)my_calloc(num_subblocks_per_block[iblk],
                                                           sizeof(int));
@@ -726,7 +726,7 @@ static void alloc_and_load_tnodes_and_net_mapping(int** num_uses_of_clb_ipin,
     driver_node_index_of_net = (int*)my_malloc(num_nets * sizeof(int)); /* <net, vertexes> */
 
     /* ? */
-    int* next_clb_ipin_edge = (int*)my_malloc(pins_per_clb * sizeof(int));
+    int* next_clb_ipin_edge = (int*)my_malloc(max_pins_per_clb * sizeof(int));
     int* next_sblk_opin_edge = (int*)my_malloc(subblock_data.max_subblocks_per_block
                                            * sizeof(int));
 
@@ -810,7 +810,7 @@ static void build_clb_tnodes(int   iblk,
     /* Start by allocating the edge arrays, and for opins, loading them. */
     int ipin = -1;
     int from_node = -1;
-    for (ipin = 0; ipin < pins_per_clb; ++ipin) {
+    for (ipin = 0; ipin < max_pins_per_clb; ++ipin) {
         from_node = block_pin_to_tnode[iblk][ipin];
         if (from_node != OPEN) { /* Pin is used -> put in graph */
             if (is_opin(ipin)) { /* CLB_TYPE output pin */
@@ -836,7 +836,7 @@ static void build_clb_tnodes(int   iblk,
             tnode_descript[from_node].isubblk = OPEN;
             tnode_descript[from_node].iblk = iblk;
         } /* end of if (from_node != OPEN) */
-    } /* end of for(ipin = 0; ipin < pins_per_clb; ++ipin) */
+    } /* end of for(ipin = 0; ipin < max_pins_per_clb; ++ipin) */
 
     /* Then load the edge arrays for the CLB_TYPE input_pins to SUBBLOCK input_pins.
      Do this by looking at where the SUBBLOCK input and clock pins are driven
@@ -851,7 +851,7 @@ static void build_clb_tnodes(int   iblk,
         for (ipin = 0; ipin < subblock_lut_size; ++ipin) {
             from_pin = sub_inf[isub].inputs[ipin];
             /* Not OPEN and comes from clb ipin? */
-            if (from_pin != OPEN && from_pin < pins_per_clb) {
+            if (from_pin != OPEN && from_pin < max_pins_per_clb) {
                 from_node = block_pin_to_tnode[iblk][from_pin];
                 to_node = sub_pin_to_tnode[isub][ipin];
 
@@ -867,7 +867,7 @@ static void build_clb_tnodes(int   iblk,
 
         /* Attention: why did it not deal with subblock's output pins? */
         from_pin = sub_inf[isub].clock;
-        if (from_pin != OPEN && from_pin < pins_per_clb) {
+        if (from_pin != OPEN && from_pin < max_pins_per_clb) {
             from_node = block_pin_to_tnode[iblk][from_pin];
             to_node = sub_pin_to_tnode[isub][clk_pin]; /* Feeds seq. output */
 
@@ -972,30 +972,30 @@ static void build_subblock_tnodes(int* num_uses_of_sblk_opin,
             from_pin = sub_inf[isub].inputs[ipin];
 
             /* Not OPEN and comes from local subblock output? */
-            if (from_pin >= pins_per_clb) {
-                /* from_pin - pins_per_clb = subblock_index */
-                from_node = sub_pin_to_tnode[from_pin - pins_per_clb][out_pin];
+            if (from_pin >= max_pins_per_clb) {
+                /* from_pin - max_pins_per_clb = subblock_index */
+                from_node = sub_pin_to_tnode[from_pin - max_pins_per_clb][out_pin];
                 /* from_pin is a subblk output_pin which driver this input_pin */
                 to_node = sub_pin_to_tnode[isub][ipin];
 
                 tedge = vertexes[from_node].out_edges;
-                iedge = next_sblk_opin_edge[from_pin - pins_per_clb]++;
+                iedge = next_sblk_opin_edge[from_pin - max_pins_per_clb]++;
                 tedge[iedge].to_node = to_node;
                 tedge[iedge].Tdel = T_sblk_opin_to_sblk_ipin;
-            } /* end of if(from_pin >= pins_per_clb) */
+            } /* end of if(from_pin >= max_pins_per_clb) */
         } /* end of for(ipin = 0; ipin < subblock_lut_size; ++ipin) */
 
         from_pin = sub_inf[isub].clock;
-        if (from_pin >= pins_per_clb) {
+        if (from_pin >= max_pins_per_clb) {
             /* this clock_pin was drived by other subblock's output_pin *
              * Attention: why did it not driver by clock_pin?           */
-            from_node = sub_pin_to_tnode[from_pin - pins_per_clb][out_pin];
-            /* from_node = sub_pin_to_tnode[from_pin - pins_per_clb][clk_pin] */
+            from_node = sub_pin_to_tnode[from_pin - max_pins_per_clb][out_pin];
+            /* from_node = sub_pin_to_tnode[from_pin - max_pins_per_clb][clk_pin] */
 
             to_node = sub_pin_to_tnode[isub][clk_pin]; /* Feeds seq. output */
 
             tedge = vertexes[from_node].out_edges;
-            iedge = next_sblk_opin_edge[from_pin - pins_per_clb]++;
+            iedge = next_sblk_opin_edge[from_pin - max_pins_per_clb]++;
             tedge[iedge].to_node = to_node;
             /* NB: Could make sblk opin to clk Tdel parameter; not worth it right now. */
             tedge[iedge].Tdel = T_sblk_opin_to_sblk_ipin;

@@ -532,9 +532,9 @@ static int load_chany_rr_indices(segment_details_t* seg_details_y, int
  * the location within the FPGA, rr_type specifies the type of resource,    *
  * and ioff gives the number of this resource.  ioff is the class number,   *
  * pin number or track number, depending on what type of resource this      *
- * is.  All ioffs start at 0 and go up to pins_per_clb-1 or the equivalent. *
+ * is.  All ioffs start at 0 and go up to max_pins_per_clb-1 or the equivalent. *
  * The order within a clb is:  SOURCEs + SINKs (num_pin_class of them); IPINs,  *
- * and OPINs (pins_per_clb of them); CHANX; and CHANY (nodes_per_chan of    *
+ * and OPINs (max_pins_per_clb of them); CHANX; and CHANY (nodes_per_chan of    *
  * each).  For (i,j) locations that point at pads the order is:  io_ratio     *
  * occurances of SOURCE, SINK, OPIN, IPIN (one for each pad), then one      *
  * associated channel (if there is a channel at (i,j)).  All IO_TYPE pads are    *
@@ -571,14 +571,14 @@ int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,
                     return (index);
 
                 case OPIN:
-                    assert(ioff < pins_per_clb);
+                    assert(ioff < max_pins_per_clb);
                     iclass = clb_pin_class[ioff];
                     assert(class_inf[iclass].type == DRIVER);
                     index += num_pin_class + ioff;
                     return (index);
 
                 case IPIN:
-                    assert(ioff < pins_per_clb);
+                    assert(ioff < max_pins_per_clb);
                     iclass = clb_pin_class[ioff];
                     assert(class_inf[iclass].type == RECEIVER);
                     index += num_pin_class + ioff;

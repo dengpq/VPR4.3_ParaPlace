@@ -339,7 +339,7 @@ void print_lambda(void)
 
     for (block_num = 0; block_num < num_blocks; ++block_num) {
         if (blocks[block_num].block_type == B_CLB_TYPE) {
-            for (ipin = 0; ipin < pins_per_clb; ipin++) {
+            for (ipin = 0; ipin < max_pins_per_clb; ipin++) {
                 iclass = clb_pin_class[ipin];
 
                 if (class_inf[iclass].type == RECEIVER) {

@@ -43,7 +43,7 @@ void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)
     subblock_data_ptr->num_ff = 0;
     subblock_data_ptr->num_const_gen = 0;
     int  error = 0;
-    int* num_uses_of_clb_pin = (int*)my_malloc(pins_per_clb * sizeof(int));
+    int* num_uses_of_clb_pin = (int*)my_malloc(max_pins_per_clb * sizeof(int));
     int* num_uses_of_sblk_opin = (int*)my_malloc(
                     subblock_data_ptr->max_subblocks_per_block * sizeof(int));
 
@@ -175,7 +175,7 @@ static int check_clb_conn(int iblk,
          * but I will still warn the user. If the only pin connected is an input, *
          * abort.                                                                 */
         if (num_connections == 1) {
-            for (ipin = 0; ipin < pins_per_clb; ipin++) {
+            for (ipin = 0; ipin < max_pins_per_clb; ++ipin) {
                 if (blocks[iblk].nets[ipin] != OPEN) {
                     iclass = clb_pin_class[ipin];
 
@@ -195,7 +195,7 @@ static int check_clb_conn(int iblk,
 
     /* This case should already have been flagged as an error -- this is *
      * just a redundant double check.                                    */
-    if (num_connections > pins_per_clb) {
+    if (num_connections > max_pins_per_clb) {
         printf("Error:  logic blocks #%d with output %s has %d pins.\n",
                iblk, blocks[iblk].name, num_connections);
         ++error;
@@ -264,7 +264,7 @@ static int check_subblocks(int iblk,
             int clb_input_pin = subblock_inf[isub].inputs[ipin];
             error += check_subblock_pin(clb_input_pin,
                                         0,
-                                        pins_per_clb + num_subblocks - 1,
+                                        max_pins_per_clb + num_subblocks - 1,
                                         RECEIVER,
                                         iblk,
                                         isub,
@@ -275,7 +275,7 @@ static int check_subblocks(int iblk,
         int clb_output_pin = subblock_inf[isub].output;
         error += check_subblock_pin(clb_output_pin,
                                     0,
-                                    pins_per_clb - 1,
+                                    max_pins_per_clb - 1,
                                     DRIVER,
                                     iblk,
                                     isub,
@@ -284,7 +284,7 @@ static int check_subblocks(int iblk,
         int clb_clock_pin = subblock_inf[isub].clock;
         error += check_subblock_pin(clb_clock_pin,
                                     0,
-                                    pins_per_clb + num_subblocks - 1,
+                                    max_pins_per_clb + num_subblocks - 1,
                                     RECEIVER,
                                     iblk,
                                     isub,
@@ -297,10 +297,10 @@ static int check_subblocks(int iblk,
     }
 
     /* Reset fanout counts. */
-    for (i = 0; i < pins_per_clb; i++) {
+    for (i = 0; i < max_pins_per_clb; ++i) {
         num_uses_of_clb_pin[i] = 0;
     }
-    for (i = 0; i < num_subblocks; i++) {
+    for (i = 0; i < num_subblocks; ++i) {
         num_uses_of_sblk_opin[i] = 0;
     }
 
@@ -337,7 +337,7 @@ static int check_subblock_pin(int clb_pin, int min_val, int max_val,
             return (1);
         }
 
-        if (clb_pin < pins_per_clb) {  /* clb pin */
+        if (clb_pin < max_pins_per_clb) {  /* clb pin */
             iclass = clb_pin_class[clb_pin];
 
             if (class_inf[iclass].type != pin_type) {
@@ -413,7 +413,7 @@ static int get_num_conn(int block_num)
     /* This routine returns the number of connections to a blocks. */
     int i = -1;
     int num_connections = 0;
-    for (i = 0; i < pins_per_clb; i++) {
+    for (i = 0; i < max_pins_per_clb; ++i) {
         if (blocks[block_num].nets[i] != OPEN) {
             ++num_connections;
         }
@@ -512,7 +512,7 @@ static int check_clb_to_subblock_connections(int iblk, subblock_t
         }
     }
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++) {
+    for (ipin = 0; ipin < max_pins_per_clb; ++ipin) {
         if (blocks[iblk].nets[ipin] != OPEN) {
             if (is_opin(ipin)) {   /* CLB_TYPE output */
                 if (num_uses_of_clb_pin[ipin] == 0) {  /* No driver? */

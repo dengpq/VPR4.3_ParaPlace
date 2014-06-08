@@ -25,6 +25,7 @@
 
 #define ERROR_TOL   0.001
 #define MAX_MOVES_BEFORE_RECOMPUTE 1000000
+
 /* Attention, for place_parallel.c, the ERROR_TOL *
  * and MAX_MOVES_BEFORE_RECOMPUTE had changed to  *
  * #define ERROR_TOL       0.0025
@@ -58,7 +59,7 @@ static double**  point_to_point_delay_cost = NULL;
 static double**  temp_point_to_point_delay_cost = NULL;
 
 
-/* [0..num_blocks-1][0..pins_per_clb-1]. Indicates which pin on the net */
+/* [0..num_blocks-1][0..max_pins_per_clb-1]. Indicates which pin on the net */
 /* this blocks corresponds to, this is only required during timing-driven */
 /* placement. It is used to allow us to update individual connections on */
 /* each net. That is <pin_number, net_number>. */
@@ -377,8 +378,8 @@ void try_place(const char*         netlist_file,
     init_channel_t(placer_paras_ptr->m_width_factor,
                    chan_width_dist);
 
-    double**  old_region_occ_x = NULL;
-    double**  old_region_occ_y = NULL;
+    double** old_region_occ_x = NULL;
+    double** old_region_occ_y = NULL;
     alloc_and_load_placement_structs(placer_opts_ptr,
                                      &old_region_occ_x,
                                      &old_region_occ_y);
@@ -392,7 +393,7 @@ void try_place(const char*         netlist_file,
     /* Storing the number of pins on each type of blocks makes the swap routine *
      * slightly more efficient.                                                */
     int pins_on_block[5];
-    pins_on_block[B_CLB_TYPE] = pins_per_clb;
+    pins_on_block[B_CLB_TYPE] = max_pins_per_clb;
     pins_on_block[IO_TYPE] = 1;
     pins_on_block[EMPTY_TYPE] = 0;
     pins_on_block[OUTPAD_TYPE] = 1;
@@ -1269,7 +1270,7 @@ static void compute_net_pin_index_values(void)  /* FIXME */
     int iblk = -1;
     int ipin = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
-        for (ipin = 0; ipin < pins_per_clb; ++ipin) {
+        for (ipin = 0; ipin < max_pins_per_clb; ++ipin) {
             net_pin_index[iblk][ipin] = OPEN;
         }
     }
@@ -1353,7 +1354,8 @@ static double starting_temperature(const annealing_sched_t annealing_sched,
                      placer_costs_ptr) == 1) {
             ++num_accepted;
             av_cost += placer_costs_ptr->m_total_cost;
-            sum_of_squares += placer_costs_ptr->m_total_cost * placer_costs_ptr->m_total_cost;
+            sum_of_squares +=
+                placer_costs_ptr->m_total_cost * placer_costs_ptr->m_total_cost;
         }
     }  /* end of for(i = 0; i < move_limit; ++i) */
 
@@ -1503,35 +1505,6 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* Make the switch in order to let compute the new bounding-box simpler. If *
      * increase is too high, switch them back.(blocks data structures switched,  *
      * clb not switched until success of move is determinded.)                 */
-    /* int to_block = 0;
-    int io_num = 0;
-     if (blocks[from_block].block_type == B_CLB_TYPE) {
-        if (bin_grids[x_to][y_to].m_usage == 1) {
-            to_block = bin_grids[x_to][y_to].in_blocks[0];
-            blocks[from_block].x = x_to;
-            blocks[from_block].y = y_to;
-            blocks[to_block].x = x_from;
-            blocks[to_block].y = y_from;
-        } else {
-            to_block = EMPTY;
-            blocks[from_block].x = x_to;
-            blocks[from_block].y = y_to;
-        }
-    } else {
-        io_num = my_irand(io_ratio - 1);
-        if (io_num >= bin_grids[x_to][y_to].m_usage) {
-            to_block = EMPTY;
-            blocks[from_block].x = x_to;
-            blocks[from_block].y = y_to;
-        } else {
-            to_block = bin_grids[x_to][y_to].in_blocks[io_num];
-            blocks[to_block].x = x_from;
-            blocks[to_block].y = y_from;
-            blocks[from_block].x = x_to;
-            blocks[from_block].y = y_to;
-        }
-    } */
-
     int to_block = EMPTY;
     if (bin_grids[x_to][y_to].in_blocks[z_to] == EMPTY) {
         /* Moving to an empty location */
@@ -1557,12 +1530,12 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* 1) Allocate the local bb_coordinate storage, etc. only once. */
     /* Q: Why did the array allocate double memory space? TODO*/
     if (bb_coord_new == NULL) {
-        bb_coord_new = (bbox_t*)my_malloc(2 * pins_per_clb *
+        bb_coord_new = (bbox_t*)my_malloc(2 * max_pins_per_clb *
                                                 sizeof(bbox_t));
-        bb_edge_new = (bbox_t*)my_malloc(2 * pins_per_clb *
+        bb_edge_new = (bbox_t*)my_malloc(2 * max_pins_per_clb *
                                                sizeof(bbox_t));
-        nets_to_update = (int*)my_malloc(2 * pins_per_clb * sizeof(int));
-        net_block_moved = (int*)my_malloc(2 * pins_per_clb * sizeof(int));
+        nets_to_update = (int*)my_malloc(2 * max_pins_per_clb * sizeof(int));
+        net_block_moved = (int*)my_malloc(2 * max_pins_per_clb * sizeof(int));
     }
     /*===========  3) Now Compute the cost ==============*/
     /* Now update the cost function. May have to do major optimizations here    *
@@ -1720,39 +1693,6 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
             temp_net_cost[inet] = -1;
         }
 
-        /* Update Clb data structures since we kept the move. */
-        /* if (blocks[from_block].block_type == B_CLB_TYPE) {
-            if (to_block != EMPTY) {
-                bin_grids[x_from][y_from].in_blocks[0] = to_block;
-                bin_grids[x_to][y_to].in_blocks[0] = from_block;
-            } else {
-                bin_grids[x_to][y_to].in_blocks[0] = from_block;
-                bin_grids[x_to][y_to].m_usage = 1;
-                bin_grids[x_from][y_from].m_usage = 0;
-            }
-        } else {
-            for (off_from = 0;; ++off_from) {
-                if (bin_grids[x_from][y_from].in_blocks[off_from] == from_block) {
-                    break;
-                }
-            }
-
-            if (to_block != EMPTY) {
-                bin_grids[x_to][y_to].in_blocks[in_num] = from_block;
-                bin_grids[x_from][y_from].in_blocks[off_from] = to_block;
-            } else {
-                bin_grids[x_to][y_to].in_blocks[bin_grids[x_to][y_to].m_usage] = from_block;
-                ++(bin_grids[x_to][y_to].m_usage);
-
-                for (k = off_from; k < bin_grids[x_from][y_from].m_usage-1; ++k) {
-                    bin_grids[x_from][y_from].in_blocks[k] =
-                        bin_grids[x_from][y_from].in_blocks[k + 1];
-                }
-
-                --(bin_grids[x_from][y_from].m_usage);
-            }
-        } */
-
         /* Update fb data structures since we kept the move. */
         /* Swap physical location */
         bin_grids[x_to][y_to].in_blocks[z_to] = from_block;
@@ -1810,7 +1750,7 @@ static void alloc_and_load_placement_structs(const placer_opts_t* placer_opts_pt
         temp_point_to_point_timing_cost = (double**)my_malloc(num_nets * sizeof(double*));
 
         net_pin_index = (int**)alloc_matrix(0, num_blocks - 1,
-                                            0, pins_per_clb - 1,
+                                            0, max_pins_per_clb - 1,
                                             sizeof(int));
 
         /* TODO: When I comment the following 4 statements like:                *
@@ -1820,20 +1760,21 @@ static void alloc_and_load_placement_structs(const placer_opts_t* placer_opts_pt
         int inet = -1;
         for (inet = 0; inet < num_nets; ++inet) {
         /* in the following, subract one so index starts at 1 instead of 0 */
+            const int knum_net_pins = net[inet].num_net_pins;
             point_to_point_delay_cost[inet] =
-                (double*)my_malloc((net[inet].num_net_pins - 1) * sizeof(double));
+                (double*)my_malloc((knum_net_pins - 1) * sizeof(double));
             --(point_to_point_delay_cost[inet]);
 
             temp_point_to_point_delay_cost[inet] =
-                (double*)my_malloc((net[inet].num_net_pins - 1) * sizeof(double));
+                (double*)my_malloc((knum_net_pins - 1) * sizeof(double));
             --(temp_point_to_point_delay_cost[inet]);
 
             point_to_point_timing_cost[inet] =
-                (double*)my_malloc((net[inet].num_net_pins - 1) * sizeof(double));
+                (double*)my_malloc((knum_net_pins - 1) * sizeof(double));
             --(point_to_point_timing_cost[inet]);
 
             temp_point_to_point_timing_cost[inet] =
-                (double*)my_malloc((net[inet].num_net_pins - 1) * sizeof(double));
+                (double*)my_malloc((knum_net_pins - 1) * sizeof(double));
             --(temp_point_to_point_timing_cost[inet]);
         } /* end of for() */
 
@@ -2074,51 +2015,51 @@ static void load_place_regions(int num_regions)
     }
 } /* end of static void load_place_regions(int num_regions) */
 
+/* Called only when the place_cost_type is NONLINEAR_CONG.  If add_or_sub *
+ * is 1, this uses the new net bounding box to increase the occupancy     *
+ * of some regions.  If add_or_sub = - 1, it decreases the occupancy      *
+ * by that due to this bounding box.                                      */
 static void update_region_occ(int inet, bbox_t* coords,
                               int add_or_sub, int num_regions)
 {
-    /* Called only when the place_cost_type is NONLINEAR_CONG.  If add_or_sub *
-     * is 1, this uses the new net bounding box to increase the occupancy     *
-     * of some regions.  If add_or_sub = - 1, it decreases the occupancy      *
-     * by that due to this bounding box.                                      */
-    double net_xmin, net_xmax, net_ymin, net_ymax, crossing;
-    double inv_region_len, inv_region_height;
-    double inv_bb_len, inv_bb_height;
-    double overlap_xlow, overlap_xhigh, overlap_ylow, overlap_yhigh;
-    double y_overlap, x_overlap, x_occupancy, y_occupancy;
-    int imin, imax, jmin, jmax, i, j;
-
+    const int knum_net_pins = net[inet].num_net_pins;
+    double crossing = 0.0;
     if (net[inet].num_net_pins > 50) {
-        crossing = 2.7933 + 0.02616 * (net[inet].num_net_pins - 50);
+        crossing = 2.7933 + 0.02616 * (knum_net_pins - 50);
     } else {
-        crossing = cross_count[net[inet].num_net_pins - 1];
+        crossing = cross_count[knum_net_pins - 1];
     }
 
-    net_xmin = coords->xmin - 0.5;
-    net_xmax = coords->xmax + 0.5;
-    net_ymin = coords->ymin - 0.5;
-    net_ymax = coords->ymax + 0.5;
+    double net_xmin = coords->xmin - 0.5;
+    double net_xmax = coords->xmax + 0.5;
+    double net_ymin = coords->ymin - 0.5;
+    double net_ymax = coords->ymax + 0.5;
     /* I could precompute the two values below.  Should consider this. */
-    inv_region_len = (double) num_regions / (double) num_grid_columns;
-    inv_region_height = (double) num_regions / (double) num_grid_rows;
+    double inv_region_len = (double)num_regions / (double) num_grid_columns;
+    double inv_region_height = (double)num_regions / (double) num_grid_rows;
     /* Get integer coordinates defining the rectangular area in which the *
      * subregions have to be updated.  Formula is as follows:  subtract   *
      * 0.5 from net_xmin, etc. to get numbers from 0 to num_grid_columns or num_grid_rows;         *
      * divide by num_grid_columns or num_grid_rows to scale between 0 and 1; multiply by           *
      * num_regions to scale between 0 and num_regions; and truncate to    *
      * get the final answer.                                              */
-    imin = (int)(net_xmin - 0.5) * inv_region_len;
-    imax = (int)(net_xmax - 0.5) * inv_region_len;
+    int imin = (int)(net_xmin - 0.5) * inv_region_len;
+    int imax = (int)(net_xmax - 0.5) * inv_region_len;
     imax = min(imax, num_regions - 1);        /* Watch for weird roundoff */
-    jmin = (int)(net_ymin - 0.5) * inv_region_height;
-    jmax = (int)(net_ymax - 0.5) * inv_region_height;
+
+    int jmin = (int)(net_ymin - 0.5) * inv_region_height;
+    int jmax = (int)(net_ymax - 0.5) * inv_region_height;
     jmax = min(jmax, num_regions - 1);        /* Watch for weird roundoff */
-    inv_bb_len = 1. / (net_xmax - net_xmin);
-    inv_bb_height = 1. / (net_ymax - net_ymin);
+
+    double inv_bb_len = 1.0 / (net_xmax - net_xmin);
+    double inv_bb_height = 1.0 / (net_ymax - net_ymin);
 
     /* See RISA paper (ICCAD '94, pp. 690 - 695) for a description of why *
      * I use exactly this cost function.                                  */
+    double overlap_xlow, overlap_xhigh, overlap_ylow, overlap_yhigh;
+    double y_overlap, x_overlap, x_occupancy, y_occupancy;
 
+    int i, j;
     for (i = imin; i <= imax; i++) {
         for (j = jmin; j <= jmax; j++) {
             overlap_xlow = max(place_region_bounds_x[i], net_xmin);
@@ -2127,8 +2068,8 @@ static void update_region_occ(int inet, bbox_t* coords,
             overlap_yhigh = min(place_region_bounds_y[j + 1], net_ymax);
             x_overlap = overlap_xhigh - overlap_xlow;
             y_overlap = overlap_yhigh - overlap_ylow;
-#ifdef DEBUG
 
+#ifdef DEBUG
             if (x_overlap < -0.001) {
                 printf("Error in update_region_occ:  x_overlap < 0"
                        "\n inet = %d, overlap = %g\n", inet, x_overlap);
@@ -2138,8 +2079,8 @@ static void update_region_occ(int inet, bbox_t* coords,
                 printf("Error in update_region_occ:  y_overlap < 0"
                        "\n inet = %d, overlap = %g\n", inet, y_overlap);
             }
-
 #endif
+
             x_occupancy = crossing * y_overlap * x_overlap * inv_bb_height *
                           inv_region_len;
             y_occupancy = crossing * x_overlap * y_overlap * inv_bb_len *
@@ -2158,7 +2099,6 @@ static void save_region_occ(double** old_region_occ_x,
     /* Saves the old occupancies of the placement subregions in case the  *
      * current move is not accepted.  Used only for NONLINEAR_CONG.       */
     int i, j;
-
     for (i = 0; i < num_regions; i++) {
         for (j = 0; j < num_regions; j++) {
             old_region_occ_x[i][j] = place_region_x[i][j].occupancy;
@@ -2168,12 +2108,12 @@ static void save_region_occ(double** old_region_occ_x,
 }
 
 static void restore_region_occ(double** old_region_occ_x,
-                               double** old_region_occ_y, int num_regions)
+                               double** old_region_occ_y,
+                               int num_regions)
 {
     /* Restores the old occupancies of the placement subregions when the  *
      * current move is not accepted.  Used only for NONLINEAR_CONG.       */
     int i, j;
-
     for (i = 0; i < num_regions; i++) {
         for (j = 0; j < num_regions; j++) {
             place_region_x[i][j].occupancy = old_region_occ_x[i][j];
@@ -2216,13 +2156,12 @@ static void alloc_and_load_unique_pin_list(void)
     int  any_dups = 0;
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        int num_dup = 0;
-        int ipin = -1;
-        int block_num = -1;
         const int knum_net_pins = net[inet].num_net_pins;
+        int num_dup = 0;
 
+        int ipin = -1;
         for (ipin = 0; ipin < knum_net_pins; ++ipin) {
-            block_num = net[inet].node_blocks[ipin];
+            int block_num = net[inet].node_blocks[ipin];
             ++times_listed[block_num];
             if (times_listed[block_num] > 1) {
                 ++num_dup;
@@ -2239,12 +2178,11 @@ static void alloc_and_load_unique_pin_list(void)
 
             /* nets[inet].num_pins - num_dup */
             unique_pin_list[inet] =
-                (int*)my_malloc((net[inet].num_net_pins - num_dup) * sizeof(int));
+                (int*)my_malloc((knum_net_pins - num_dup) * sizeof(int));
 
             int offset = 0;
-            const int knum_net_pins = net[inet].num_net_pins;
             for (ipin = 0; ipin < knum_net_pins; ++ipin) {
-                block_num = net[inet].node_blocks[ipin];
+                int block_num = net[inet].node_blocks[ipin];
                 if (times_listed[block_num] != 0) {
                     times_listed[block_num] = 0;
                     unique_pin_list[inet][offset] = block_num;
@@ -2252,13 +2190,12 @@ static void alloc_and_load_unique_pin_list(void)
                 }
             }
         } else { /* No duplicates found. Reset times_listed. */
-            const int knum_net_pins = net[inet].num_net_pins;
             for (ipin = 0; ipin < knum_net_pins; ++ipin) {
-                block_num = net[inet].node_blocks[ipin];
+                int block_num = net[inet].node_blocks[ipin];
                 times_listed[block_num] = 0;
             }
         }
-    }
+    } /* end of for(inet = 0; inet < num_nets; ++inet) */
 
     free(times_listed);
     times_listed = NULL;
@@ -3123,19 +3060,18 @@ static void get_bb_from_scratch(int inet, bbox_t* coords,
 } /* end of static void get_bb_from_scratch() */
 
 
+/* Finds the cost due to one net by looking at its coordinate bounding-box. */
 static double get_net_cost(int inet, bbox_t* bbptr)
 {
-    /* Finds the cost due to one net by looking at its coordinate bounding  *
-     * box.                                                                 */
-    double ncost, crossing;
-
     /* Get the expected "crossing count" of a net, based on its number *
      * of pins.  Extrapolate for very large nets.                      */
-    if (net[inet].num_net_pins > 50) {
-        crossing = 2.7933 + 0.02616 * (net[inet].num_net_pins - 50);
+    const int knum_net_pins = net[inet].num_net_pins;
+    double crossing = 0.0;
+    if (knum_net_pins > 50) {
+        crossing = 2.7933 + 0.02616 * (knum_net_pins - 50);
         /*    crossing = 3.0;    Old value  */
     } else {
-        crossing = cross_count[net[inet].num_net_pins - 1];
+        crossing = cross_count[knum_net_pins - 1];
     }
 
     /* Could insert a check for xmin == xmax.  In that case, assume  *
@@ -3143,8 +3079,8 @@ static double get_net_cost(int inet, bbox_t* bbptr)
      * Same thing for y-cost.                                        */
     /* Cost = wire length along channel * cross_count / average      *
      * channel capacity.   Do this for x, then y direction and add.  */
-    ncost = (bbptr->xmax - bbptr->xmin + 1) * crossing *
-            chanx_place_cost_fac[bbptr->ymax][bbptr->ymin - 1];
+    double ncost = (bbptr->xmax - bbptr->xmin + 1) * crossing *
+                    chanx_place_cost_fac[bbptr->ymax][bbptr->ymin - 1];
     ncost += (bbptr->ymax - bbptr->ymin + 1) * crossing *
              chany_place_cost_fac[bbptr->xmax][bbptr->xmin - 1];
     return(ncost);

@@ -3,6 +3,9 @@
 
 #include "vpr_types.h"
 
+
+t_linked_int* allocate_and_load_critical_path(void);
+
 unsigned long load_timing_graph_net_delays_parallel(double** net_delay,
                                                     int start,
                                                     int finish);
@@ -31,9 +34,6 @@ void print_timing_graph(char* fname);
 
 void print_net_slack(char* fname,
                      double** net_slack);
-
-/* void print_critical_path(char* fname,
-                         subblock_data_t subblock_data); */
 
 void get_tnode_block_and_output_net(int inode,
                                     int* iblk_ptr,

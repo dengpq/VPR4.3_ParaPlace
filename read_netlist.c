@@ -205,10 +205,10 @@ static void init_parse(int doall)
         /* Allocate blocks pin connection storage.  Some is wasted for io blocks. *
          * Method used below "chunks" the malloc of a bunch of small things to   *
          * reduce the memory housekeeping overhead of malloc.                    */
-        tmp_ptr = (int*)my_malloc(pins_per_clb * num_blocks * sizeof(int));
+        tmp_ptr = (int*)my_malloc(max_pins_per_clb * num_blocks * sizeof(int));
 
         for (i = 0; i < num_blocks; ++i) {
-            blocks[i].nets = tmp_ptr + i * pins_per_clb;
+            blocks[i].nets = tmp_ptr + i * max_pins_per_clb;
         }
 
         /* I use my_chunk_malloc for some storage locations below.  my_chunk_malloc  *
@@ -340,18 +340,18 @@ static int get_pin_number(char* ptr)
             exit(1);
         }
 
-        val += pins_per_clb;  /* pins_per_clb .. pins_per_clb + max_subblocks-1 */
+        val += max_pins_per_clb;  /* max_pins_per_clb .. max_pins_per_clb + max_subblocks-1 */
         return (val);
     }
 
     /* Clb input pin. */
     val = my_atoi(ptr);
 
-    if (val < 0 || val >= pins_per_clb) {
+    if (val < 0 || val >= max_pins_per_clb) {
         printf("Error in get_pin_number on line %d of netlist file.\n",
                linenum);
         printf("Pin %d is out of legal range (%d to %d).\nAborting.\n\n",
-               val, 0, pins_per_clb - 1);
+               val, 0, max_pins_per_clb - 1);
         exit(1);
     }
 
@@ -506,9 +506,9 @@ static char* add_clb(int doall, FILE* fp_net, char* buf)
                           buf);
     while (ptr != NULL) {
         ++pin_index;
-        if (pin_index >= pins_per_clb) {
+        if (pin_index >= max_pins_per_clb) {
             printf("Error in add_clb on line %d of netlist file.\n", linenum);
-            printf("Too many pins on this clb. Expected %d.\n", pins_per_clb);
+            printf("Too many pins on this clb. Expected %d.\n", max_pins_per_clb);
             exit(1);
         }
 
@@ -533,9 +533,9 @@ static char* add_clb(int doall, FILE* fp_net, char* buf)
         ptr = my_strtok(NULL, TOKENS, fp_net, buf);
     }
 
-    if (pin_index != pins_per_clb - 1) {
+    if (pin_index != max_pins_per_clb - 1) {
         printf("Error in add_clb on line %d of netlist file.\n", linenum);
-        printf("Expected %d pins on clb, got %d.\n", pins_per_clb, pin_index + 1);
+        printf("Expected %d pins on clb, got %d.\n", max_pins_per_clb, pin_index + 1);
         exit(1);
     }
 
@@ -612,7 +612,7 @@ static void add_io(int doall,
     }
 
     if (doall) {
-        for (i = 1; i < pins_per_clb; i++) {
+        for (i = 1; i < max_pins_per_clb; i++) {
             blocks[num_blocks - 1].nets[i] = OPEN;
         }
     }

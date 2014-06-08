@@ -16,6 +16,8 @@
 /* I will use 4, 6, 8 to test the speed of VPR4.3_parallel */
 #define NUM_OF_THREADS  8
 
+#define EMPTY  -1
+
 /* Block Types in input netlist file */
 typedef enum e_block_types {
     B_CLB_TYPE = 0, /* 1 */
@@ -173,7 +175,7 @@ typedef struct s_net {
 typedef struct s_block {
     char* name;
     block_types_t  block_type; /* CLB_TYPE,INPAD_TYPE,OUTPAD_TYPE,IO_TYPE,ILLEGAL */
-    int*  nets; /* [0..pins_per_clb-1] */
+    int*  nets; /* [0..max_pins_per_clb-1] */
     int   x;
     int   y;
     int   z;  /* z: 0 for clb, 0, 1, 2.., io_ratio-1 for IO */
@@ -261,7 +263,7 @@ typedef struct s_place_region_t {
  * output:  Number of the clb pin which the LUT output drives, or OPEN *
  * clock:   Number of clb pin that drives the clock (or OPEN)          *
  * inputs:  [0..sub_block_lut_size-1]. Number of clb_pin that drives  *
- *          this input, or (num_of_subblock_output + pins_per_clb) if *
+ *          this input, or (num_of_subblock_output + max_pins_per_clb) if *
  *          this pin is driven by a subblock output, or OPEN if unused.*/
 typedef struct s_subblock_t {
     char* name;

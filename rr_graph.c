@@ -136,7 +136,7 @@ void build_rr_graph(router_types_t route_type,
      * necessary allocation and initialization.  If route_type is DETAILED   *
      * then the routing graph built is for detailed routing, otherwise it is *
      * for GLOBAL routing.                                                   */
-    int nodes_per_clb = num_pin_class + pins_per_clb;
+    int nodes_per_clb = num_pin_class + max_pins_per_clb;
     int nodes_per_pad = 4 * io_ratio; /* SOURCE, SINK, OPIN, and IPIN */
     int nodes_per_chan = 0;
     if (route_type == GLOBAL) {
@@ -197,7 +197,7 @@ void build_rr_graph(router_types_t route_type,
     alloc_and_load_switch_block_conn(nodes_per_chan,
                                      det_routing_arch.switch_block_type);
 
-    /* int  clb_opin_to_tracks[0...pins_per_clb-1][0...3][0...Fc_output-1]      *
+    /* int  clb_opin_to_tracks[0...max_pins_per_clb-1][0...3][0...Fc_output-1]      *
      * List of tracks this pin connects to. Second index is the side number     *
      * (see pr.h).  If a pin is not an output or input, respectively, or doesn't *
      * connect to anything on this side, the [ipin][iside][0] element is OPEN    */
@@ -290,8 +290,8 @@ void free_rr_graph_internals(router_types_t route_type,
     seg_details_y = rr_graph_internal_vars.seg_details_y;
     rr_node_indices = rr_graph_internal_vars.rr_node_indices;
     free(rr_edge_done);
-    free_matrix3(clb_opin_to_tracks, 0, pins_per_clb - 1, 0, 3, 0, sizeof(int));
-    free_matrix3(clb_ipin_to_tracks, 0, pins_per_clb - 1, 0, 3, 0, sizeof(int));
+    free_matrix3(clb_opin_to_tracks, 0, max_pins_per_clb - 1, 0, 3, 0, sizeof(int));
+    free_matrix3(clb_ipin_to_tracks, 0, max_pins_per_clb - 1, 0, 3, 0, sizeof(int));
     free_ivec_matrix(tracks_to_clb_ipin, 0, nodes_per_chan - 1, 0, 3);
     free_ivec_vector(tracks_to_pads, 0, nodes_per_chan - 1);
     free_matrix(pads_to_tracks, 0, io_ratio - 1, 0, sizeof(int));
@@ -599,7 +599,7 @@ static void build_rr_clb(int** rr_node_indices, int Fc_output, int** *
 
     /* Now do the pins.  */
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++) {
+    for (ipin = 0; ipin < max_pins_per_clb; ipin++) {
         iclass = clb_pin_class[ipin];
 
         if (class_inf[iclass].type == DRIVER) {  /* OPIN */
@@ -984,36 +984,36 @@ static int*** alloc_and_load_clb_pin_to_tracks(pin_types_t pin_type,
      * information for output C blocks or input C blocks is generated.         *
      * Set Fc and nodes_per_chan to 1 if you're doing a global routing graph.  */
     int* num_dir;   /* [0..3] Number of *physical* pins on each clb side.      */
-    int** dir_list; /* [0..3][0..pins_per_clb-1] list of pins of correct type  *
+    int** dir_list; /* [0..3][0..max_pins_per_clb-1] list of pins of correct type  *
                   * on each side. Max possible space alloced for simplicity */
     int i, j, iside, ipin, iclass, num_phys_pins, pindex;
     int* num_done_per_dir, *pin_num_ordering, *side_ordering;
-    int** *tracks_connected_to_pin;  /* [0..pins_per_clb-1][0..3][0..Fc-1] */
+    int** *tracks_connected_to_pin;  /* [0..max_pins_per_clb-1][0..3][0..Fc-1] */
     double step_size;
     /* NB:  This wastes some space.  Could set tracks_..._pin[ipin][iside] =   *
      * NULL if there is no pin on that side, or that pin is of the wrong type. *
      * Probably not enough memory to worry about, esp. as it's temporary.      *
      * If pin ipin on side iside does not exist or is of the wrong type,       *
      * tracks_connected_to_pin[ipin][iside][0] = OPEN.                         */
-    tracks_connected_to_pin = (int***) alloc_matrix3(0, pins_per_clb - 1, 0, 3,
+    tracks_connected_to_pin = (int***) alloc_matrix3(0, max_pins_per_clb - 1, 0, 3,
                                                      0, Fc - 1, sizeof(int));
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++)
+    for (ipin = 0; ipin < max_pins_per_clb; ipin++)
         for (iside = 0; iside <= 3; iside++) {
             tracks_connected_to_pin[ipin][iside][0] = OPEN;    /* Unconnected. */
         }
 
     num_dir = (int*) my_calloc(4, sizeof(int));
-    dir_list = (int**) alloc_matrix(0, 3, 0, pins_per_clb - 1, sizeof(int));
+    dir_list = (int**) alloc_matrix(0, 3, 0, max_pins_per_clb - 1, sizeof(int));
 
     /* Defensive coding.  Try to crash hard if I use an unset entry.  */
 
     for (i = 0; i < 4; i++)
-        for (j = 0; j < pins_per_clb; j++) {
+        for (j = 0; j < max_pins_per_clb; j++) {
             dir_list[i][j] = -1;
         }
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++) {
+    for (ipin = 0; ipin < max_pins_per_clb; ipin++) {
         iclass = clb_pin_class[ipin];
 
         if (class_inf[iclass].type != pin_type) { /* Doing either ipins OR opins */
@@ -1184,7 +1184,7 @@ static void check_all_tracks_reach_pins(int** *tracks_connected_to_pin,
     int* num_conns_to_track;  /* [0..nodes_per_chan-1] */
     num_conns_to_track = (int*) my_calloc(nodes_per_chan, sizeof(int));
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++) {
+    for (ipin = 0; ipin < max_pins_per_clb; ipin++) {
         for (iside = 0; iside <= 3; iside++) {
             if (tracks_connected_to_pin[ipin][iside][0] != OPEN) { /* Pin exists */
                 for (iconn = 0; iconn < Fc; iconn++) {
@@ -1247,7 +1247,7 @@ static vector_t** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
 
     /* Counting pass.  */
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++) {
+    for (ipin = 0; ipin < max_pins_per_clb; ipin++) {
         for (iside = 0; iside <= 3; iside++) {
             if (clb_ipin_to_tracks[ipin][iside][0] == OPEN) {
                 continue;
@@ -1278,7 +1278,7 @@ static vector_t** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,
 
     /* Loading pass. */
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++) {
+    for (ipin = 0; ipin < max_pins_per_clb; ipin++) {
         for (iside = 0; iside <= 3; iside++) {
             if (clb_ipin_to_tracks[ipin][iside][0] == OPEN) {
                 continue;

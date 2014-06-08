@@ -232,11 +232,11 @@ static void alloc_block(void)
         int len = strlen("TEMP_BLOCK");
         blocks[iblk].name = (char*)my_malloc((len + 1) * sizeof(char));
         strcpy(blocks[iblk].name, "TEMP_BLOCK");
-        blocks[iblk].nets = (int*)my_malloc(pins_per_clb * sizeof(int));
+        blocks[iblk].nets = (int*)my_malloc(max_pins_per_clb * sizeof(int));
         blocks[iblk].nets[0] = 0; /* 0 is DRIVER */
 
         int ipin = 0;
-        for (ipin = 1; ipin < pins_per_clb; ++ipin) {
+        for (ipin = 1; ipin < max_pins_per_clb; ++ipin) {
             blocks[iblk].nets[ipin] = OPEN;
         }
     }
@@ -325,7 +325,7 @@ static void setup_chan_width(router_opts_t router_opts,
     int width_fac = 0;
 
     if (router_opts.fixed_channel_width == NO_FIXED_CHANNEL_WIDTH) {
-        width_fac = 4 * pins_per_clb; /*this is 2x the value that binary search starts*/
+        width_fac = 4 * max_pins_per_clb; /*this is 2x the value that binary search starts*/
     }
     /*this should be enough to allow most pins to   */
     /*connect to tracks in the architecture */

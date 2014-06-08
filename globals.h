@@ -24,7 +24,7 @@ extern int num_primary_outputs; /* maybe num_of_primary_outputs */
 
 
 /* Physical FPGA architecture stuff */
-extern int  num_grid_columns, num_grid_rows, io_ratio, pins_per_clb;
+extern int  num_grid_columns, num_grid_rows, io_ratio, max_pins_per_clb;
 extern int** pinloc;
 extern int* clb_pin_class;
 extern boolean* is_global_clb_pin;

@@ -206,7 +206,7 @@ void place_and_route(operation_types_t operation,
                 width_fac);
     }
 
-    init_draw_coords(pins_per_clb);
+    init_draw_coords(max_pins_per_clb);
     update_screen(MAJOR, msg, ROUTING, timing_inf.timing_analysis_enabled);
 
     /* Do not forget free memory */
@@ -261,7 +261,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
 
     /* Only needed to build timing graph */
     free_subblock_data(subblock_data_ptr);
-    int current = 2 * pins_per_clb; /* Binary search part */
+    int current = 2 * max_pins_per_clb; /* Binary search part */
     int low = -1;
     int high = -1;
     int final = -1;
@@ -446,7 +446,7 @@ static int binary_search_place_and_route(placer_opts_t placer_opts,
 #ifdef PRINT_SINK_DELAYS
     print_sink_delays("Routing_Sink_Delays.echo");
 #endif
-    init_draw_coords(pins_per_clb);
+    init_draw_coords(max_pins_per_clb);
     sprintf(msg, "Routing succeeded with a channel width factor of %d.",
             final);
     update_screen(MAJOR, msg, ROUTING, timing_inf.timing_analysis_enabled);

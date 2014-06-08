@@ -243,10 +243,10 @@ void read_arch(char* arch_file, router_types_t route_type,
     }
 
     pinloc = (int**)alloc_matrix(0, 3,
-                                 0, pins_per_clb - 1,
+                                 0, max_pins_per_clb - 1,
                                  sizeof(int));
     for (i = 0; i <= 3; ++i)
-        for (j = 0; j < pins_per_clb; ++j) {
+        for (j = 0; j < max_pins_per_clb; ++j) {
             pinloc[i][j] = 0;
         }
 
@@ -522,18 +522,18 @@ static void countpass(FILE* fp_arch,
     /* I've now got a count of how many classes there are and how many    *
      * pins belong to each class.  Allocate the proper memory.            */
     class_inf = (pin_class_t*)my_malloc(num_pin_class * sizeof(pin_class_t));
-    pins_per_clb = 0;
+    max_pins_per_clb = 0;
     for (i = 0; i < num_pin_class; ++i) {
         class_inf[i].type = OPEN;   /* Flag for not set yet. */
         class_inf[i].num_pins = 0;
         class_inf[i].pinlist = (int*)my_malloc(pins_per_class[i] *
                                                 sizeof(int));
-        pins_per_clb += pins_per_class[i];
+        max_pins_per_clb += pins_per_class[i];
     }
 
     free(pins_per_class);
-    clb_pin_class = (int*)my_malloc(pins_per_clb * sizeof(int));
-    is_global_clb_pin = (boolean*)my_malloc(pins_per_clb * sizeof(int));
+    clb_pin_class = (int*)my_malloc(max_pins_per_clb * sizeof(int));
+    is_global_clb_pin = (boolean*)my_malloc(max_pins_per_clb * sizeof(int));
 
     /* Now allocate space for segment and switch information if the route_type   *
      * is DETAILED.  Otherwise ignore the segment and switch information, and    *
@@ -1433,8 +1433,8 @@ void print_arch(char* arch_file,
     channel_t chan_y_dist = chan_width_dist.chan_y_dist;
     fprintf(fp, "Input netlist file: %s\n\n", arch_file);
     fprintf(fp, "io_ratio: %d.\n", io_ratio);
-    fprintf(fp, "chan_width_io: %g  pins_per_clb(pins per clb): %d\n",
-            chan_width_io, pins_per_clb);
+    fprintf(fp, "chan_width_io: %g  max_pins_per_clb(pins per clb): %d\n",
+            chan_width_io, max_pins_per_clb);
     fprintf(fp, "\n\nChannel Types:  UNIFORM = %d; GAUSSIAN = %d; PULSE = %d;"
             " DELTA = %d\n\n", UNIFORM, GAUSSIAN, PULSE, DELTA);
     fprintf(fp, "\nchan_width_x:\n");
@@ -1447,7 +1447,7 @@ void print_arch(char* arch_file,
             chan_y_dist.xpeak, chan_y_dist.dc);
     fprintf(fp, "Pin #\tclass\ttop\tbottom\tleft\tright\tglobal");
 
-    for (i = 0; i < pins_per_clb; i++) {
+    for (i = 0; i < max_pins_per_clb; i++) {
         fprintf(fp, "\n%d\t%d\t", i, clb_pin_class[i]);
 
         for (j = 0; j <= 3; j++) {

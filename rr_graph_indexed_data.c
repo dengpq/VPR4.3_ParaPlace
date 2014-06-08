@@ -212,7 +212,7 @@ static double get_average_opin_delay(int** rr_node_indices, int
     Tdel = 0.;
     num_conn = 0;
 
-    for (ipin = 0; ipin < pins_per_clb; ipin++) {
+    for (ipin = 0; ipin < max_pins_per_clb; ipin++) {
         iclass = clb_pin_class[ipin];
 
         if (class_inf[iclass].type == DRIVER) {   /* OPIN */
