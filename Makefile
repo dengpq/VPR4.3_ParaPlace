@@ -68,7 +68,7 @@ OBJ = ../obj/main.o ../obj/util.o ../obj/read_netlist.o ../obj/print_netlist.o .
       ../obj/rr_graph_timing_params.o ../obj/rr_graph_indexed_data.o ../obj/rr_graph_area.o ../obj/check_rr_graph.o \
       ../obj/check_route.o ../obj/hash.o ../obj/heapsort.o ../obj/read_place.o ../obj/net_delay.o \
 	  ../obj/path_delay.o ../obj/path_delay2.o ../obj/vpr_utils.o ../obj/timing_place_lookup.o \
-	  ../obj/timing_place.o ../obj/place_parallel.o#../obj/ezxml.o ../obj/xml_arch.o
+	  ../obj/timing_place.o#../obj/place_parallel.o ../obj/path_delay_parallel.o
 
 #attention, the test_h.c and graphics.c should delete from SRC, it should compile seperately.
 SRC = main.c util.c read_netlist.c print_netlist.c check_netlist.c read_arch.c \
@@ -77,7 +77,7 @@ SRC = main.c util.c read_netlist.c print_netlist.c check_netlist.c read_arch.c \
 	  rr_graph2.c rr_graph_sbox.c rr_graph_util.c rr_graph_timing_params.c \
 	  rr_graph_indexed_data.c rr_graph_area.c check_rr_graph.c check_route.c hash.c \
 	  heapsort.c read_place.c net_delay.c path_delay.c path_delay2.c \
-	  vpr_utils.c timing_place_lookup.c timing_place.c place_parallel.c#ezxml.c xml_arch.c
+	  vpr_utils.c timing_place_lookup.c timing_place.c#place_parallel.c path_delay_parallel.c
 
 Header = util.h vpr_types.h globals.h graphics.h read_netlist.h \
          print_netlist.h check_netlist.h read_arch.h stats.h \
@@ -87,7 +87,7 @@ Header = util.h vpr_types.h globals.h graphics.h read_netlist.h \
 		 rr_graph_timing_params.h rr_graph_indexed_data.h rr_graph_area.h \
 		 check_rr_graph.h check_route.h hash.h heapsort.h read_place.h \
          path_delay.h path_delay2.h net_delay.h vpr_utils.h \
-		 timing_place_lookup.h timing_place.h place_parallel.h#ezxml.h xml_arch.h
+		 timing_place_lookup.h timing_place.h#place_parallel.h path_delay_parallel.h
 
 # Add purify before $(CC) in the link line below to run purify on VPR.
 

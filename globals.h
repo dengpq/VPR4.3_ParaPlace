@@ -51,5 +51,7 @@ extern int** net_rr_terminals;          /* [0..num_nets-1][0..num_pins-1] */
 extern switch_info_t* switch_inf; /* [0..det_routing_arch.num_switch-1] */
 extern int** rr_clb_source;             /* [0..num_blocks-1][0..num_pin_class-1] */
 
+extern int* g_pins_on_block;
+
 #endif
 

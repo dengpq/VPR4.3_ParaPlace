@@ -109,7 +109,6 @@ static void initial_placement(pad_loc_t pad_loc_type,
 
 static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
                                const annealing_sched_t annealing_sched,
-                               const int*        pins_on_block,
                                placer_paras_t*   placer_paras_ptr,
                                double**  old_region_occ_x,
                                double**  old_region_occ_y,
@@ -118,7 +117,6 @@ static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
                                placer_costs_t*   placer_costs_ptr);
 
 static void run_low_temperature_place(const placer_opts_t*  placer_opts_ptr,
-                                      const int*   pins_on_block,
                                       placer_paras_t*  placer_paras_ptr,
                                       double**  old_region_occ_x,
                                       double**  old_region_occ_y,
@@ -164,7 +162,6 @@ static double get_std_dev(int n,
                           double av_x);
 
 static double starting_temperature(const annealing_sched_t annealing_sched,
-                                   const int* pins_on_block,
                                    const placer_opts_t* placer_opts_ptr,
                                    placer_paras_t* placer_paras_ptr,
                                    double**  old_region_occ_x,
@@ -190,12 +187,11 @@ static int exit_crit(double t,
 /* Picks some blocks and moves it to another spot. If this spot had occupied *
  * , switch the blocks. Assess the change in cost function, and accept or   *
  * reject the move. If rejected, return 0, else return 1. Pass back the new *
- * value of the cost function. rlim is the range_limit. pins_on_block gives *
+ * value of the cost function. rlim is the range_limit. g_pins_on_block gives *
  * the number of pins on each type of blocks(improves efficiency). Pins on  *
  * each type of blocks(improves efficiency).                                */
 static int try_swap(const placer_paras_t* placer_paras_ptr,
                     const placer_opts_t*  placer_opts_ptr,
-                    const int*  pins_on_block,
                     double**  old_region_occ_x,
                     double**  old_region_occ_y,
                     placer_costs_t*  placer_costs_ptr);
@@ -392,12 +388,13 @@ void try_place(const char*         netlist_file,
 
     /* Storing the number of pins on each type of blocks makes the swap routine *
      * slightly more efficient.                                                */
-    int pins_on_block[5];
-    pins_on_block[B_CLB_TYPE] = max_pins_per_clb;
-    pins_on_block[IO_TYPE] = 1;
-    pins_on_block[EMPTY_TYPE] = 0;
-    pins_on_block[OUTPAD_TYPE] = 1;
-    pins_on_block[INPAD_TYPE] = 1;
+    /* int g_pins_on_block[5]; */
+    g_pins_on_block = (int*)my_malloc(5 * sizeof(int));
+    g_pins_on_block[B_CLB_TYPE] = max_pins_per_clb;
+    g_pins_on_block[IO_TYPE] = 1;
+    g_pins_on_block[EMPTY_TYPE] = 0;
+    g_pins_on_block[OUTPAD_TYPE] = 1;
+    g_pins_on_block[INPAD_TYPE] = 1;
 
     placer_costs_t*  placer_costs_ptr = init_placer_costs();
     int  inet = -1;
@@ -527,7 +524,6 @@ void try_place(const char*         netlist_file,
 
     /* FIXME: initial start_temperature */
     placer_paras_ptr->m_temper = starting_temperature(annealing_sched,
-                                                      pins_on_block,
                                                       placer_opts_ptr,
                                                       placer_paras_ptr,
                                                       old_region_occ_x,
@@ -564,7 +560,6 @@ void try_place(const char*         netlist_file,
     /*************  MAIN SIMULATED ANNEANLING PlACEMENT STAGE  ****************/
     run_main_placement(placer_opts_ptr,
                        annealing_sched,
-                       pins_on_block,
                        placer_paras_ptr,
                        old_region_occ_x,
                        old_region_occ_y,
@@ -577,7 +572,6 @@ void try_place(const char*         netlist_file,
     /* Now run low-temperature Simulated-Annealing placement! */
     printf("Attention, then will run low-temperature SA-Based Placement.......\n");
     run_low_temperature_place(placer_opts_ptr,
-                              pins_on_block,
                               placer_paras_ptr,
                               old_region_occ_x,
                               old_region_occ_y,
@@ -705,6 +699,9 @@ void try_place(const char*         netlist_file,
 
     free(g_grid_capacity);
     g_grid_capacity = NULL;
+
+    free(g_pins_on_block);
+    g_pins_on_block = NULL;
 } /* end of try_place() */
 
 static void initial_placement(pad_loc_t pad_loc_type,
@@ -819,7 +816,6 @@ static void initial_placement(pad_loc_t pad_loc_type,
 
 static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
                                const annealing_sched_t annealing_sched,
-                               const int*        pins_on_block,
                                placer_paras_t*   placer_paras_ptr,
                                double**  old_region_occ_x,
                                double**  old_region_occ_y,
@@ -877,7 +873,6 @@ static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
             /* FIXME: try to swap a pair of clbs or io pads randomly */
             if (try_swap(placer_paras_ptr,
                          placer_opts_ptr,
-                         pins_on_block,
                          old_region_occ_x,
                          old_region_occ_y,
                          placer_costs_ptr) == 1) {
@@ -977,7 +972,6 @@ static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
 }  /* end of void run_main_placement(const placer_opts_t  placer_opts,..) */
 
 static void  run_low_temperature_place(const placer_opts_t* placer_opts_ptr,
-                                       const int*  pins_on_block,
                                        placer_paras_t*  placer_paras_ptr,
                                        double**  old_region_occ_x,
                                        double**  old_region_occ_y,
@@ -1023,7 +1017,6 @@ static void  run_low_temperature_place(const placer_opts_t* placer_opts_ptr,
         /* FIXME, after main loop in try_place(), current t set to 0. */
         if (try_swap(placer_paras_ptr,
                      placer_opts_ptr,
-                     pins_on_block,
                      old_region_occ_x,
                      old_region_occ_y,
                      placer_costs_ptr) == 1) {
@@ -1326,7 +1319,6 @@ static double get_std_dev(int success_sum,
 }  /* end of static double get_std_dev(int success_sum, */
 
 static double starting_temperature(const annealing_sched_t annealing_sched,
-                                   const int*  pins_on_block,
                                    const placer_opts_t* placer_opts_ptr,
                                    placer_paras_t* placer_paras_ptr,
                                    double**  old_region_occ_x,
@@ -1348,7 +1340,6 @@ static double starting_temperature(const annealing_sched_t annealing_sched,
     for (i = 0; i < move_limit; ++i) {
         if (try_swap(placer_paras_ptr,
                      placer_opts_ptr,
-                     pins_on_block,
                      old_region_occ_x,
                      old_region_occ_y,
                      placer_costs_ptr) == 1) {
@@ -1459,12 +1450,11 @@ static int exit_crit(double t,
 /* Picks some blocks and moves it to another spot. If this spot had occupied *
  * , switch the blocks. Assess the change in cost function, and accept or   *
  * reject the move. If rejected, return 0, else return 1. Pass back the new *
- * value of the cost function. rlim is the range_limit. pins_on_block gives *
+ * value of the cost function. rlim is the range_limit. g_pins_on_block gives *
  * the number of pins on each type of blocks(improves efficiency). Pins on   *
  * each type of blocks(improves efficiency).                                 */
 static int try_swap(const placer_paras_t*  placer_paras_ptr,
                     const placer_opts_t*   placer_opts_ptr,
-                    const int*  pins_on_block,
                     double**    old_region_occ_x,
                     double**    old_region_occ_y,
                     placer_costs_t*  placer_costs_ptr)
@@ -1541,7 +1531,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* Now update the cost function. May have to do major optimizations here    *
      * later. I'm using negative values of temp_net_cost as a flag, so DO NOT   *
      * use cost-functions that can go negative.                                 */
-    const int num_of_pins = pins_on_block[blocks[from_block].block_type];
+    const int num_of_pins = g_pins_on_block[blocks[from_block].block_type];
     /* When blocks[to_block] was a EMPTY, it only deal with blocks[from_block] */
     const int num_nets_affected = find_affected_nets(nets_to_update,
                                                      net_block_moved,

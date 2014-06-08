@@ -17,10 +17,9 @@
 #include "path_delay.h"
 #include "path_delay2.h"
 #include "path_delay_parallel.h"
-#include "path_delay2_parallel.h"
+/* #include "path_delay2_parallel.h" */
 #include "timing_place_lookup.h"
 #include "timing_place.h"
-#include "place_stats.h"
 
 #define _XOPEN_SOURCE 600
 #define T_CONSTANT_GENERATOR -1000  /* Essentially -ve infinity */
@@ -325,7 +324,6 @@ static void update_t_parallel(double* t,
 static double my_difftime2(struct timeval* start,
                            struct timeval* end);
 
-static void print_grid(void);
 /******************   Parallel Functions  Ending   ********************/
 
 /********************* Static subroutines local to place.c *******************/
@@ -1319,7 +1317,7 @@ static void  try_place_a_subregion(const int  kthread_id,
                   || (kfixed_pins && local_grid[x_from][y_from].grid_type == IO_TYPE)) {
                 continue;
             }
-            const int kcapacity = local_grid[x_from][y_from].grid_type->capacity;
+            const int kcapacity = local_grid[x_from][y_from].m_capacity;
             for (z_from = 0; z_from < kcapacity; ++z_from) {
                 /* do not consider empty locations, ie - four corners of the bin_grids
                  * or fixed pins  */
@@ -1410,11 +1408,11 @@ static void initial_common_paras(pthread_data_t*  input_args,
     common_paras_ptr->local_net_delay = input_args->net_delay;
 
     /* max_pins_per_clb initialization*/
-    int i = -1;
-    for (i = 0; i < num_types; ++i) {
+    /* int i = -1;
+       for (i = 0; i < num_types; ++i) {
         *max_pins_per_clb = max(*max_pins_per_clb,
                                type_descriptors[i].num_pins);
-    }
+    } */
 
     /* dynamic workload distribution for timing update initialization*/
     const int knets_assign_to_thread = ceil((double)num_nets / NUM_OF_THREADS);
@@ -1528,10 +1526,10 @@ static void initial_swap_data(thread_local_common_paras_t*  common_paras_ptr,
             local_grid[x][y].m_usage = bin_grids[x][y].m_usage;
             local_grid[x][y].m_offset = bin_grids[x][y].m_offset;
 
+            const int kbin_capacity = bin_grids[x][y].m_capacity;
             local_grid[x][y].in_blocks =
-              (int*)my_malloc(sizeof(int) * bin_grids[x][y].grid_type->capacity);
-
-            for (z = 0; z < bin_grids[x][y].grid_type->capacity; ++z) {
+                (int*)my_malloc(sizeof(int) * kbin_capacity);
+            for (z = 0; z < kbin_capacity; ++z) {
                 local_grid[x][y].in_blocks[z] = bin_grids[x][y].in_blocks[z];
             }
         }
@@ -3053,7 +3051,7 @@ static int  try_swap_parallel(const double kt,
     /*------------------------  Third, compute the swap cost ----------------*/
     /* Change in cost due to this swap. */
     double bb_delta_c = 0.0;
-    int num_of_pins = pins_on_block[blocks[kfrom_block].block_type];
+    int num_of_pins = g_pins_on_block[blocks[kfrom_block].block_type];
     /* (3.1). I must found out the affected nets, it restored in *
      * int* nets_to_update array. */
     int* nets_to_update = swap_data_ptr->m_nets_to_update;
@@ -3642,13 +3640,23 @@ static double starting_t(double* cost_ptr,
 
     /* Try one move per blocks.  Set t high so essentially all accepted. */
     int i;
-    for (i = 0; i < move_lim; i++) {
-        if (try_swap(1.e30, cost_ptr, bb_cost_ptr, timing_cost_ptr, range_limit,
+    for (i = 0; i < move_lim; ++i) {
+        if (try_swap(1.e30,
+                     cost_ptr,
+                     bb_cost_ptr,
+                     timing_cost_ptr,
+                     range_limit,
                      place_cost_type,
-                     old_region_occ_x, old_region_occ_y, num_regions,
-                     fixed_pins, place_algorithm, timing_tradeoff,
-                     inverse_prev_bb_cost, inverse_prev_timing_cost,
-                     delay_cost_ptr, x_lookup) == 1) {
+                     old_region_occ_x,
+                     old_region_occ_y,
+                     num_regions,
+                     fixed_pins,
+                     place_algorithm,
+                     timing_tradeoff,
+                     inverse_prev_bb_cost,
+                     inverse_prev_timing_cost,
+                     delay_cost_ptr,
+                     x_lookup) == 1) {
             num_accepted++;
             av += *cost_ptr;
             sum_of_squares += *cost_ptr * (*cost_ptr);
@@ -3776,7 +3784,7 @@ static int try_swap(double t,
 
     /* Now update the cost function.  May have to do major optimizations *
      * here later.                                                       */
-    int num_of_pins = pins_on_block[blocks[from_block].block_type];
+    int num_of_pins = g_pins_on_block[blocks[from_block].block_type];
     int num_nets_affected = find_affected_nets(nets_to_update,
                                                net_block_moved,
                                                from_block,
@@ -4076,11 +4084,11 @@ static boolean find_to(int x_from,
 
         assert(num_col_same_type != 0);
 
-        if (num_col_same_type == 1 &&
+        /* if (num_col_same_type == 1 &&
                 ((((max_y - min_y) / type->height) - 1) <= 0
                  || type->height > (num_grid_rows / 2))) {
             return FALSE;
-        }
+        } */
     }
 
 #ifdef DEBUG

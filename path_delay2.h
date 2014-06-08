@@ -22,6 +22,8 @@ typedef struct s_vertex_t {
     edge_t* out_edges;
     int     num_edges; /* num_of_out_edges */
 
+    edge_t* in_edges;
+    int     num_parents;
     /* int  global_netlist_pin_index; */
     /* which net this pin belonged to *
      * int  global_netlist_net_index; */

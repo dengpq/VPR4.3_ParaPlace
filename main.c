@@ -93,6 +93,8 @@ switch_info_t* switch_inf; /* [0..det_routing_arch.num_switch-1] */
 /* Stores the SOURCE and SINK nodes of all CLBs (not valid for pads).     */
 int** rr_clb_source; /* [0..num_blocks-1][0..num_pin_class-1]*/
 
+/* New added this global varaible for support place_parallel.c */
+int* g_pins_on_block;
 
 /********************** Subroutines local to this module ********************/
 static void get_input(char* netlist_file, char* arch_file, int place_cost_type,
@@ -251,7 +253,7 @@ int main(int argc, char* argv[])
     if (show_graphics) {
         close_graphics();    /* Close down X Display */
     }
-    printf("VPR finish placement and routing. It cost %f seconds.",
+    printf("VPR finish placement and routing. It cost %f seconds.\n",
            cost_time);
 
     exit(0);

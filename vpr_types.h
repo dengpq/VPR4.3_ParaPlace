@@ -21,9 +21,8 @@
 /* Block Types in input netlist file */
 typedef enum e_block_types {
     B_CLB_TYPE = 0, /* 1 */
-    IO_TYPE,      /* io_ratio */
+    IO_TYPE,   /* io_ratio */
     EMPTY_TYPE,
-
     OUTPAD_TYPE,
     INPAD_TYPE
 } block_types_t;
