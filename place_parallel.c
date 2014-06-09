@@ -457,7 +457,7 @@ static int assess_swap(double delta_c,
 
 static boolean find_to(int x_from,
                        int y_from,
-                       block_types_t type,
+                       const block_types_t kblock_type,
                        double range_limit,
                        int* x_lookup,
                        int* x_to,
@@ -642,8 +642,12 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
 
         load_timing_graph_net_delays(net_delay);
 
-        max_delay = load_net_slack(net_slack,
-                                   0);
+        /* In VPR4.3, I found that load_net_slack can use the 2 following funcs*
+         * to replace it. */
+        /* max_delay = load_net_slack(net_slack,
+                                      0 ); */
+        max_delay = calc_all_vertexs_arr_req_time(0);
+        compute_net_slacks(net_slack);
 
         load_criticalities(net_slack,
                            max_delay,
@@ -906,7 +910,11 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
         net_delay = point_to_point_delay_cost;  /*this makes net_delay up to date with    *
                              *the same values that the placer is using*/
         load_timing_graph_net_delays(net_delay);
-        place_est_crit_delay = load_net_slack(net_slack, 0);
+
+        /* place_est_crit_delay = load_net_slack(net_slack,
+                                              0); */
+        place_est_crit_delay = calc_all_vertexs_arr_req_time(0);
+        compute_net_slacks(net_slack);
 
 #ifdef CREATE_ECHO_FILES
         /*      print_sink_delays("placement_sink_delays.echo"); */
@@ -4055,7 +4063,7 @@ static int find_affected_nets(int* nets_to_update,
  * the same type. */
 static boolean find_to(int x_from,
                        int y_from,
-                       block_types_t type,
+                       const block_types_t kblock_type,
                        double range_limit,
                        int* x_lookup,
                        int* x_to,
@@ -4073,9 +4081,10 @@ static boolean find_to(int x_from,
 
     int i = 0;
     int j = 0;
-    if (type != IO_TYPE) {
+    /* if (kblock_type != IO_TYPE) */
+    if (kblock_type != INPAD_TYPE || kblock_type != OUTPAD_TYPE) {
         for (i = min_x; i <= max_x; ++i) {
-            if (bin_grids[i][1].grid_type == type) {
+            if (bin_grids[i][1].grid_type == kblock_type) {
                 ++num_col_same_type;
                 x_lookup[j] = i;
                 ++j;
@@ -4084,11 +4093,10 @@ static boolean find_to(int x_from,
 
         assert(num_col_same_type != 0);
 
-        /* if (num_col_same_type == 1 &&
-                ((((max_y - min_y) / type->height) - 1) <= 0
-                 || type->height > (num_grid_rows / 2))) {
+        if (num_col_same_type == 1
+              && (((max_y - min_y) - 1) <= 0 || 1  > (num_grid_rows / 2))) {
             return FALSE;
-        } */
+        }
     }
 
 #ifdef DEBUG
@@ -4101,7 +4109,8 @@ static boolean find_to(int x_from,
     int x_rel, y_rel, iside, iplace;
     do {
         /* Until (x_to, y_to) different from (x_from, y_from) */
-        if (type == IO_TYPE) {
+        /* if (kblock_type == IO_TYPE) */
+        if (kblock_type == INPAD_TYPE || kblock_type == OUTPAD_TYPE) {
             /* io_block to be moved. */
             if (rlx >= num_grid_columns) {
                 iside = my_irand(3);
@@ -4200,9 +4209,9 @@ static boolean find_to(int x_from,
         /* end of IO_TYPE */
         } else {
             x_rel = my_irand(num_col_same_type - 1);
-            y_rel = my_irand(max(0, ((max_y - min_y) / type->height) - 1));
+            y_rel = my_irand(max(0, (max_y - min_y - 1)));
             *x_to = x_lookup[x_rel];
-            *y_to = min_y + y_rel * type->height;
+            *y_to = min_y + y_rel * 1;
             *y_to = (*y_to) - bin_grids[*x_to][*y_to].m_offset; /* align it */
             assert(*x_to >= 1 && *x_to <= num_grid_columns);
             assert(*y_to >= 1 && *y_to <= num_grid_rows);
@@ -4210,14 +4219,22 @@ static boolean find_to(int x_from,
     } while ((x_from == *x_to) && (y_from == *y_to));
 
 #ifdef DEBUG
-    if (*x_to < 0 || *x_to > num_grid_columns + 1 || *y_to < 0
-          || *y_to > num_grid_rows + 1) {
+    if (*x_to < 0 || *x_to > num_grid_columns + 1
+          || *y_to < 0 || *y_to > num_grid_rows + 1) {
         printf("Error in routine find_to:  (x_to,y_to) = (%d,%d)\n",
                *x_to, *y_to);
         exit(1);
     }
 #endif
-    assert(type == bin_grids[*x_to][*y_to].grid_type);
+
+    /* assert(kblock_type == bin_grids[*x_to][*y_to].grid_type); */
+    if ((kblock_type == B_CLB_TYPE && bin_grids[*x_to][*y_to].grid_type != B_CLB_TYPE)
+           || ((kblock_type == INPAD_TYPE || kblock_type == OUTPAD_TYPE) &&
+               (bin_grids[*x_to][*y_to].grid_type != IO_TYPE))) {
+        printf("Bin Grid(%d, %d) grid_type was same with from_block type.\n",
+                *x_to, *y_to);
+        exit(1);
+    }
     return TRUE;
 }
 
