@@ -84,9 +84,8 @@ void place_and_route(operation_types_t operation,
                       segment_inf,
                       timing_inf,
                       subblock_data_ptr);
-        } /* else {
-            try_place_use_multi_threads(netlist_file,
-                                        placer_opts,
+        } else {
+            try_place_use_multi_threads(&placer_opts,
                                         annealing_sched,
                                         chan_width_dist,
                                         router_opts,
@@ -94,7 +93,7 @@ void place_and_route(operation_types_t operation,
                                         segment_inf,
                                         timing_inf,
                                         subblock_data_ptr);
-        } */
+        }
 
         print_place(place_file,
                     netlist_file,
@@ -113,17 +112,16 @@ void place_and_route(operation_types_t operation,
                       segment_inf,
                       timing_inf,
                       subblock_data_ptr);
-        }/*else {
-            try_place_by_multi_threads(netlist_file,
-                                       placer_opts,
-                                       annealing_sched,
-                                       chan_width_dist,
-                                       router_opts,
-                                       det_routing_arch,
-                                       segment_inf,
-                                       timing_inf,
-                                       subblock_data_ptr);
-        } */
+        } else {
+            try_place_use_multi_threads(&placer_opts,
+                                        annealing_sched,
+                                        chan_width_dist,
+                                        router_opts,
+                                        det_routing_arch,
+                                        segment_inf,
+                                        timing_inf,
+                                        subblock_data_ptr);
+        }
         print_place(place_file,
                     netlist_file,
                     arch_file);

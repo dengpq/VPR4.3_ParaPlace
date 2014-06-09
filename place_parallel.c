@@ -17,7 +17,6 @@
 #include "path_delay.h"
 #include "path_delay2.h"
 #include "path_delay_parallel.h"
-/* #include "path_delay2_parallel.h" */
 #include "timing_place_lookup.h"
 #include "timing_place.h"
 
@@ -155,7 +154,7 @@ static double** chany_place_cost_fac;
 
 /* Expected crossing counts for nets with different #'s of pins.  From *
  * ICCAD 94 pp. 690 - 695 (with linear interpolation applied by me).   */
-const double cross_count[50] = { /* [0..49] */
+static double cross_count[50] = { /* [0..49] */
     1.0,    1.0,    1.0,    1.0828, 1.1536, 1.2206, 1.2823, 1.3385, 1.3991, 1.4493,
     1.4974, 1.5455, 1.5937, 1.6418, 1.6899, 1.7304, 1.7709, 1.8114, 1.8519, 1.8924,
     1.9288, 1.9652, 2.0015, 2.0379, 2.0743, 2.1061, 2.1379, 2.1698, 2.2016, 2.2334,
@@ -708,8 +707,7 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
      "T", "Cost", "Av. BB Cost", "Av. TD Cost", "Av Tot Del",
      "P to P Del", "max_delay", "Ac Rate", "Std Dev", "R limit", "Exp",
      "Tot. Moves", "Alpha");
-    printf
-    ("%11s  %10s %11s  %11s  %11s %11s  %11s %9s %8s  %7s  %7s  %10s  %7s\n",
+    printf("%11s  %10s %11s  %11s  %11s %11s  %11s %9s %8s  %7s  %7s  %10s  %7s\n",
      "--------", "----------", "-----------", "-----------",
      "---------", "----------", "-----", "-------", "-------",
      "-------", "-------", "----------", "-----");
@@ -3522,7 +3520,7 @@ static int count_connections()
     int count = 0;
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        if (is_global[inet] == FALSE) {
+        if (is_global[inet] == TRUE) {
             continue;
         }
         count += (net[inet].num_net_pins - 1);
@@ -3547,7 +3545,7 @@ static void compute_net_pin_index_values(void)
     int inet = -1;
     int netpin = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        if (is_global[inet] == FALSE) {
+        if (is_global[inet] == TRUE) {
             continue;
         }
 
@@ -4272,9 +4270,10 @@ static int assess_swap(double delta_c,
 }
 
 static double comp_td_point_to_point_delay(int inet,
-                                          int ipin)
+                                           int ipin)
 {
     /*returns the Tdel of one point to point connection */
+    printf("Enter in compute_td_point_to_point_delay()...\n");
     const int source_block = net[inet].node_blocks[0];
     const block_types_t source_type = blocks[source_block].block_type;
 

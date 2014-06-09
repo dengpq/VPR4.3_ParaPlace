@@ -31,8 +31,6 @@
  * #define ERROR_TOL       0.0025
  * #define MAX_MOVES_BEFORE_RECOMPUTE 50000*/
 
-#define EMPTY -1
-
 /********************** Variables local to place.c ***************************/
 /* [0..num_nets-1]  0 if net never connects to the same blocks more than *
  *  once, otherwise it gives the number of duplicate connections.        */
@@ -83,6 +81,16 @@ static place_region_t**  place_region_y;
 static double*  place_region_bounds_x;
 static double*  place_region_bounds_y;
 
+/* Expected crossing counts for nets with different #'s of pins.  From *
+ * ICCAD 94 pp. 690 - 695 (with linear interpolation applied by me).   */
+static double cross_count[50] = { /* [0..49] */
+    1.0,    1.0,    1.0,    1.0828, 1.1536, 1.2206, 1.2823, 1.3385, 1.3991, 1.4493,
+    1.4974, 1.5455, 1.5937, 1.6418, 1.6899, 1.7304, 1.7709, 1.8114, 1.8519, 1.8924,
+    1.9288, 1.9652, 2.0015, 2.0379, 2.0743, 2.1061, 2.1379, 2.1698, 2.2016, 2.2334,
+    2.2646, 2.2958, 2.3271, 2.3583, 2.3895, 2.4187, 2.4479, 2.4772, 2.5064, 2.5356,
+    2.5610, 2.5864, 2.6117, 2.6371, 2.6625, 2.6887, 2.7148, 2.7410, 2.7671, 2.7933
+};
+
 /* The arrays below are used to precompute the inverse of the average   *
  * number of tracks per channel between [subhigh] and [sublow].  Access *
  * them as chan?_place_cost_fac[subhigh][sublow].  They are used to     *
@@ -92,16 +100,6 @@ static double*  place_region_bounds_y;
  * will never be used.                                                  */
 static double** chanx_place_cost_fac = NULL;
 static double** chany_place_cost_fac = NULL;
-
-/* Expected crossing counts for nets with different #'s of pins.  From *
- * ICCAD 94 pp. 690 - 695 (with linear interpolation applied by me).   */
-const double cross_count[50] = { /* [0..49] */
-    1.0,    1.0,    1.0,    1.0828, 1.1536, 1.2206, 1.2823, 1.3385, 1.3991, 1.4493,
-    1.4974, 1.5455, 1.5937, 1.6418, 1.6899, 1.7304, 1.7709, 1.8114, 1.8519, 1.8924,
-    1.9288, 1.9652, 2.0015, 2.0379, 2.0743, 2.1061, 2.1379, 2.1698, 2.2016, 2.2334,
-    2.2646, 2.2958, 2.3271, 2.3583, 2.3895, 2.4187, 2.4479, 2.4772, 2.5064, 2.5356,
-    2.5610, 2.5864, 2.6117, 2.6371, 2.6625, 2.6887, 2.7148, 2.7410, 2.7671, 2.7933
-};
 
 /********************* Static subroutines local to place.c *******************/
 static void initial_placement(pad_loc_t pad_loc_type,
@@ -1245,7 +1243,7 @@ static int count_connections(void)
     int count = 0;
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        if (is_global[inet]) {
+        if (is_global[inet] == TRUE) {
             continue;
         }
         /* for a n-pin net, it had n-1 connections. */
@@ -1270,7 +1268,7 @@ static void compute_net_pin_index_values(void)  /* FIXME */
 
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        if (is_global[inet]) {
+        if (is_global[inet] == TRUE) {
             continue;
         }
 
