@@ -1635,11 +1635,11 @@ static void find_fanin_parallel(const int kthread_id)
                            num_of_vertexs);
     int i = 0;
     for (i = start_tnode; i < finish_tnode; ++i) {
-        int num_edges = vertexes[i].num_edges;
+        int num_out_edges = vertexes[i].num_out_edges;
         edge_t* tedge = vertexes[i].out_edges;
 
         int iedge = 0;
-        for (iedge = 0; iedge < num_edges; ++iedge) {
+        for (iedge = 0; iedge < num_out_edges; ++iedge) {
             int to_node = tedge[iedge].to_node;
             /* FIXME, don't use ++vertexes[to_node].num_parents */
             int counter = vertexes[to_node].num_parents++;

@@ -38,12 +38,12 @@ static int* alloc_and_load_tnode_fanin_and_check_edges(int* num_sinks_ptr)
 
     int ivex = -1;
     for (ivex = 0; ivex < num_of_vertexs; ++ivex) {
-        int num_edges = vertexes[ivex].num_edges;
-        if (num_edges > 0) {
+        int num_out_edges = vertexes[ivex].num_out_edges;
+        if (num_out_edges > 0) {
             edge_t* tedge = vertexes[ivex].out_edges;
 
             int iedge = 0;
-            for (iedge = 0; iedge < num_edges; ++iedge) {
+            for (iedge = 0; iedge < num_out_edges; ++iedge) {
                 int to_node = tedge[iedge].to_node;
                 if (to_node < 0 || to_node >= num_of_vertexs) {
                     printf("Error in alloc_and_load_tnode_fanin_and_check_edges:\n"
@@ -54,11 +54,11 @@ static int* alloc_and_load_tnode_fanin_and_check_edges(int* num_sinks_ptr)
 
                 ++all_vertexs_fanin_value[to_node];
             }
-        } else if (num_edges == 0) {
+        } else if (num_out_edges == 0) {
             ++num_sinks;
         } else {
             printf("Error in alloc_and_load_tnode_fanin_and_check_edges: \n"
-                   "vertexes #%d has %d edges.\n", ivex, num_edges);
+                   "vertexes #%d has %d edges.\n", ivex, num_out_edges);
             ++error;
         }
     }
@@ -119,10 +119,10 @@ int alloc_and_load_timing_graph_edge_levels(void)
         for (i = 0; i < tnodes_at_level[num_levels - 1].nelem; ++i) {
             from_node = tnodes_at_level[num_levels - 1].list[i];
             edge_t* tedge = vertexes[from_node].out_edges;
-            int num_edges = vertexes[from_node].num_edges;
+            int num_out_edges = vertexes[from_node].num_out_edges;
 
             int iedge = 0;
-            for (iedge = 0; iedge < num_edges; ++iedge) {
+            for (iedge = 0; iedge < num_out_edges; ++iedge) {
                 int to_node = tedge[iedge].to_node;
                 --(tnode_fanin_left[to_node]);
 

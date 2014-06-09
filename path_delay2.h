@@ -13,14 +13,14 @@ typedef struct s_edge_t {
     double Tdel; /* delay value in this edge(subnet) */
 } edge_t; /* FIXME */
 
-/* out_edges: [0..num_edges - 1].  Array of the edges leaving this vertexes.    *
+/* out_edges: [0..num_edges - 1].  Array of the edges leaving this vertexes. *
  * num_edges: Number of edges leaving this node.                             *
  * arr_time:  Arrival time of the last input signal to this node.            *
  * req_time:  Required arrival time of the last input signal to this node if *
  *         the critical path is not to be lengthened.                        */
 typedef struct s_vertex_t {
     edge_t* out_edges;
-    int     num_edges; /* num_of_out_edges */
+    int     num_out_edges; /* num_of_out_edges */
 
     edge_t* in_edges;
     int     num_parents;

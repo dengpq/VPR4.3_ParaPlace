@@ -103,8 +103,8 @@ void print_sink_delays(char* fname)
         int i = -1;
         for (i = 0; i < num_at_level; ++i) {
             int ivex = tnodes_at_level[ilevel].list[i];
-            int num_edges = vertexes[ivex].num_edges;
-            if (num_edges == 0) {   /* sink */
+            int num_out_edges = vertexes[ivex].num_out_edges;
+            if (num_out_edges == 0) {   /* sink */
                 fprintf(fp, "%g\n", vertexes[ivex].arr_time);
             }
         }
