@@ -14,7 +14,7 @@
 /*#define VERBOSE 1*/      /* Prints all sorts of intermediate data */
 
 /* I will use 4, 6, 8 to test the speed of VPR4.3_parallel */
-#define NUM_OF_THREADS  8
+#define NUM_OF_THREADS  4
 
 #define EMPTY  -1
 

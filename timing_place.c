@@ -126,7 +126,7 @@ void load_criticalities(double** net_slack,
 {
     int inet = -1;
     for (inet = 0; inet < num_nets; ++inet) {
-        if (inet == OPEN || is_global[inet]) {
+        if (inet == OPEN || TRUE == is_global[inet]) {
             continue;
         }
 

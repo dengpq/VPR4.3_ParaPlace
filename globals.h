@@ -4,7 +4,7 @@
 #include "vpr_types.h"
 
 /* Netlist to be placed stuff. */
-/* default was 4 types: CLB_TYPE, OUTPAD_TYPE, INPAD_TYPE, IO_TYPE and EMPTY_TYPE */
+/* default was 5 types: CLB_TYPE, OUTPAD_TYPE, INPAD_TYPE, IO_TYPE and EMPTY_TYPE */
 extern int  g_num_grid_types;
 /* int g_grid_capacity[g_num_grid_types]; CLB_TYPE default was 1, IO_TYPE was *
  * io_ratio, EMPTY_TYPE was 0. */

@@ -1267,17 +1267,17 @@ static void compute_net_pin_index_values(void)  /* FIXME */
     }
 
     int inet = -1;
+    int netpin = -1;
     for (inet = 0; inet < num_nets; ++inet) {
         if (is_global[inet] == TRUE) {
             continue;
         }
 
-        int netpin = -1;
         const int knum_net_pins = net[inet].num_net_pins;
         for (netpin = 0; netpin < knum_net_pins; ++netpin) {
             const int blk_index = net[inet].node_blocks[netpin];
             /* there is only one blocks pin, so it is 0, and it is driving the *
-             * net since this is an INPAD_TYPE.                                    */
+             * net since this is an INPAD_TYPE.                                */
             if (blocks[blk_index].block_type == INPAD_TYPE) {
                 net_pin_index[blk_index][0] = 0;
             } else if (blocks[blk_index].block_type == OUTPAD_TYPE) {
@@ -1465,6 +1465,18 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
      * the parser so that the pins aren't necessarily at the start of the  *
      * blocks list.                                                         */
     int from_block = my_irand(num_blocks - 1); /* choose from blocks randomly */
+    const block_types_t kfrom_block_type = blocks[from_block].block_type;
+    if (kfrom_block_type == B_CLB_TYPE) {
+        printf("from_block_type is CLB_TYPE.\n");
+    } else if (kfrom_block_type == INPAD_TYPE) {
+        printf("from_block_type is INPAD_TYPE.\n");
+    } else if (kfrom_block_type == OUTPAD_TYPE) {
+        printf("from_block_type is OUTPAD_TYPE.\n");
+    } else {
+        printf("ERROR block type.\n");
+        exit(1);
+    }
+
     if (placer_paras_ptr->m_fixed_pins == TRUE) {
         while (blocks[from_block].block_type != B_CLB_TYPE) {
             from_block = my_irand(num_blocks - 1);
@@ -2211,8 +2223,11 @@ static void free_unique_pin_list(void)
 
 
 /* When blocks[to_block] was a EMPTY, it only deal with blocks[from_block] */
-static int find_affected_nets(int* nets_to_update, int* net_block_moved,
-                              int from_block, int to_block, int num_of_pins)
+static int find_affected_nets(int* nets_to_update,
+                              int* net_block_moved,
+                              int from_block,
+                              int to_block,
+                              int num_of_pins)
 {
     /* Puts a list of all the nets connected to from_block and to_block into nets_to_update. *
      * Returns the number of affected nets. Net_block_moved is either FROM, TO or    *
@@ -2223,12 +2238,8 @@ static int find_affected_nets(int* nets_to_update, int* net_block_moved,
     int k = -1;
     for (k = 0; k < num_of_pins; ++k) {
         inet = blocks[from_block].nets[k];
-        if (inet == OPEN || is_global[inet] == TRUE) {
-            continue;
-        }
-
         /* This is here in case the same blocks connects to a net twice. */
-        if (temp_net_cost[inet] > 0.0) {
+        if (inet == OPEN || is_global[inet] == TRUE || temp_net_cost[inet] > 0.0) {
             continue;
         }
 
@@ -2274,7 +2285,7 @@ static int find_affected_nets(int* nets_to_update, int* net_block_moved,
         } /* end of for(k = 0; k < num_of_pins; ++k) */
     } /* end of if(to_block != EMPTY) */
 
-    return (affected_index);
+    return  affected_index;
 } /* end of static int find_affected_nets() */
 
 /* Returns the point to which I want to swap, properly range limited.  *
@@ -2419,29 +2430,26 @@ static void find_to(int x_from,
         } /* end of else(io_block to be moved) */
     } while ((x_from == *x_to) && (y_from == *y_to));
 
-#ifdef DEBUG
-    if (*x_to < 0 || *x_to > num_grid_columns + 1 || *y_to < 0 || *y_to > num_grid_rows + 1) {
+    if (*x_to < 0 || *x_to > num_grid_columns + 1 || *y_to < 0
+          || *y_to > num_grid_rows + 1) {
         printf("Error in routine find_to:  (x_to,y_to) = (%d,%d)\n",
                *x_to, *y_to);
         exit(1);
     }
 
     if (kblock_type == B_CLB_TYPE) {
-        if (bin_grids[*x_to][*y_to].type != B_CLB_TYPE) {
+        if (bin_grids[*x_to][*y_to].grid_type != B_CLB_TYPE) {
             printf("Error: Moving CLB_TYPE to illegal type blocks at (%d,%d)\n",
                    *x_to, *y_to);
             exit(1);
         }
     } else {
-        if (bin_grids[*x_to][*y_to].type != IO_TYPE) {
+        if (bin_grids[*x_to][*y_to].grid_type != IO_TYPE) {
             printf("Error: Moving IO_TYPE blocks to illegal type location at "
                    "(%d,%d)\n", *x_to, *y_to);
             exit(1);
         }
     }
-
-#endif
-    /* printf("(%d,%d) moved to (%d,%d)\n",x_from,y_from,*x_to,*y_to); */
 } /* end of static void find_to() */
 
 static int assess_swap(double delta_cost,
@@ -2522,14 +2530,14 @@ static double compute_point_to_point_delay(int inet,
                                            int sink_pin)
 {
     int source_block_index = net[inet].node_blocks[0];
-    block_types_t source_type = blocks[source_block_index].block_type; /* it maybe plb, or io pads*/
-
     int sink_block_index = net[inet].node_blocks[sink_pin];
+    assert(source_block_index != sink_block_index);
+
+    block_types_t source_type = blocks[source_block_index].block_type;
     block_types_t sink_type = blocks[sink_block_index].block_type;
 
     int delta_x = abs(blocks[sink_block_index].x - blocks[source_block_index].x);
     int delta_y = abs(blocks[sink_block_index].y - blocks[source_block_index].y);
-
     /* from clb_outpin_to_clb_inpin, delta_clb_to_clb[delta_x][delta_y]. */
     double delay_source_to_sink = 0.0;
     if (source_type == B_CLB_TYPE) {
@@ -2664,7 +2672,7 @@ static void compute_delta_timing_driven_cost(place_algorithm_t place_algorithm,
     int k = -1;
     for (k = 0; k < num_of_pins; ++k) { /* num_of_pins was pins of from blocks */
         inet = blocks[from_block].nets[k];
-        if (inet == OPEN || is_global[inet]) {
+        if (inet == OPEN || TRUE == is_global[inet]) {
             continue;
         }
 
