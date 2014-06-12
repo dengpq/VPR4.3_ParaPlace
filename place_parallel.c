@@ -4530,7 +4530,6 @@ static void compute_delta_td_cost(int from_block,
 static void compute_td_costs(double* timing_cost,
                              double* connection_delay_sum)
 {
-    printf("In compute_td_costs()...\n");
     double loc_timing_cost = 0.0;
     double loc_connection_delay_sum = 0.0;
     int inet = 0;
@@ -5769,16 +5768,13 @@ static double check_place(double bb_cost,
                          place_algorithm_t place_algorithm,
                          double delay_cost)
 {
-    static int* bdone;
-    int i, j, k, error = 0, block_num;
-    int usage_check;
-
+    int error = 0;
     double bb_cost_check = comp_bb_cost(CHECK, place_cost_type, num_regions);
     printf("bb_cost recomputed from scratch is %g.\n", bb_cost_check);
     if (fabs(bb_cost_check - bb_cost) > bb_cost * ERROR_TOL) {
         printf("Error:  bb_cost_check: %g and bb_cost: %g differ in check_place.\n",
                bb_cost_check, bb_cost);
-        //error++;
+        ++error;
     }
 
     /*
@@ -5808,14 +5804,18 @@ static double check_place(double bb_cost,
     }
     }
      */
+
+    int i, j, k, block_num;
+    static int* bdone;
     bdone = (int*)my_malloc(num_blocks * sizeof(int));
     for (i = 0; i < num_blocks; i++) {
         bdone[i] = 0;
     }
 
+    int usage_check = 0;
     /* Step through bin_grids array. Check it against blocks array. */
-    for (i = 0; i <= (num_grid_columns + 1); ++i)
-        for (j = 0; j <= (num_grid_rows + 1); ++j) {
+    for (i = 0; i <= num_grid_columns + 1; ++i) {
+        for (j = 0; j <= num_grid_rows + 1; ++j) {
             const int kbin_capacity = bin_grids[i][j].m_capacity;
             if (bin_grids[i][j].m_usage > kbin_capacity) {
                 printf("Error:  blocks at bin_grids location (%d,%d) overused. "
@@ -5824,34 +5824,44 @@ static double check_place(double bb_cost,
             }
 
             usage_check = 0;
-
             for (k = 0; k < kbin_capacity; ++k) {
                 block_num = bin_grids[i][j].in_blocks[k];
                 if (EMPTY == block_num) {
                     continue;
                 }
 
-                if (blocks[block_num].block_type != bin_grids[i][j].grid_type) {
-                    printf("Error:  blocks %d type does not match bin_grids location (%d,%d) type.\n",
+                const block_types_t kblock_type = blocks[block_num].block_type;
+                const block_types_t kgrid_type = bin_grids[i][j].grid_type;
+                if ((INPAD_TYPE == kblock_type || OUTPAD_TYPE == kblock_type)
+                        && IO_TYPE == kgrid_type) {
+                    /* ignore it, it was correct. */
+                } else if ((B_CLB_TYPE != kblock_type)
+                              && (B_CLB_TYPE == kgrid_type)) {
+                    printf("Error:  blocks[%d] type does not match bin[%d][%d] type.\n\n",
                              block_num, i, j);
                     ++error;
+                } else {
+                    /* No operations */
                 }
 
-                if ((blocks[block_num].x != i) || (blocks[block_num].y != j)) {
-                    printf("Error:  blocks %d (%d,%d) location conflicts with bin_grids(%d,%d)"
-                            "data.\n", block_num, blocks[block_num].x, blocks[block_num].y, i, j);
+                if ((blocks[block_num].x != i) || (blocks[block_num].y != j)
+                      || (blocks[block_num].z != k)) {
+                    printf("Error:  blocks[%d](%d,%d,%d) coord conflicts with bin[%d][%d][%d].\n",
+                            block_num, blocks[block_num].x, blocks[block_num].y,
+                            blocks[block_num].z, i, j, k);
                     ++error;
                 }
 
                 ++usage_check;
                 bdone[block_num]++;
-            }
+            } /* end of for(k = 0; k < kbin_capacity; ++k) */
 
             if (usage_check != bin_grids[i][j].m_usage) {
-                printf("Error:  Location (%d,%d) usage is %d, but has actual usage %d.\n",
+                printf("Error:  bin[%d][%d] usage is %d, but has actual usage %d.\n",
                          i, j, bin_grids[i][j].m_usage, usage_check);
             }
-        }
+        } /* end of for(j = 0; j <= (num_grid_rows + 1); ++j) */
+    } /* end of for(i = 0; i <= num_grid_columns + 1; ++i) */
 
     /* Check that every blocks exists in the bin_grids and blocks arrays somewhere. */
     for (i = 0; i < num_blocks; ++i)
