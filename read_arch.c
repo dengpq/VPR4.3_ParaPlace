@@ -10,8 +10,6 @@
 
 #define  NUM_GRID_TYPES  3
 
-#define EMPTY  -1
-
 /* This source file reads in the architectural description of an FPGA.     *
  * A # symbol anywhere in the input file denotes a comment to the end      *
  * of the line.  Put a \ at the end of a line if you want to continue      *
@@ -193,23 +191,27 @@ static switch_block_t get_switch_block_type(FILE* fp_arch,
                                             char* buf);
 
 static void gesegment_info_t(FILE* fp_arch, char* buf,
-                            segment_info_t* seg_ptr, int num_switch, router_types_t
-                            route_type);
+                            segment_info_t* seg_ptr,
+                            int num_switch,
+                            router_types_t route_type);
 
-static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,
+static void get_switch_inf(FILE* fp_arch,
+                           char* buf,
+                           int num_switch,
                            router_types_t route_type);
 
-static void get_T_subblock(FILE* fp_arch, char* buf, T_subblock_t
-                           *T_subblock);
+static void get_T_subblock(FILE* fp_arch,
+                           char* buf,
+                           T_subblock_t* T_subblock);
 
 static int get_class(FILE* fp_arch, char* buf);
 
-static void load_global_segment_and_switch(detail_routing_arch_t *
-                                           det_routing_arch, segment_info_t* segment_inf, timing_info_t
-                                           *timing_inf);
+static void load_global_segment_and_switch(detail_routing_arch_t* det_routing_arch,
+                                           segment_info_t* segment_inf,
+                                           timing_info_t*  timing_inf);
 
-static void load_extra_switch_types(detail_routing_arch_t *
-                                    det_routing_arch, timing_info_t* timing_inf);
+static void load_extra_switch_types(detail_routing_arch_t* det_routing_arch,
+                                    timing_info_t* timing_inf);
 
 static void countpass(FILE* fp_arch, router_types_t route_type,
                       segment_info_t** segment_inf_ptr,

@@ -11,23 +11,16 @@
 #     then add -DNO_GRAPHICS to the end of the "FLAGS =" line.
 CC = gcc
 
-#SunOS lines below.
-#LIB_DIR = -L/usr/lib/X11R5
-#LIB = -static -lX11 -lm
-#X11_INCLUDE = -I/usr/include
-
 # On many non-Solaris machines, use LIB_DIR = -L/usr/lib/X11R5
-
-LIB_DIR = -L/usr/openwin/lib
+LIB_DIR = -L/usr/openwin/lib -L../libhoard.so
 SRC_DIR = .
 # Sometimes get errors under Solaris if you don't use the -R option
 # to (I think) put info about where the shared object libraries are
 # right into the binary.  Shouldn't be necessary, but it is on our machines.
 
 #LIB = -lX11 -lm -R/usr/openwin/lib
-LIB = -lX11 -lm -pthread
+LIB = -lX11 -lm -pthread -lmemusage
 
-#X11_INCLUDE = -I/usr/openwin/include
 
 # Overly strict flags line below.  Lots of useless warnings, but can
 # let you look for redudant declarations.
@@ -43,8 +36,8 @@ LIB = -lX11 -lm -pthread
 #and causing -Wshadow to complain about conflicts with y1 in math.h
 #(Bessel function 1 of the second kind)
 WARN_FLAGS = -Wall -Wpointer-arith -Wcast-qual -Wstrict-prototypes -O -D__USE_FIXED_PROTOTYPES__ -ansi -pedantic -Wmissing-prototypes -Wshadow -Wcast-align -D_POSIX_SOURCE
-DEBUG_FLAGS = -g -pg -Wall
-OPT_FLAGS = -fPIC -O3 -pthread
+DEBUG_FLAGS = -g -pg -Wall -pthread -lmemusage
+OPT_FLAGS = -fPIC -O3 -pipe
 
 #I found that in Ubuntu12.04-x86_64 and gcc4,6, the P&R result was same whether or not added -std=c99,
 #but they were different in Fedora17-i386 system, gcc4.7.3

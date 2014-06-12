@@ -485,8 +485,8 @@ void  check_vertexs_levels()
     }
 
     FILE* file = fopen("check_all_vertexs_levels.txt", "w");
-    char message[BUFSIZE * 300];
-    char tmp[8];
+    char message[BUFSIZE * 3000];
+    char tmp[80];
 
     sprintf(message, "It had %d levles", num_tnode_levels);
     fputs(message, file);

@@ -577,7 +577,6 @@ static void parse_command(int argc,
 
         if (strcmp(argv[i], "-inner_num") == 0) {
             annealing_sched->inner_num = read_double_option(argc, argv, i);
-
             if (annealing_sched->inner_num <= 0.) {
                 printf("Error:  -inner_num value must be greater than 0.\n");
                 exit(1);
@@ -676,6 +675,9 @@ static void parse_command(int argc,
 
             if (strcmp(argv[i+1], "on") == 0) {
                 placer_opts->place_parallel = TRUE;
+                /* for parallel placement, VPR5.0 set default inner_num *
+                 * as 90.0 */
+                annealing_sched->inner_num = 90.0;
             } else if (strcmp(argv[i+1], "off") == 0) {
                 placer_opts->place_parallel = FALSE;
             } else {

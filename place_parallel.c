@@ -143,7 +143,7 @@ static double** chany_place_cost_fac;
 
 /* Expected crossing counts for nets with different #'s of pins.  From *
  * ICCAD 94 pp. 690 - 695 (with linear interpolation applied by me).   */
-static double cross_count[50] = { /* [0..49] */
+static const double cross_count[50] = { /* [0..49] */
     1.0,    1.0,    1.0,    1.0828, 1.1536, 1.2206, 1.2823, 1.3385, 1.3991, 1.4493,
     1.4974, 1.5455, 1.5937, 1.6418, 1.6899, 1.7304, 1.7709, 1.8114, 1.8519, 1.8924,
     1.9288, 1.9652, 2.0015, 2.0379, 2.0743, 2.1061, 2.1379, 2.1698, 2.2016, 2.2334,
@@ -169,7 +169,6 @@ static void  try_place_a_subregion(const int  kthread_id,
 
 /* try_place_parallel directed-called functions */
 static void initial_common_paras(pthread_data_t*  input_args,
-                                 int*  max_pins_per_clb,
                                  thread_local_common_paras_t* common_paras_ptr);
 
 static void alloc_memory_for_swap_data(const int max_pins_per_clb,
@@ -468,7 +467,7 @@ static int find_affected_nets(int* nets_to_update,
                               int num_of_pins);
 
 static double get_net_cost(int inet,
-                          bbox_t* bb_ptr);
+                           bbox_t* bb_ptr);
 
 static double nonlinear_cong_cost(int num_regions);
 
@@ -577,10 +576,10 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
     /* int g_pins_on_block[5]; */
     g_pins_on_block = (int*)my_malloc(5 * sizeof(int));
     g_pins_on_block[B_CLB_TYPE] = max_pins_per_clb;
-    g_pins_on_block[IO_TYPE] = 1;
+    g_pins_on_block[IO_TYPE] = 24;
     g_pins_on_block[EMPTY_TYPE] = 0;
-    g_pins_on_block[OUTPAD_TYPE] = 1;
-    g_pins_on_block[INPAD_TYPE] = 1;
+    g_pins_on_block[OUTPAD_TYPE] = 24;
+    g_pins_on_block[INPAD_TYPE] = 24;
 
     /* Gets initial cost and loads bounding boxes. */
     double bb_cost = comp_bb_cost(NORMAL,
@@ -952,6 +951,10 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
 
     free(x_lookup);
     x_lookup = NULL;
+
+    free(g_grid_capacity);
+    g_grid_capacity = NULL;
+
     free(g_pins_on_block);
     g_pins_on_block = NULL;
 }  /* end of try_place_use_multi_threads() */
@@ -1051,10 +1054,8 @@ static void* try_place_parallel(pthread_data_t* input_args)
     }
 
     thread_local_common_paras_t  common_paras;
-    int max_pins_per_clb = 0;
     /* initial_common_paras() initial all thread_data variables */
     initial_common_paras(input_args,
-                         &max_pins_per_clb,
                          &common_paras);
 
     thread_local_data_for_swap_t  swap_data;
@@ -1365,7 +1366,6 @@ static void  try_place_a_subregion(const int  kthread_id,
 /* FIXME, Important funtion! It initial all imporant parameters that used for *
  * parallel placement.                                                        */
 static void initial_common_paras(pthread_data_t*  input_args,
-                                 int*  max_pins_per_clb,
                                  thread_local_common_paras_t*  common_paras_ptr)
 {
     /*thread-dependent data*/
@@ -1409,13 +1409,6 @@ static void initial_common_paras(pthread_data_t*  input_args,
     common_paras_ptr->local_delay_cost = *(input_args->delay_cost);
     common_paras_ptr->local_net_slack = input_args->net_slack;
     common_paras_ptr->local_net_delay = input_args->net_delay;
-
-    /* max_pins_per_clb initialization*/
-    /* int i = -1;
-       for (i = 0; i < num_types; ++i) {
-        *max_pins_per_clb = max(*max_pins_per_clb,
-                               type_descriptors[i].num_pins);
-    } */
 
     /* dynamic workload distribution for timing update initialization*/
     const int knets_assign_to_thread = ceil((double)num_nets / NUM_OF_THREADS);
@@ -1464,8 +1457,10 @@ static void alloc_memory_for_swap_data(const int max_pins_per_clb,
     swap_data_ptr->m_net_block_moved =
             (int*)my_malloc(2 * max_pins_per_clb * sizeof(int));
 
-    swap_data_ptr->m_local_bb_coord = (bbox_t*)my_malloc(num_nets * sizeof(bbox_t));
-    swap_data_ptr->m_local_bb_edge = (bbox_t*)my_malloc(num_nets * sizeof(bbox_t));
+    swap_data_ptr->m_local_bb_coord =
+            (bbox_t*)my_malloc(num_nets * sizeof(bbox_t));
+    swap_data_ptr->m_local_bb_edge =
+            (bbox_t*)my_malloc(num_nets * sizeof(bbox_t));
 
     swap_data_ptr->m_local_temp_net_cost = (double*)malloc(num_nets * sizeof(double));
     swap_data_ptr->m_local_net_cost = (double*)malloc(num_nets * sizeof(double));
@@ -1502,11 +1497,9 @@ static void initial_swap_data(thread_local_common_paras_t*  common_paras_ptr,
                               thread_local_data_for_swap_t* swap_data_ptr)
 {
     memcpy(swap_data_ptr->m_local_bb_edge,
-           bb_num_on_edges,
-           num_nets * sizeof(bbox_t));
+           bb_num_on_edges, num_nets * sizeof(bbox_t));
     memcpy(swap_data_ptr->m_local_bb_coord,
-           bb_coords,
-           num_nets * sizeof(bbox_t));
+           bb_coords, num_nets * sizeof(bbox_t));
 
     int x, y, z;
     for (x = 0; x < num_nets; ++x) {
@@ -1530,8 +1523,9 @@ static void initial_swap_data(thread_local_common_paras_t*  common_paras_ptr,
             local_grid[x][y].m_offset = bin_grids[x][y].m_offset;
 
             const int kbin_capacity = bin_grids[x][y].m_capacity;
-            local_grid[x][y].in_blocks =
-                (int*)my_malloc(sizeof(int) * kbin_capacity);
+            local_grid[x][y].m_capacity = kbin_capacity;
+            local_grid[x][y].in_blocks = (int*)my_malloc(sizeof(int) *
+                                                           kbin_capacity);
             for (z = 0; z < kbin_capacity; ++z) {
                 local_grid[x][y].in_blocks[z] = bin_grids[x][y].in_blocks[z];
             }
@@ -1651,7 +1645,7 @@ static void find_fanin_parallel(const int kthread_id)
     }
 } /* end of void find_fanin_parallel(int kthread_id) */
 
-static void initial_localvert_grid()
+static void initial_localvert_grid(void)
 {
     /* bin_grids[col][row] was column-based, but localvert_grid[col][row] was
      * row-based, it vertical to bin_grids. */
@@ -1666,12 +1660,14 @@ static void initial_localvert_grid()
             localvert_grid[row][col].m_offset = bin_grids[col][row].m_offset;
 
             const int kbin_capacity = bin_grids[col][row].m_capacity;
+            /* Do not forget initial capacity */
+            localvert_grid[row][col].m_capacity = kbin_capacity;
             localvert_grid[row][col].in_blocks = (int*)my_malloc(sizeof(int) *
-                                                      kbin_capacity);
+                                                               kbin_capacity);
 
             for (cap = 0; cap < kbin_capacity; ++cap) {
                 localvert_grid[row][col].in_blocks[cap] =
-                    bin_grids[col][row].in_blocks[cap];
+                            bin_grids[col][row].in_blocks[cap];
             }
         }
     }
@@ -1978,17 +1974,13 @@ static void update_from_global_to_local_grid(const int kiter,
         1 / common_paras_ptr->local_bb_cost;
 
     memcpy(swap_data_ptr->m_local_bb_edge,
-           bb_num_on_edges,
-           num_nets * sizeof(bbox_t));
+           bb_num_on_edges, num_nets * sizeof(bbox_t));
     memcpy(swap_data_ptr->m_local_bb_coord,
-           bb_coords,
-           num_nets * sizeof(bbox_t));
+           bb_coords, num_nets * sizeof(bbox_t));
     memcpy(swap_data_ptr->m_local_temp_net_cost,
-           temp_net_cost,
-           num_nets * sizeof(double));
+           temp_net_cost, num_nets * sizeof(double));
     memcpy(swap_data_ptr->m_local_net_cost,
-           net_cost,
-           num_nets * sizeof(double));
+           net_cost, num_nets * sizeof(double));
 } /* end of void update_from_global_to_local_grid(int kthread_id... ) */
 
 /* Update local sub-region(in a Region) horizontal and vertical seperately */
@@ -2109,12 +2101,12 @@ static int find_affected_nets_parallel(int* nets_to_update,
                                        int* net_block_moved,
                                        int from_block,
                                        int to_block,
-                                       int num_of_pins,
+                                       int num_block_pins,
                                        double* local_temp_net_cost)
 {
     int affected_index = 0;
     int k, inet, count;
-    for (k = 0; k < num_of_pins; ++k) {
+    for (k = 0; k < num_block_pins; ++k) {
         inet = blocks[from_block].nets[k];
         if (OPEN == inet || TRUE == is_global[inet]) {
             continue;
@@ -2128,10 +2120,10 @@ static int find_affected_nets_parallel(int* nets_to_update,
         net_block_moved[affected_index] = FROM;
         ++affected_index;
         local_temp_net_cost[inet] = 1.0; /* Flag to say we've marked this net. */
-    }  /* end of for (k = 0; k < num_of_pins; ++k) */
+    }  /* end of for (k = 0; k < num_block_pins; ++k) */
 
     if (to_block != EMPTY) {
-        for (k = 0; k < num_of_pins; ++k) {
+        for (k = 0; k < num_block_pins; ++k) {
             inet = blocks[to_block].nets[k];
             if (OPEN == inet || TRUE == is_global[inet]) {
                 continue;
@@ -2148,14 +2140,12 @@ static int find_affected_nets_parallel(int* nets_to_update,
                     }
                 }
 
-#ifdef DEBUG
                 if (count > affected_index) {
                     printf("Error in find_affected_nets -- count = %d,"
                      " affected index = %d.\n", count,
                      affected_index);
                     exit(1);
                 }
-#endif
             } else {
                 /* Net not marked yet. */
                 nets_to_update[affected_index] = inet;
@@ -2164,7 +2154,7 @@ static int find_affected_nets_parallel(int* nets_to_update,
                 local_temp_net_cost[inet] = 1.; /* Flag means we've  marked net. */
             }
         }
-    }  /* end of if(to_block != NULL) */
+    } /* end of if(to_block != NULL) */
 
     return affected_index;
 }  /* end of static int find_affected_nets_parallel(int* nets_to_update,) */
@@ -2208,7 +2198,7 @@ static boolean find_to_block_parallel(int x_from,
                                       int ymin, int ymax)
 {
     /* Returns the location to which I want to swap within the range (xmin,ymin) & (xmax,ymax)*/
-    int choice;
+    int choice = 0;
     do {
         /* Until (x_to, y_to) different from (x_from, y_from) */
         /* if (kblock_type == IO_TYPE) */
@@ -2282,6 +2272,8 @@ static boolean find_to_block_parallel(int x_from,
             }
 
             assert(IO_TYPE == bin_grids[*x_to][*y_to].grid_type);
+            assert((*x_to >= 0 || *x_to <= num_grid_columns + 1)
+                      && (*y_to >= 0 || *y_to <= num_grid_rows + 1));
         } else { /* B_CLB_TYPE */
             /* generate a {x_offset, y_offset} pairs that between (xmin, xmax) *
              * (ymin, ymax). */
@@ -2297,10 +2289,10 @@ static boolean find_to_block_parallel(int x_from,
             *y_to = max(1, *y_to);
             *y_to = min(num_grid_rows, *y_to);
 
-            assert((*x_to >= 1 && *x_to <= num_grid_columns) && (*y_to >= 1
-                        && *y_to <= num_grid_rows));
+            assert((*x_to >= 1 && *x_to <= num_grid_columns)
+                      && (*y_to >= 1 && *y_to <= num_grid_rows));
             assert(B_CLB_TYPE == bin_grids[*x_to][*y_to].grid_type);
-        }
+        } /* end of CLB_TYPE */
     } while ((x_from == *x_to) && (y_from == *y_to));
 
     return TRUE;
@@ -2368,7 +2360,7 @@ static double comp_td_point_to_point_delay_parallel(int inet,
 /*pin computed */
 static void compute_delta_td_cost_parallel(const int kfrom_block,
                                            const int kto_block,
-                                           int num_of_pins,
+                                           int num_block_pins,
                                            double* delta_timing,
                                            double* delta_delay,
                                            local_block_t* local_block,
@@ -2381,7 +2373,7 @@ static void compute_delta_td_cost_parallel(const int kfrom_block,
     /* int inet, pin_index, net_pin, ipin; */
     int pin_index = -1;
     int ipin = 0;
-    for (pin_index = 0; pin_index < num_of_pins; ++pin_index) {
+    for (pin_index = 0; pin_index < num_block_pins; ++pin_index) {
         const int inet = blocks[kfrom_block].nets[pin_index];
         if (OPEN == inet || TRUE == is_global[inet]) {
             continue;
@@ -2433,12 +2425,12 @@ static void compute_delta_td_cost_parallel(const int kfrom_block,
                     (local_temp_point_to_point_timing_cost[inet][ipin]
                        - point_to_point_timing_cost[inet][ipin]);
             }
-        }
-    }  /* end of for (pin_index = 0; pin_index < num_of_pins; ++pin_index) */
+        } /* end of else */
+    } /* end of for(pin_index = 0; pin_index < num_block_pins; ++pin_index) */
 
     /* end of kfrom_block, then consider the kto_block. It was similar with former program. */
     if (kto_block != EMPTY) {
-        for (pin_index = 0; pin_index < num_of_pins; ++pin_index) {
+        for (pin_index = 0; pin_index < num_block_pins; ++pin_index) {
             const int inet = blocks[kto_block].nets[pin_index];
             if (OPEN == inet || TRUE == is_global[inet]) {
                 continue;
@@ -2490,7 +2482,7 @@ static void compute_delta_td_cost_parallel(const int kfrom_block,
                           - point_to_point_timing_cost[inet][ipin]);
                 }
             }  /* end of else(net_pin was a driver_pin) */
-        }  /* end of for (pin_index = 0; pin_index < num_of_pins; ++pin_index) */
+        } /* end of for(pin_index = 0; pin_index < num_block_pins; ++pin_index)*/
     }  /* end of if (kto_block != EMPTY) */
 
     *delta_timing = delta_timing_cost;
@@ -2608,8 +2600,8 @@ static double compute_bb_cost_parallel(const int kstart_net,
         /* for each net ... */
         if (is_global[k] == FALSE) {
             /* Do only if not global. */
-            /* Small nets don't use incremental updating on their bounding boxes, *
-             * so they can use a fast bounding box calculator.                    */
+            /* Small nets don't use incremental updating on their bounding boxes,*
+             * so they can use a fast bounding box calculator.                   */
             get_non_updateable_bb(k, &bb_coords[k]);
 
             net_cost[k] = get_net_cost(k, &bb_coords[k]);
@@ -2620,7 +2612,7 @@ static double compute_bb_cost_parallel(const int kstart_net,
 }  /* end of static double compute_bb_cost_parallel(int start_net,) */
 
 /* This routine finds the bounding box of each net from scratch (i.e.    *
- * from only the blocks location information).  It updates both the       *
+ * from only the blocks location information). It updates both the       *
  * coordinate and number of blocks on each tedge information.  It        *
  * should only be called when the bounding box information is not valid. */
 static void get_bb_from_scratch_parallel(int inet,
@@ -2635,21 +2627,23 @@ static void get_bb_from_scratch_parallel(int inet,
     int* plist = NULL;
     if (duplicate_pins[inet] == 0) {
         plist = net[inet].node_blocks;
-        n_pins = net[inet].num_net_pins + 1;
+        /* n_pins = net[inet].num_net_pins + 1; */
+        n_pins = net[inet].num_net_pins;
     } else {
         plist = unique_pin_list[inet];
-        n_pins = (net[inet].num_net_pins + 1) - duplicate_pins[inet];
+        /* n_pins = (net[inet].num_net_pins + 1) - duplicate_pins[inet]; */
+        n_pins = net[inet].num_net_pins - duplicate_pins[inet];
     }
 
     int x = local_block[plist[0]].x;
     int y = local_block[plist[0]].y;
     x = max(min(x, num_grid_columns), 1);
     y = max(min(y, num_grid_rows), 1);
-
     int xmin = x;
-    int ymin = y;
     int xmax = x;
+    int ymin = y;
     int ymax = y;
+
     int xmin_edge = 1;
     int ymin_edge = 1;
     int xmax_edge = 1;
@@ -2670,8 +2664,6 @@ static void get_bb_from_scratch_parallel(int inet,
          * "movement" of IO blocks does not affect the which channels are    *
          * included within the bounding box, and it simplifies the code a lot.*/
         x = max(min(x, num_grid_columns), 1);
-        y = max(min(y, num_grid_rows), 1);
-
         if (x == xmin) {
             ++xmin_edge;
         }
@@ -2686,6 +2678,7 @@ static void get_bb_from_scratch_parallel(int inet,
             xmax_edge = 1;
         }
 
+        y = max(min(y, num_grid_rows), 1);
         if (y == ymin) {
             ++ymin_edge;
         }
@@ -2790,7 +2783,6 @@ static void update_bb_parallel(int inet,
     ynew = max(min(ynew, num_grid_rows), 1);
     xold = max(min(xold, num_grid_columns), 1);
     yold = max(min(yold, num_grid_rows), 1);
-
     /*======   First update x-coordinate, then update y-coordinate like ======*
      *======     x-coordinate                                           ======*/
     /* Check if I can update the bounding box incrementally. */
@@ -2806,8 +2798,8 @@ static void update_bb_parallel(int inet,
                                              local_block);
                 return;
             } else {
-                bb_edge_new_ptr->xmax = local_bb_edge_ptr[inet].xmax - 1;
                 bb_coord_new_ptr->xmax = local_bb_coord_ptr[inet].xmax;
+                bb_edge_new_ptr->xmax = local_bb_edge_ptr[inet].xmax - 1;
             }
         } else {
             /* Move to left, old postion was not at xmax. */
@@ -2991,12 +2983,18 @@ static int  try_swap_parallel(const double kt,
     /* First, find a blocks within the current swap region*/
     grid_tile_t** local_grid = swap_data_ptr->m_local_grid;
     const int kfrom_block = local_grid[kx_from][ky_from].in_blocks[kz_from];
+    /* for debug */
+    /* printf("kx_from = %d, ky_from = %d, kz_from = %d, kfrom_block = %d.\n",
+            kx_from, ky_from, kz_from, kfrom_block); */
 
+    const block_types_t kfrom_block_type = blocks[kfrom_block].block_type;
     int x_to = 0;
     int y_to = 0;
+    /* Why it use blocks[kfrom_block].block_type, not   *
+     * local_grid[kx_from][ky_from].in_blocks[kz_from]? */
     find_to_block_parallel(kx_from,
                            ky_from,
-                           blocks[kfrom_block].block_type,
+                           kfrom_block_type,
                            &x_to,
                            &y_to,
                            kthread_id,
@@ -3042,7 +3040,7 @@ static int  try_swap_parallel(const double kt,
     /*------------------------  Third, compute the swap cost ----------------*/
     /* Change in cost due to this swap. */
     double bb_delta_c = 0.0;
-    int num_of_pins = g_pins_on_block[blocks[kfrom_block].block_type];
+    int num_block_pins = g_pins_on_block[kfrom_block_type];
     /* (3.1). I must found out the affected nets, it restored in *
      * int* nets_to_update array. */
     int* nets_to_update = swap_data_ptr->m_nets_to_update;
@@ -3052,11 +3050,9 @@ static int  try_swap_parallel(const double kt,
                                                                net_block_moved,
                                                                kfrom_block,
                                                                to_block,
-                                                               num_of_pins,
+                                                               num_block_pins,
                                                                local_temp_net_cost);
     /* (3.2) compute wirelength-cost parallel */
-    int bb_index = 0;
-    int k = -1;
     bbox_t*  bb_coord_new = swap_data_ptr->m_bb_coord_new;
     bbox_t*  bb_edge_new = swap_data_ptr->m_bb_edge_new;
 
@@ -3066,18 +3062,24 @@ static int  try_swap_parallel(const double kt,
     double*  local_net_cost = swap_data_ptr->m_local_net_cost;
     const place_cong_types_t kplace_cost_type =
         common_paras_ptr->local_placer_opts.place_cost_type;
+
+    int bb_index = 0;
+    int k = -1;
     for (k = 0; k < knum_nets_affected; ++k) {
         int inet = nets_to_update[k];
         if (net_block_moved[k] == FROM_AND_TO) {
             continue;
         }
 
+
         if (net[inet].num_net_pins < SMALL_NET) {
             get_non_updateable_bb_parallel(inet,
                                            &bb_coord_new[bb_index],
                                            local_block);
-        } else {
+        } else { /* net[1].num_net_pins = 9 */
             if (net_block_moved[k] == FROM) {
+                /* update bb_coord_new[bb_index] and bb_edge_new[bb_index] by *
+                 * local_bb_coord and local_bb_edge. */
                 update_bb_parallel(inet,
                                    local_bb_coord,
                                    local_bb_edge,
@@ -3099,8 +3101,8 @@ static int  try_swap_parallel(const double kt,
         }  /* end of else(num_sinks >= SMALL_NET) */
 
         if (kplace_cost_type != NONLINEAR_CONG) {
-            local_temp_net_cost[inet] = get_net_cost(inet,
-                                                     &bb_coord_new[bb_index]);
+            local_temp_net_cost[inet] =
+                get_net_cost(inet, &bb_coord_new[bb_index]);
             bb_delta_c += (local_temp_net_cost[inet] - local_net_cost[inet]);
         } else {
             printf("can't do nonlinear_cong\n");
@@ -3132,7 +3134,7 @@ static int  try_swap_parallel(const double kt,
          * It should distinguish the driver_pin and not driver_pins */
         compute_delta_td_cost_parallel(kfrom_block,
                                        to_block,
-                                       num_of_pins,
+                                       num_block_pins,
                                        &timing_delta_c,
                                        &delay_delta_c,
                                        local_block,
@@ -3155,7 +3157,7 @@ static int  try_swap_parallel(const double kt,
     if (keep_switch) {
         /* Swap successful! first update cost value. */
         common_paras_ptr->local_total_cost += delta_c;
-        common_paras_ptr->local_bb_cost +=  bb_delta_c;
+        common_paras_ptr->local_bb_cost += bb_delta_c;
         if (kplace_algorithm == NET_TIMING_DRIVEN_PLACE
                 || kplace_algorithm == PATH_TIMING_DRIVEN_PLACE) {
             common_paras_ptr->local_timing_cost += timing_delta_c;
@@ -3499,6 +3501,10 @@ static void update_and_print_common_paras(const int kthread_id,
     } /* end of if(kthread_id == 0) */
 } /* end of static void update_and_print_common_paras(const int kthread_id,..) */
 
+
+/*****************************************************************************
+ * All the following functions were origin function used for Single Thread   *
+ ****************************************************************************/
 static int count_connections()
 {
     /*only count non-global connections */
@@ -3514,8 +3520,9 @@ static int count_connections()
     return count;
 }
 
-/*computes net_pin_index array, this array allows us to quickly */
-/*find what pin on the net a blocks pin corresponds to */
+/*computes net_pin_index array, this array allows us to quickly *
+ *find what pin on the net a blocks pin corresponds to. I had used  *
+ * VPR4.3 version to replace this function */
 static void compute_net_pin_index_values(void)
 {
     /*initialize values to OPEN */
@@ -3669,7 +3676,9 @@ static double starting_t(double* cost_ptr,
         av = 0.;
     }
 
-    double std_dev = get_std_dev(num_accepted, sum_of_squares, av);
+    double std_dev = get_std_dev(num_accepted,
+                                 sum_of_squares,
+                                 av);
 
 #ifdef DEBUG
     if (num_accepted != move_lim) {
@@ -3688,13 +3697,13 @@ static double starting_t(double* cost_ptr,
     /* Set the initial temperature to 20 times the standard of deviation */
     /* so that the initial temperature adjusts according to the circuit */
     return (20.0 * std_dev);
-}
+}  /* end of static double starting_t(double* cost_ptr, ) */
 
-/* Picks some blocks and moves it to another spot.  If this spot is   *
+/* Picks some blocks and moves it to another spot.  If this spot is  *
  * occupied, switch the blocks.  Assess the change in cost function  *
  * and accept or reject the move.  If rejected, return 0.  If        *
  * accepted return 1.  Pass back the new value of the cost function. *
- * range_limit is the range limiter.                                                                            */
+ * range_limit is the range limiter.                                 */
 static int try_swap(double t,
                     double* cost,
                     double* bb_cost,
@@ -3726,16 +3735,7 @@ static int try_swap(double t,
 
     int from_block = my_irand(num_blocks - 1);
     const block_types_t kfrom_block_type = blocks[from_block].block_type;
-    if (kfrom_block_type == B_CLB_TYPE) {
-        printf("from_block_type is CLB_TYPE.\n");
-    } else if (kfrom_block_type == INPAD_TYPE) {
-        printf("from_block_type is INPAD_TYPE.\n");
-    } else if (kfrom_block_type == OUTPAD_TYPE) {
-        printf("from_block_type is OUTPAD_TYPE.\n");
-    } else {
-        printf("ERROR block type.\n");
-        exit(1);
-    }
+
     /* If the pins are fixed we never move them from their initial    *
      * random locations.  The code below could be made more efficient *
      * by using the fact that pins appear first in the blocks list,    *
@@ -3792,7 +3792,6 @@ static int try_swap(double t,
     /* Now update the cost function.  May have to do major optimizations *
      * here later.                                                       */
     int num_of_pins = g_pins_on_block[kfrom_block_type];
-    printf("kblock_type: %d, num_of_pins: %d.\n", kfrom_block_type, num_of_pins);
     int num_nets_affected = find_affected_nets(nets_to_update,
                                                net_block_moved,
                                                from_block,
@@ -3809,7 +3808,7 @@ static int try_swap(double t,
     double delta_c = 0.0;  /* Change in cost due to this swap. */
     double bb_delta_c = 0.0;
     int bb_index = 0; /* Index of new bounding box. */
-    int k = -1; 
+    int k = -1;
     for (k = 0; k < num_nets_affected; ++k) {
         int inet = nets_to_update[k];
         /* If we swapped two blocks connected to the same net, its bounding box *
@@ -3835,7 +3834,8 @@ static int try_swap(double t,
         }
 
         if (place_cost_type != NONLINEAR_CONG) {
-            temp_net_cost[inet] = get_net_cost(inet, &bb_coord_new[bb_index]);
+            temp_net_cost[inet] = get_net_cost(inet,
+                                               &bb_coord_new[bb_index]);
             bb_delta_c += temp_net_cost[inet] - net_cost[inet];
         } else {
             /* Rip up, then replace with new bb. */
@@ -4254,13 +4254,13 @@ static int assess_swap(double delta_c,
     return (accept);
 }
 
+
+/*returns the Tdel of one point to point connection */
 static double compute_point_to_point_delay(int inet,
                                            int ipin)
 {
-    /*returns the Tdel of one point to point connection */
-    const int knum_net_pins = net[inet].num_net_pins;
-    printf("\nEnter in compute_td_point_to_point_delay(), inet = %d,"
-           "num_net_pins = %d, ipin = %d\n", inet, knum_net_pins, ipin);
+    /* printf("\nEnter in compute_td_point_to_point_delay(), inet = %d,"
+           "num_net_pins = %d, ipin = %d\n", inet, knum_net_pins, ipin);*/
 
     const int source_block = net[inet].node_blocks[0];
     const int sink_block = net[inet].node_blocks[ipin];
@@ -4272,11 +4272,11 @@ static double compute_point_to_point_delay(int inet,
 
     const int delta_x = abs(blocks[sink_block].x - blocks[source_block].x);
     const int delta_y = abs(blocks[sink_block].y - blocks[source_block].y);
-    printf("source_block: %d, (%d,%d,%d), sink_block: %d, (%d,%d,%d). "
+    /* printf("source_block: %d, (%d,%d,%d), sink_block: %d, (%d,%d,%d). "
            "delta_x: %d, delta_y: %d.\n", source_block, blocks[source_block].x,
            blocks[source_block].y, blocks[source_block].z,
            sink_block, blocks[sink_block].x, blocks[sink_block].y,
-           blocks[sink_block].z, delta_x, delta_y);
+           blocks[sink_block].z, delta_x, delta_y); */
 
     double delay_source_to_sink = 0.0;
     /* TODO low priority: Could be merged into one look-up table */
@@ -4285,26 +4285,27 @@ static double compute_point_to_point_delay(int inet,
      * it's too late in the release cycle to do this. Pushing until the next release */
     if (source_type == B_CLB_TYPE) {
         if (sink_type == B_CLB_TYPE) {
-            printf("source_type is CLB_TYPE, sink_type is CLB_TYPE. delta_clb_to_clb[2][5]\n");
+            /* printf("source_type is CLB_TYPE, sink_type is CLB_TYPE. delta_clb_to_clb[%d][%d].\n",
+                    delta_x, delta_y);*/
             delay_source_to_sink = delta_clb_to_clb[delta_x][delta_y];
         } else if (sink_type == OUTPAD_TYPE) {
-            printf("source_type is CLB_TYPE, sink_type is OUTPAD_TYPE.\n");
+            /* printf("source_type is CLB_TYPE, sink_type is OUTPAD_TYPE.\n"); */
             delay_source_to_sink = delta_clb_to_outpad[delta_x][delta_y];
         } else {
-            printf("source_type is B_CLB_TYPE, sink_type is INPAD_TYPE.\n");
+            /* printf("source_type is B_CLB_TYPE, sink_type is INPAD_TYPE.\n"); */
             printf("Error in compute_point_to_point_delay in place.c, \
                     cannot from clb output pin to input pad\n");
             exit(1);
         }
     } else if (source_type == INPAD_TYPE) {
         if (sink_type == B_CLB_TYPE) {
-            printf("source_type is INPAD_TYPE, sink_type is CLB_TYPE.\n");
+            /* printf("source_type is INPAD_TYPE, sink_type is CLB_TYPE.\n"); */
             delay_source_to_sink = delta_inpad_to_clb[delta_x][delta_y];
         } else if (sink_type == OUTPAD_TYPE) {
-            printf("source_type is INPAD_TYPE, sink_type is OUTPAD_TYPE.\n");
+            /* printf("source_type is INPAD_TYPE, sink_type is OUTPAD_TYPE.\n"); */
             delay_source_to_sink = delta_inpad_to_outpad[delta_x][delta_y];
         } else {
-            printf("source_type is INPAD_TYPE, sink_type is INPAD_TYPE.\n");
+            /* printf("source_type is INPAD_TYPE, sink_type is INPAD_TYPE.\n"); */
             printf("Error in compute_point_to_point_delay in place.c, \
                     cannot from input pad to input pad\n");
             exit(1);
@@ -4417,7 +4418,6 @@ static void compute_delta_td_cost(int from_block,
                                   double* delta_timing,
                                   double* delta_delay)
 {
-    printf("In compute_delta_td_cost()... \n");
     int inet, k, ipin;
 
     double delta_timing_cost = 0.0;
@@ -5253,11 +5253,9 @@ get_bb_from_scratch(int inet,
 
 /* WMF: Finds the estimate of wirelength due to one net by looking at   *
  * its coordinate bounding box.                                         */
-static double
-get_net_wirelength_estimate(int inet,
-                            bbox_t* bbptr)
+static double get_net_wirelength_estimate(int inet,
+                                          bbox_t* bbptr)
 {
-
     const int knum_net_pins = net[inet].num_net_pins;
     double ncost, crossing;
     /* Get the expected "crossing count" of a net, based on its number *
@@ -5309,8 +5307,15 @@ static double get_net_cost(int inet,
     const int xmax = bbox_ptr->xmax;
     const int ymin = bbox_ptr->ymin;
     const int ymax = bbox_ptr->ymax;
-    double net_cost = (xmax - xmin + 1) * crossing * chanx_place_cost_fac[ymax][ymin-1];
-    net_cost += (ymax - ymin + 1) * crossing * chany_place_cost_fac[xmax][xmin-1];
+    assert((xmin >= 0 && xmin <= num_grid_columns + 1) && (xmax >= 0 &&
+              xmax <= num_grid_columns + 1));
+    assert((ymin >= 0 && ymin <= num_grid_rows + 1) && (ymax >= 0 &&
+              ymax <= num_grid_rows + 1));
+
+    double net_cost = (xmax - xmin + 1) * crossing *
+                         chanx_place_cost_fac[ymax][ymin-1];
+    net_cost += (ymax - ymin + 1) * crossing *
+                         chany_place_cost_fac[xmax][xmin-1];
 
     return net_cost;
 }  /* end of static double get_net_cost(int inet, ) */
@@ -5708,8 +5713,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
 
         for (low = 0; low < high; low++) {
             chanx_place_cost_fac[high][low] =
-                chanx_place_cost_fac[high - 1][low] +
-                chan_width_x[high];
+                chanx_place_cost_fac[high - 1][low] + chan_width_x[high];
         }
     }
 
@@ -5726,7 +5730,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
                                               chanx_place_cost_fac[high][low];
             chanx_place_cost_fac[high][low] =
                 pow((double)chanx_place_cost_fac[high][low],
-                    (double)place_cost_exp);
+                        (double)place_cost_exp);
         }
 
     /* Now do the same thing for the y-directed channels.  First get the  *
@@ -5737,8 +5741,7 @@ static void alloc_and_load_for_fast_cost_update(double place_cost_exp)
 
         for (low = 0; low < high; low++) {
             chany_place_cost_fac[high][low] =
-                chany_place_cost_fac[high - 1][low] +
-                chan_width_y[high];
+                chany_place_cost_fac[high - 1][low] + chan_width_y[high];
         }
     }
 

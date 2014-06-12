@@ -1466,7 +1466,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
      * blocks list.                                                         */
     int from_block = my_irand(num_blocks - 1); /* choose from blocks randomly */
     const block_types_t kfrom_block_type = blocks[from_block].block_type;
-    if (kfrom_block_type == B_CLB_TYPE) {
+    /* if (kfrom_block_type == B_CLB_TYPE) {
         printf("from_block_type is CLB_TYPE.\n");
     } else if (kfrom_block_type == INPAD_TYPE) {
         printf("from_block_type is INPAD_TYPE.\n");
@@ -1475,10 +1475,10 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     } else {
         printf("ERROR block type.\n");
         exit(1);
-    }
+    } */
 
     if (placer_paras_ptr->m_fixed_pins == TRUE) {
-        while (blocks[from_block].block_type != B_CLB_TYPE) {
+        while (kfrom_block_type != B_CLB_TYPE) {
             from_block = my_irand(num_blocks - 1);
         }
     }
@@ -1492,7 +1492,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* find the plb or io_pad (x_to, y_to) randomly */
     find_to(x_from,
             y_from,
-            blocks[from_block].block_type,
+            kfrom_block_type,
             placer_paras_ptr->m_range_limit,
             &x_to,
             &y_to);
@@ -1541,7 +1541,7 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
     /* Now update the cost function. May have to do major optimizations here    *
      * later. I'm using negative values of temp_net_cost as a flag, so DO NOT   *
      * use cost-functions that can go negative.                                 */
-    const int num_of_pins = g_pins_on_block[blocks[from_block].block_type];
+    const int num_of_pins = g_pins_on_block[kfrom_block_type];
     /* When blocks[to_block] was a EMPTY, it only deal with blocks[from_block] */
     const int num_nets_affected = find_affected_nets(nets_to_update,
                                                      net_block_moved,
