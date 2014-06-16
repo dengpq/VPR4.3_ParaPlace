@@ -423,8 +423,8 @@ static void set_subblock_count(int block_num, int num_subblocks)
      * Properly allocates whatever temporary storage is needed.           */
     if (block_num >= temp_block_storage) {
         temp_block_storage *= 2;
-        num_subblocks_per_block = (int*) my_realloc
-                                  (num_subblocks_per_block, temp_block_storage * sizeof(int));
+        num_subblocks_per_block = (int*)my_realloc(num_subblocks_per_block,
+                                                   temp_block_storage * sizeof(int));
     }
 
     num_subblocks_per_block[block_num] = num_subblocks;
@@ -554,7 +554,6 @@ static void add_io(int doall,
 {
     ++num_blocks;
     int inet, i;
-    pin_types_t pin_type;
 
     if (doall == 0) {
         set_subblock_count(num_blocks - 1, 0); /* No subblocks for IO_TYPE */
@@ -562,6 +561,7 @@ static void add_io(int doall,
 
     parse_name_and_pinlist(doall, fp_net, buf);
 
+    pin_types_t pin_type;
     if (kblock_type == INPAD_TYPE) {
         ++num_primary_inputs;
         pin_type = DRIVER;

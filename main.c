@@ -200,7 +200,7 @@ int main(int argc, char* argv[])
     }
 
 #ifdef DEBUG
-    print_netlist("net.echo",
+    print_netlist("netlist.echo",
                   netlist_file,
                   subblock_data);
     print_arch(arch_file,
@@ -256,7 +256,7 @@ int main(int argc, char* argv[])
     printf("VPR finish placement and routing. It cost %f seconds.\n",
            cost_time);
 
-    exit(0);
+    return 0;
 }
 
 static void parse_command(int argc,

@@ -362,8 +362,7 @@ static int try_swap(double t,
                     double timing_tradeoff,
                     double inverse_prev_bb_cost,
                     double inverse_prev_timing_cost,
-                    double* delay_cost,
-                    int* x_lookup);
+                    double* delay_cost);
 
 static double check_place(double bb_cost,
                          double timing_cost,
@@ -515,11 +514,8 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                                  timing_info_t      timing_inf,
                                  subblock_data_t*   subblock_data_ptr)
 {
-    /* Allocated here because it goes into timing critical code where each memory allocation is expensive */
-    /* Used to quickly determine valid swap columns */
-    int* x_lookup = (int*)my_malloc(num_grid_columns * sizeof(int));
-
     /*used to free net_delay if it is re-assigned */
+    clock_t  start_time = clock();
     double** remember_net_delay_original_ptr = NULL;
     double** net_slack = NULL;
     double** net_delay = NULL;
@@ -545,6 +541,9 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                                                       &net_delay);
         remember_net_delay_original_ptr = net_delay;
     }
+    clock_t end_time = clock();
+    double cost_time = (end_time - start_time) / CLOCKS_PER_SEC;
+    printf("Building Timing Graph cost %f seconds.\n", cost_time);
 
     boolean fixed_pins = FALSE; /* Can pads move or not? */
     if (placer_opts_ptr->pad_loc_type == FREE) {
@@ -566,8 +565,12 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                                      &old_region_occ_y,
                                      *placer_opts_ptr);
 
+    start_time = clock();
     initial_placement(placer_opts_ptr->pad_loc_type,
                       placer_opts_ptr->pad_loc_file);
+    end_time = clock();
+    cost_time = (end_time - start_time) / CLOCKS_PER_SEC;
+    printf("Initial Placement finished! It cost %f seconds.\n", cost_time);
 
     init_draw_coords((double)width_fac);
 
@@ -576,10 +579,10 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
     /* int g_pins_on_block[5]; */
     g_pins_on_block = (int*)my_malloc(5 * sizeof(int));
     g_pins_on_block[B_CLB_TYPE] = max_pins_per_clb;
-    g_pins_on_block[IO_TYPE] = 24;
+    g_pins_on_block[IO_TYPE] = 1;
     g_pins_on_block[EMPTY_TYPE] = 0;
-    g_pins_on_block[OUTPAD_TYPE] = 24;
-    g_pins_on_block[INPAD_TYPE] = 24;
+    g_pins_on_block[OUTPAD_TYPE] = 1;
+    g_pins_on_block[INPAD_TYPE] = 1;
 
     /* Gets initial cost and loads bounding boxes. */
     double bb_cost = comp_bb_cost(NORMAL,
@@ -673,6 +676,8 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
     }
 
     double range_limit = (double)max(num_grid_columns, num_grid_rows);
+
+    start_time = clock();
     double t = starting_t(&cost,
                           &bb_cost,
                           &timing_cost,
@@ -689,6 +694,9 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                           inverse_prev_bb_cost,
                           inverse_prev_timing_cost,
                           &delay_cost);
+    end_time = clock();
+    cost_time = (end_time - start_time) / CLOCKS_PER_SEC;
+    printf("Set starting temperature OK! It cost %f seconds.\n", cost_time);
 
     int tot_iter = 0;
     printf("Initial Placement Cost: %g bb_cost: %g td_cost: %g delay_cost: %g\n\n",
@@ -712,7 +720,7 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
             delay_cost, max_delay, width_fac);
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
-    clock_t start_cpu = clock();
+    start_time = clock();
     struct  timeval start;
     gettimeofday(&start, NULL);
     my_srandom(0);
@@ -869,7 +877,7 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
 
     pthread_mutex_destroy(&global_data_access.mutex);
 
-    clock_t finish_cpu = clock();
+    end_time = clock();
     struct  timeval finish;
     gettimeofday(&finish, NULL);
     bb_cost = check_place(bb_cost,
@@ -924,9 +932,9 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
     printf("Placement. Cost: %g  bb_cost: %g  td_cost: %g  delay_cost: %g.\n",
            cost, bb_cost, timing_cost, delay_cost);
 
-    printf("inner loop wall: %f sec, cpu total: %f\n",
-            my_difftime2(&start, &finish),
-            (double)(finish_cpu - start_cpu) / CLOCKS_PER_SEC);
+    printf("NUM_OF_THREADS: %d, Inner Loop Wall: %f sec, Main Placement cost %f seconds.\n",
+            NUM_OF_THREADS, my_difftime2(&start, &finish),
+            (double)(end_time - start_time) / CLOCKS_PER_SEC);
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
 #ifdef SPEC
@@ -948,9 +956,6 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                                        &net_delay,
                                        &net_slack);
     }
-
-    free(x_lookup);
-    x_lookup = NULL;
 
     free(g_grid_capacity);
     g_grid_capacity = NULL;
@@ -3441,20 +3446,20 @@ static void update_and_print_common_paras(const int kthread_id,
         const double kcrit_exponent = common_paras_ptr->local_crit_exponent;
         const int ktotal_iter = common_paras_ptr->local_total_iter;
 #ifndef SPEC
-        printf
-        ("%11.5g  %10.6g %11.6g  %11.6g  %11.6g %11.6g %11.4g %9.4g %8.3g  %7.4g  %7.4g  %10d  ",
-         kold_t,
-         kav_cost,
-         kav_bb_cost,
-         kav_timing_cost,
-         kav_delay_cost,
-         common_paras_ptr->local_place_delay_value,
-         common_paras_ptr->local_max_delay,
-         ksuccess_ratio,
-         kstd_dev,
-         krange_limit,
-         kcrit_exponent,
-         ktotal_iter);
+        printf("%d   %11.5g  %10.6g %11.6g  %11.6g  %11.6g %11.6g %11.4g %9.4g %8.3g  %7.4g  %7.4g  %10d  \n",
+               kthread_id,
+               kold_t,
+               kav_cost,
+               kav_bb_cost,
+               kav_timing_cost,
+               kav_delay_cost,
+               common_paras_ptr->local_place_delay_value,
+               common_paras_ptr->local_max_delay,
+               ksuccess_ratio,
+               kstd_dev,
+               krange_limit,
+               kcrit_exponent,
+               ktotal_iter);
 #endif
 
         char msg[BUFSIZE];
@@ -3638,8 +3643,6 @@ static double starting_t(double* cost_ptr,
         return (annealing_sched.init_t);
     }
 
-    int* x_lookup = (int*)my_malloc(num_grid_columns * sizeof(int));
-
     int move_lim = min(max_moves, num_blocks);
     int num_accepted = 0;
     double av = 0.;
@@ -3662,8 +3665,7 @@ static double starting_t(double* cost_ptr,
                      timing_tradeoff,
                      inverse_prev_bb_cost,
                      inverse_prev_timing_cost,
-                     delay_cost_ptr,
-                     x_lookup) == 1) {
+                     delay_cost_ptr) == 1) {
             num_accepted++;
             av += *cost_ptr;
             sum_of_squares += *cost_ptr * (*cost_ptr);
@@ -3692,8 +3694,6 @@ static double starting_t(double* cost_ptr,
            std_dev, av, 20.0 * std_dev);
 #endif
 
-    free(x_lookup);
-
     /* Set the initial temperature to 20 times the standard of deviation */
     /* so that the initial temperature adjusts according to the circuit */
     return (20.0 * std_dev);
@@ -3718,8 +3718,7 @@ static int try_swap(double t,
                     double timing_tradeoff,
                     double inverse_prev_bb_cost,
                     double inverse_prev_timing_cost,
-                    double* delay_cost,
-                    int* x_lookup)
+                    double* delay_cost)
 {
     /* Allocate the local bb_coordinate storage, etc. only once. */
     static bbox_t* bb_coord_new = NULL;
