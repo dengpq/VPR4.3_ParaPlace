@@ -74,8 +74,8 @@ static bbox_t* bb_num_on_edges = NULL;
  * region in the placement.  Used only by the NONLINEAR_CONG cost        *
  * function.  [0..num_region-1][0..num_region-1].  Place_region_x and    *
  * y give the situation for the x and y directed channels, respectively. */
-static place_region_t**  place_region_x;
-static place_region_t**  place_region_y;
+static place_region_t**  place_region_x = NULL;
+static place_region_t**  place_region_y = NULL;
 
 /* Used only with nonlinear congestion.  [0..num_regions]. */
 static double*  place_region_bounds_x;
@@ -1466,17 +1466,6 @@ static int try_swap(const placer_paras_t*  placer_paras_ptr,
      * blocks list.                                                         */
     int from_block = my_irand(num_blocks - 1); /* choose from blocks randomly */
     const block_types_t kfrom_block_type = blocks[from_block].block_type;
-    /* if (kfrom_block_type == B_CLB_TYPE) {
-        printf("from_block_type is CLB_TYPE.\n");
-    } else if (kfrom_block_type == INPAD_TYPE) {
-        printf("from_block_type is INPAD_TYPE.\n");
-    } else if (kfrom_block_type == OUTPAD_TYPE) {
-        printf("from_block_type is OUTPAD_TYPE.\n");
-    } else {
-        printf("ERROR block type.\n");
-        exit(1);
-    } */
-
     if (placer_paras_ptr->m_fixed_pins == TRUE) {
         while (kfrom_block_type != B_CLB_TYPE) {
             from_block = my_irand(num_blocks - 1);

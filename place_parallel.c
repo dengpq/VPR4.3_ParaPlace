@@ -91,16 +91,15 @@ static int* duplicate_pins;
  * no duplicated blocks for ONLY those nets that had duplicates.           */
 static int** unique_pin_list;
 
-
 /* Cost of a net, and a temporary cost of a net used during move assessment. */
-static double* net_cost = NULL, *temp_net_cost = NULL;   /* [0..num_nets-1] */
+static double* net_cost = NULL;
+static double* temp_net_cost = NULL; /* [0..num_nets-1] */
 
 /* [0..num_nets-1][1..num_pins-1]. What is the value of the timing   */
 /* driven portion of the cost function. These arrays will be set to  */
 /* (criticality * Tdel) for each point to point connection. */
 static double** point_to_point_timing_cost = NULL;
 static double** temp_point_to_point_timing_cost = NULL;
-
 
 /* [0..num_nets-1][1..num_pins-1]. What is the value of the Tdel */
 /* for each connection in the circuit */
@@ -114,7 +113,6 @@ static double**  temp_point_to_point_delay_cost = NULL;
 /* each net */
 static int** net_pin_index = NULL;
 
-
 /* [0..num_nets-1].  Store the bounding box coordinates and the number of *
  * blocks on each of a net's bounding box (to allow efficient updates),   *
  * respectively.                                                          */
@@ -125,10 +123,12 @@ static bbox_t* bb_num_on_edges = NULL;
  * region in the placement.  Used only by the NONLINEAR_CONG cost        *
  * function.  [0..num_region-1][0..num_region-1].  Place_region_x and    *
  * y give the situation for the x and y directed channels, respectively. */
-static place_region_t** place_region_x, ** place_region_y;
+static place_region_t**  place_region_x = NULL;
+static place_region_t**  place_region_y = NULL;
 
 /* Used only with nonlinear congestion.  [0..num_regions].            */
-static double* place_region_bounds_x, *place_region_bounds_y;
+static double* place_region_bounds_x = NULL;
+static double* place_region_bounds_y = NULL;
 
 /* The arrays below are used to precompute the inverse of the average   *
  * number of tracks per channel between [subhigh] and [sublow].  Access *
@@ -579,7 +579,7 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
     /* int g_pins_on_block[5]; */
     g_pins_on_block = (int*)my_malloc(5 * sizeof(int));
     g_pins_on_block[B_CLB_TYPE] = max_pins_per_clb;
-    g_pins_on_block[IO_TYPE] = 1;
+    g_pins_on_block[IO_TYPE] = 1; /* not 24 */
     g_pins_on_block[EMPTY_TYPE] = 0;
     g_pins_on_block[OUTPAD_TYPE] = 1;
     g_pins_on_block[INPAD_TYPE] = 1;
@@ -1117,7 +1117,7 @@ static void* try_place_parallel(pthread_data_t* input_args)
             /*parallel timing update. Only run timing update once per
              * 'timing_update_threadhold' iterations */
             if (freq >= timing_update_threshold) {
-                /* It first calculate all vertexes arr_time and req_time parallel */
+            /* It first calculate all vertexes arr_time and req_time parallel */
                 perform_timing_analyze_parallel(kthread_id,
                                                 &(common_paras.local_net_delay),
                                                 input_args,
@@ -1323,7 +1323,8 @@ static void  try_place_a_subregion(const int  kthread_id,
     for (x_from = hori_start_bound; x_from < hori_end_bound; ++x_from) {
         for (y_from = vert_start_bound; y_from < vert_end_bound; ++y_from) {
             if ((local_grid[x_from][y_from].grid_type == EMPTY_TYPE)
-                  || (kfixed_pins && local_grid[x_from][y_from].grid_type == IO_TYPE)) {
+                  || (kfixed_pins && local_grid[x_from][y_from].grid_type
+                        == IO_TYPE)) {
                 continue;
             }
             const int kcapacity = local_grid[x_from][y_from].m_capacity;
@@ -1346,9 +1347,12 @@ static void  try_place_a_subregion(const int  kthread_id,
                         ++(common_paras_ptr->local_success_sum);
                         const double ktotal_cost = common_paras_ptr->local_total_cost;
                         common_paras_ptr->local_av_cost += ktotal_cost;
-                        common_paras_ptr->local_av_bb_cost += common_paras_ptr->local_bb_cost;
-                        common_paras_ptr->local_av_timing_cost += common_paras_ptr->local_timing_cost;
-                        common_paras_ptr->local_av_delay_cost += common_paras_ptr->local_delay_cost;
+                        common_paras_ptr->local_av_bb_cost +=
+                            common_paras_ptr->local_bb_cost;
+                        common_paras_ptr->local_av_timing_cost +=
+                            common_paras_ptr->local_timing_cost;
+                        common_paras_ptr->local_av_delay_cost +=
+                            common_paras_ptr->local_delay_cost;
                         common_paras_ptr->local_sum_of_squares +=
                             ktotal_cost * ktotal_cost;
                     }
