@@ -71,6 +71,13 @@ typedef struct pthread_data {
     double* crit_exponent;
     int* exit;
     double* range_limit;
+    int*    m_prob;
+    /* New added for random placement for 4 Sub-Region of each thread */
+    /* initial as 0, when all element for 1, then reinitial as 0 */
+    int random_num_;
+    /* it initial as 0, when generated a random number(0, 1, 2, 3), it add 1, *
+     * when it equal 4, it reinitial as 0, and random_record initial as 0 */
+    int  placed_sub_regions;
 } __attribute__((aligned(64))) pthread_data_t;
 
 

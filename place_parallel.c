@@ -22,7 +22,7 @@
 
 #define _XOPEN_SOURCE  600
 #define T_CONSTANT_GENERATOR   -1000  /* Essentially -ve infinity */
-#define PROB  10
+/* #define PROB  10 */
 #define TIMING_UPDATE    5
 #define PARITION_UPDATE  80  /* why? */
 
@@ -37,7 +37,7 @@
 #define ERROR_TOL .0025
 #define MAX_MOVES_BEFORE_RECOMPUTE 50000
 
-
+const double kFLOAT_ZERO = 0.0000000001; /* 1e-010 */
 /* Partitioning parameter.
  * The bin_grids will be partitioned into x_partition rows *
  * and y_partition columns.                *
@@ -106,7 +106,6 @@ static double** temp_point_to_point_timing_cost = NULL;
 static double**  point_to_point_delay_cost = NULL;
 static double**  temp_point_to_point_delay_cost = NULL;
 
-
 /* [0..num_blocks-1][0..max_pins_per_clb-1]. Indicates which pin on the net */
 /* this blocks corresponds to, this is only required during timing-driven */
 /* placement. It is used to allow us to update individual connections on */
@@ -150,6 +149,24 @@ static const double cross_count[50] = { /* [0..49] */
     2.2646, 2.2958, 2.3271, 2.3583, 2.3895, 2.4187, 2.4479, 2.4772, 2.5064, 2.5356,
     2.5610, 2.5864, 2.6117, 2.6371, 2.6625, 2.6887, 2.7148, 2.7410, 2.7671, 2.7933
 };
+
+/* due to set random number for all threads, I change thread_data_array from global variable */
+pthread_data_t thread_data_array[NUM_OF_THREADS];
+
+/* s_randnum_used_times was used to record the random_num(0, 1, 2 or 3, the 4 *
+ * random numbers.) used time. Once s_randnum_used_times == NUM_OF_THREADS,   *
+ * then generate another no-repeated random_num */
+static int s_randnum_used_times = 0;  /* == NUM_OF_THREADS */
+
+/* this static varaible used to record the number of random number, once  *
+ * s_randnum_generated_count == NUM_OF_SUB_REGIONS, then g_record_randnum *
+ * should re-initialize as {0, 0, 0, 0} */
+static int s_randnum_generated_count = 0; /* == NUM_OF_SUB_REGIONS */
+
+/* g_record_randum[NUM_OF_SUB_REGIONS] initial as {0, 0, 0, 0}, once 1 generated, *
+ * g_record_randnum[1] = 1. This array was used for generating non-repeated number.*
+ * Once */
+int  g_record_randnum[NUM_OF_SUB_REGIONS];
 /*****************************************************************************
  *       The following function were designed for Parallel Placememt         *
  ****************************************************************************/
@@ -162,9 +179,9 @@ static void* try_place_parallel(pthread_data_t* args);
 static void  try_place_a_subregion(const int  kthread_id,
                                    const int  krow,
                                    const int  kcol,
-                                   const int  prob,
+                                   const int  kprob,
                                    int*  move_counter,
-                                   thread_local_common_paras_t*  common_paras_ptr,
+                                   thread_local_common_paras_t* common_paras_ptr,
                                    thread_local_data_for_swap_t* swap_data_ptr);
 
 /* try_place_parallel directed-called functions */
@@ -515,7 +532,6 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                                  subblock_data_t*   subblock_data_ptr)
 {
     /*used to free net_delay if it is re-assigned */
-    clock_t  start_time = clock();
     double** remember_net_delay_original_ptr = NULL;
     double** net_slack = NULL;
     double** net_delay = NULL;
@@ -541,9 +557,6 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                                                       &net_delay);
         remember_net_delay_original_ptr = net_delay;
     }
-    clock_t end_time = clock();
-    double cost_time = (end_time - start_time) / CLOCKS_PER_SEC;
-    printf("Building Timing Graph cost %f seconds.\n", cost_time);
 
     boolean fixed_pins = FALSE; /* Can pads move or not? */
     if (placer_opts_ptr->pad_loc_type == FREE) {
@@ -565,12 +578,8 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                                      &old_region_occ_y,
                                      *placer_opts_ptr);
 
-    start_time = clock();
     initial_placement(placer_opts_ptr->pad_loc_type,
                       placer_opts_ptr->pad_loc_file);
-    end_time = clock();
-    cost_time = (end_time - start_time) / CLOCKS_PER_SEC;
-    printf("Initial Placement finished! It cost %f seconds.\n", cost_time);
 
     init_draw_coords((double)width_fac);
 
@@ -677,7 +686,6 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
 
     double range_limit = (double)max(num_grid_columns, num_grid_rows);
 
-    start_time = clock();
     double t = starting_t(&cost,
                           &bb_cost,
                           &timing_cost,
@@ -694,9 +702,6 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
                           inverse_prev_bb_cost,
                           inverse_prev_timing_cost,
                           &delay_cost);
-    end_time = clock();
-    cost_time = (end_time - start_time) / CLOCKS_PER_SEC;
-    printf("Set starting temperature OK! It cost %f seconds.\n", cost_time);
 
     int tot_iter = 0;
     printf("Initial Placement Cost: %g bb_cost: %g td_cost: %g delay_cost: %g\n\n",
@@ -720,7 +725,7 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
             delay_cost, max_delay, width_fac);
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
-    start_time = clock();
+    clock_t start_time = clock();
     struct  timeval start;
     gettimeofday(&start, NULL);
     my_srandom(0);
@@ -755,11 +760,17 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
     double success_rat;
     double av_cost, av_bb_cost, av_timing_cost, av_delay_cost, sum_of_squares;
     double std_dev;
+    int local_prob = placer_opts_ptr->m_prob;
 
-    pthread_data_t thread_data_array[NUM_OF_THREADS];
+    /* pthread_data_t thread_data_array[NUM_OF_THREADS]; */
     pthread_t place_threads[NUM_OF_THREADS];
 
+    /* Then initial g_record_randnum[NUM_OF_SUB_REGIONS] as {0, 0, 0, 0}*/
     int thd_id = -1;
+    for (thd_id = 0; thd_id < NUM_OF_SUB_REGIONS; ++thd_id) {
+        g_record_randnum[thd_id] = 0;
+    }
+
     for (thd_id = NUM_OF_THREADS - 1; thd_id >= 0 ; --thd_id) {
         /* for x_start */
         if (thd_id % horizon_regions == 0 || horizon_regions == 1) {
@@ -857,6 +868,12 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
         thread_data_array[thd_id].crit_exponent = &crit_exponent;
         thread_data_array[thd_id].exit = &exit;
         thread_data_array[thd_id].range_limit = &range_limit;
+        thread_data_array[thd_id].m_prob = &local_prob;
+
+        /* new added random_number */
+        thread_data_array[thd_id].random_num_ = -1;
+
+        thread_data_array[thd_id].placed_sub_regions = 0;
 
         assert(thread_data_array[thd_id].y_end > thread_data_array[thd_id].y_start);
 
@@ -877,7 +894,7 @@ void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,
 
     pthread_mutex_destroy(&global_data_access.mutex);
 
-    end_time = clock();
+    clock_t end_time = clock();
     struct  timeval finish;
     gettimeofday(&finish, NULL);
     bb_cost = check_place(bb_cost,
@@ -1058,8 +1075,8 @@ static void* try_place_parallel(pthread_data_t* input_args)
         exit(-1);
     }
 
-    thread_local_common_paras_t  common_paras;
-    /* initial_common_paras() initial all thread_data variables */
+    thread_local_common_paras_t common_paras;
+    /* use input_args to initial all thread_data variables in common_paras */
     initial_common_paras(input_args,
                          &common_paras);
 
@@ -1089,7 +1106,7 @@ static void* try_place_parallel(pthread_data_t* input_args)
     }
 
     /* program specific parameters */
-    int prob = PROB; /* 10 */
+    int prob = *(input_args->m_prob); /* default prob is 10 */
     int timing_update_threshold = TIMING_UPDATE; /* 5 */
     /* ensures timing update will occurduring first iteration */
     int freq = timing_update_threshold;
@@ -1097,7 +1114,7 @@ static void* try_place_parallel(pthread_data_t* input_args)
     /*=========    NOW STARTING MAIN PLACEMENT  =======*/
     int iter = 0;
     int move_counter = -1;
-    while (common_paras.local_temper != 0.0) {
+    while (fabs(common_paras.local_temper) > kFLOAT_ZERO) {
         /*  First update parameters that used for controlloing placement! */
         common_paras.local_temper = *(input_args->t);
         int inner_iter_num = *(input_args->inner_iter_num);
@@ -1130,7 +1147,6 @@ static void* try_place_parallel(pthread_data_t* input_args)
                                        common_paras.local_crit_exponent,
                                        common_paras.local_max_delay,
                                        input_args);
-
                 /*reset frequency counter*/
                 freq = 0;
             } else {
@@ -1159,7 +1175,7 @@ static void* try_place_parallel(pthread_data_t* input_args)
                                              input_args,
                                              &common_paras,
                                              &swap_data);
-            /* clear local counters. But why? */
+            /* reinitialize local counters. But why? */
             if (iter == 0) {
                 common_paras.local_success_sum = 0;
                 move_counter = 0;
@@ -1174,7 +1190,7 @@ static void* try_place_parallel(pthread_data_t* input_args)
             /* Iterate through each sub-regions of the bin_grids. FIXME, each region
              * had 2x2 sub-regions. */
             int row, col;
-            for (row = 0; row < 2; ++row) {
+            /* for (row = 0; row < 2; ++row) {
                 for (col = 0; col < 2; ++col) {
                     try_place_a_subregion(kthread_id,
                                           row, col,
@@ -1182,8 +1198,61 @@ static void* try_place_parallel(pthread_data_t* input_args)
                                           &move_counter,
                                           &common_paras,
                                           &swap_data);
-                }  /* end of for(col = 0; col < 2; ++col) */
-            }  /* end of for(row = 0; row < 2; ++row) */
+                }  end of for(col = 0; col < 2; ++col)
+            }   end of for(row = 0; row < 2; ++row)*/
+
+            int randnum = -1;
+            int i = -1;
+            if (0 == s_randnum_used_times) {
+                /* first, generate a non-repeated random number, Once             *
+                 * s_randnum_generated_count == NUM_OF_SUB_REGIONS, It stands for * 
+                 * 0, 1, 2, 3 had used. Then it should re-generate randnum [0, 4) */
+                if (NUM_OF_SUB_REGIONS == s_randnum_generated_count) {
+                    for (i = 0; i < NUM_OF_SUB_REGIONS; ++i) {
+                        g_record_randnum[i] = 0;
+                    }
+                }
+                randnum = rand() % NUM_OF_SUB_REGIONS;
+                if (g_record_randnum[randnum] > 0) {
+                    randnum = rand() % NUM_OF_SUB_REGIONS;
+                }
+                g_record_randnum[randnum] = 1;
+                ++s_randnum_generated_count;
+
+                /* second, assign randnum for all other threads in thread_data_array */
+                for (i = 0; i < NUM_OF_THREADS; ++i) {
+                    thread_data_array[i].random_num_ = randnum;
+                }
+
+                /* third, use this randum to place subregion of current thread */
+                row = randnum / 2;
+                col = randnum % 2;
+                try_place_a_subregion(kthread_id,
+                                      row, col,
+                                      prob,
+                                      &move_counter,
+                                      &common_paras,
+                                      &swap_data);
+                /* four, Don't forget ++s_randnum_used_times */
+                s_randnum_used_times += 1;
+            } else { /* randnum had generated, use it directly */
+                /* first, get the randnum directly. */
+                randnum = thread_data_array[kthread_id].random_num_;
+                row = randnum / 2;
+                col = randnum % 2;
+                /* second, use this randnum place subregion in current thread */
+                try_place_a_subregion(kthread_id,
+                                      row, col,
+                                      prob,
+                                      &move_counter,
+                                      &common_paras,
+                                      &swap_data);
+                /* third, s_randnum_used_times += 1, and judge it used times*/
+                ++s_randnum_used_times;
+                if (NUM_OF_THREADS == s_randnum_used_times) {
+                    s_randnum_used_times = 0;
+                }
+            }
 
             /*prepare for bb_box calculation*/
             if (pthread_mutex_trylock(&global_data_access.mutex) != 0) {
@@ -1237,7 +1306,7 @@ static void* try_place_parallel(pthread_data_t* input_args)
         if (common_paras.local_temper != 0.0) {
             barrier_polling(common_paras.local_thread_id);
         }
-    }  /* end of while (t != 0.0) */
+    } /* end of while (t != 0.0) */
 
     /* free resources */
     int inet = -1;
@@ -1287,11 +1356,11 @@ static void* try_place_parallel(pthread_data_t* input_args)
 } /* end of void* try_place_parallel(void* args) */
 
 static void  try_place_a_subregion(const int  kthread_id,
-                                   const int  krow,
-                                   const int  kcol,
-                                   const int  prob,
+                                   const int  ksubregion_row, /*0 ~ 1*/
+                                   const int  ksubregion_col, /*0 ~ 1*/
+                                   const int  kprob,
                                    int*     move_counter,
-                                   thread_local_common_paras_t*  common_paras_ptr,
+                                   thread_local_common_paras_t* common_paras_ptr,
                                    thread_local_data_for_swap_t* swap_data_ptr)
 {
     barrier_polling(kthread_id);
@@ -1307,14 +1376,14 @@ static void  try_place_a_subregion(const int  kthread_id,
                                   kregion_y_boundary,
                                   local_grid,
                                   local_block,
-                                  krow,
-                                  kcol);
+                                  ksubregion_row,
+                                  ksubregion_col);
 
-    /*sequentially consider each blocks within the sub-region*/
-    const int hori_start_bound = kregion_x_boundary[krow];
-    const int hori_end_bound  =  kregion_x_boundary[krow + 1];
-    const int vert_start_bound = kregion_y_boundary[kcol];
-    const int vert_end_bound  =  kregion_y_boundary[kcol + 1];
+    /*sequentially consider each blocks within the Sub-Region*/
+    const int hori_start_bound = kregion_x_boundary[ksubregion_row];
+    const int hori_end_bound  =  kregion_x_boundary[ksubregion_row + 1];
+    const int vert_start_bound = kregion_y_boundary[ksubregion_col];
+    const int vert_end_bound  =  kregion_y_boundary[ksubregion_col + 1];
     const boolean kfixed_pins = common_paras_ptr->local_fixed_pins;
     const double kt = common_paras_ptr->local_temper;
     int x_from = 0;
@@ -1336,11 +1405,12 @@ static void  try_place_a_subregion(const int  kthread_id,
                 }
 
                 /* PROB_SKIPPED */
-                if (my_irand_parallel(100, kthread_id) >= prob) {
+                if (my_irand_parallel(100, kthread_id) >= kprob) {
                     ++(*move_counter);
                     int return_val = try_swap_parallel(kt, kthread_id,
                                                        x_from, y_from, z_from,
-                                                       krow, kcol,
+                                                       ksubregion_row,
+                                                       ksubregion_col,
                                                        common_paras_ptr,
                                                        swap_data_ptr);
                     if (return_val == 1) {
@@ -1356,7 +1426,7 @@ static void  try_place_a_subregion(const int  kthread_id,
                         common_paras_ptr->local_sum_of_squares +=
                             ktotal_cost * ktotal_cost;
                     }
-                } /* end of if(my_irand_parallel(100, kthread_id) >= prob) */
+                } /* end of if(my_irand_parallel(100, kthread_id) >= kprob) */
             } /* end of for(z_from = 0; z_from < local_grid[x_from][y_from].type->capacity; ++z_from) */
         } /* end of for(y_from = vert_start_bound; y_from < vert_end_bound; ++y_from) */
     } /* end of for(x_from = hori_start_bound; x_from < hori_end_bound; ++x_from) */
@@ -1364,18 +1434,18 @@ static void  try_place_a_subregion(const int  kthread_id,
     /*update global data with local changes*/
     update_from_local_to_global(local_block,
                                 local_grid,
-                                max(0, kregion_x_boundary[krow] - 2),
+                                max(0, kregion_x_boundary[ksubregion_row] - 2),
                                 min(num_grid_columns + 2,
-                                    kregion_x_boundary[krow + 1] + 2),
-                                max(0, kregion_y_boundary[kcol] - 2),
+                                    kregion_x_boundary[ksubregion_row + 1] + 2),
+                                max(0, kregion_y_boundary[ksubregion_col] - 2),
                                 min(num_grid_rows + 2,
-                                    kregion_y_boundary[kcol + 1] + 2));
+                                    kregion_y_boundary[ksubregion_col + 1] + 2));
 } /* end of static void try_place_a_subregion() */
 
 /* FIXME, Important funtion! It initial all imporant parameters that used for *
  * parallel placement.                                                        */
 static void initial_common_paras(pthread_data_t*  input_args,
-                                 thread_local_common_paras_t*  common_paras_ptr)
+                                 thread_local_common_paras_t* common_paras_ptr)
 {
     /*thread-dependent data*/
     common_paras_ptr->local_thread_id = input_args->thread_id;
@@ -2971,12 +3041,14 @@ static int  try_swap_parallel(const double kt,
 {
     /* the flow of try_swap_parallel was that: (1) find to_block, it will swap *
      * with to_block */
-    /*constrain the swap region*/
+    /*Attention, constrain the swap region*/
     const double krange_limit = common_paras_ptr->local_range_limit;
-    int limit = min(10, (int)krange_limit);
+    /* int limit = krange_limit;  no constrain for swap_range_limit.*/
+    int limit = min(10, (int)krange_limit); /* maximize swap_range: 20 */
 
     const int* kregion_x_boundary = common_paras_ptr->local_region_x_boundary;
     const int* kregion_y_boundary = common_paras_ptr->local_region_y_boundary;
+    /* x_min, x_max, y_min, y_max was Extend Sub-Region boundaries */
     int x_min = max(kregion_x_boundary[krow] - 2, 0);
     int x_max = min(kregion_x_boundary[krow + 1] + 1,
                     num_grid_columns + 1);
@@ -3596,14 +3668,14 @@ static double get_std_dev(int n,
 static void update_rlim(double* range_limit,
                         double success_rat)
 {
-    *range_limit = (*range_limit) * (1. - 0.60 + success_rat);
+    *range_limit = (*range_limit) * (1.0 - 0.6 + success_rat);
     double upper_lim = max(num_grid_columns, num_grid_rows);
     *range_limit = min(*range_limit, upper_lim);
-    *range_limit = max(*range_limit, 1.);
+    *range_limit = max(*range_limit, 1.0);
 }
 
 
-/* Return 1 when the exit criterion is met.   */
+/* Return 1 when the exit criterion is met. */
 static int exit_crit(double t,
                      double cost,
                      annealing_sched_t annealing_sched)

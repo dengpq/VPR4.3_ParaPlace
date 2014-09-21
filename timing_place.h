@@ -7,14 +7,15 @@
  * delta_clb_to_outpad, delta_inpad_to_outpad. They are needed for calculate *
  * delay. And This function also allocate timing_place_crit, which store the *
  * weight of all subnets(or connections).                                    */
-void alloc_delay_lookup_matrixes_and_criticalities(const placer_opts_t* placer_opts_ptr,
-                                                   subblock_data_t subblock_data,
-                                                   chan_width_distr_t chan_width_dist,
-                                                   timing_info_t   timing_inf,
-                                                   router_opts_t   router_opts,
-                                                   detail_routing_arch_t det_routing_arch,
-                                                   segment_info_t* segment_inf,
-                                                   double***  net_delay);
+void alloc_delay_lookup_matrixes_and_criticalities(
+         const placer_opts_t* placer_opts_ptr,
+         subblock_data_t subblock_data,
+         chan_width_distr_t chan_width_dist,
+         timing_info_t   timing_inf,
+         router_opts_t   router_opts,
+         detail_routing_arch_t det_routing_arch,
+         segment_info_t* segment_inf,
+         double***  net_delay);
 
 /* calculate all tedges' timing_criticality depend on its slack, critical_delay *
  * and crit_exponent                                                            */

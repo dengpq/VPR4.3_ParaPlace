@@ -182,6 +182,8 @@ int main(int argc, char* argv[])
                   &router_opts,
                   &timing_inf.timing_analysis_enabled,
                   &constant_net_delay);
+    printf("inner_num = %f\n", annealing_sched.inner_num);
+
     /* Parse input circuit and architecture */
     get_input(netlist_file,
               arch_file,
@@ -232,7 +234,6 @@ int main(int argc, char* argv[])
     }
 
     fflush(stdout);
-    clock_t  begin_p_and_r = clock();
     place_and_route(operation,
                     placer_opts,
                     place_file,
@@ -248,13 +249,6 @@ int main(int argc, char* argv[])
                     timing_inf,
                     &subblock_data,
                     chan_width_dist);
-    clock_t  finish_p_and_r = clock();
-    double cost_time = (finish_p_and_r - begin_p_and_r) / CLOCKS_PER_SEC;
-    if (show_graphics) {
-        close_graphics();    /* Close down X Display */
-    }
-    printf("VPR finish placement and routing. It cost %f seconds.\n",
-           cost_time);
 
     return 0;
 }
@@ -312,6 +306,7 @@ static void parse_command(int argc,
     placer_opts->td_place_exp_last = 8;   /*experimental results indicate 8 is good*/
     /* NEW added for support parallel placement, default was FALSE. */
     placer_opts->place_parallel = FALSE;
+    placer_opts->m_prob = 10; /* default probability value is 10 */
     /* Old values for breadth first router: first_iter_pres_fac = 0, *
      * pres_fac_mult = 2, acc_fac = 0.2.                             */
     router_opts->router_algorithm = TIMING_DRIVEN;
@@ -492,7 +487,7 @@ static void parse_command(int argc,
 
         if (strcmp(argv[i], "-fast") == 0) {
             /* Set all parameters for fast compile. */
-            annealing_sched->inner_num = 1;
+            annealing_sched->inner_num = 1.0;
             router_opts->first_iter_pres_fac = 10000;
             router_opts->initial_pres_fac = 10000;
             router_opts->bb_factor = 0;
@@ -550,7 +545,6 @@ static void parse_command(int argc,
 
         if (strcmp(argv[i], "-alpha_t") == 0) {
             annealing_sched->alpha_t = read_double_option(argc, argv, i);
-
             if ((annealing_sched->alpha_t <= 0) ||
                     (annealing_sched->alpha_t >= 1.)) {
                 printf("Error:  -alpha_t value must be between 0. and 1.\n");
@@ -574,10 +568,12 @@ static void parse_command(int argc,
             i += 2;
             continue;
         }
-
+        /* parameter: innner_num should behind place_parallel on, *
+         * 30 + i * 30, i = [0, 12] */
         if (strcmp(argv[i], "-inner_num") == 0) {
-            annealing_sched->inner_num = read_double_option(argc, argv, i);
-            if (annealing_sched->inner_num <= 0.) {
+            /* double local_inner_num = read_double_option(argc, argv, i); */
+            annealing_sched->inner_num = atof(argv[i + 1]);
+            if (annealing_sched->inner_num <= 0.0) {
                 printf("Error:  -inner_num value must be greater than 0.\n");
                 exit(1);
             }
@@ -688,9 +684,20 @@ static void parse_command(int argc,
             continue;
         }
 
+        /* new added for support prob in place parallel */
+        if (strcmp(argv[i], "-prob") == 0) {
+            placer_opts->m_prob = atoi(argv[i + 1]);
+            if (placer_opts->m_prob < 0) { /* from 0 to 100 */
+                printf("Error:  -prob value must be nonnegative.\n");
+                exit(1);
+            }
+
+            i += 2;
+            continue;
+        }
+
         if (strcmp(argv[i], "-timing_tradeoff") == 0) {
             placer_opts->timing_tradeoff = read_double_option(argc, argv, i);
-
             if (placer_opts->timing_tradeoff < 0.) {
                 printf("Error:  -timing_tradeoff value must be nonnegative.\n");
                 exit(1);
@@ -722,7 +729,6 @@ static void parse_command(int argc,
 
         if (strcmp(argv[i], "-block_dist") == 0) {
             placer_opts->block_dist = read_int_option(argc, argv, i);
-
             if (placer_opts->block_dist < 0.) {
                 printf("Error:  -block_dist value must be nonnegative.\n");
                 exit(1);
@@ -1420,13 +1426,11 @@ static int read_int_option(int argc, char* argv[], int iarg)
     num_read = 0;
 
     /* Does value exist for this option? */
-
     if (argc > iarg + 1) {
         num_read = sscanf(argv[iarg + 1], "%d", &value);
     }
 
     /* Value exists and was a proper int? */
-
     if (num_read != 1) {
         printf("Error:  %s option requires an integer parameter.\n\n", argv[iarg]);
         exit(1);
@@ -1441,7 +1445,7 @@ static double read_double_option(int argc, char* argv[], int iarg)
     /* This routine returns the value in argv[iarg+1].  This value must exist *
      * and be a double, or an error message is printed and the program exits.  */
     int num_read = 0;
-    double value = 0;
+    double value = 0.0;
     /* Does value exist for this option? */
     if (argc > iarg + 1) {
         num_read = sscanf(argv[iarg + 1], "%f", &value);
@@ -1455,3 +1459,4 @@ static double read_double_option(int argc, char* argv[], int iarg)
 
     return (value);
 }
+

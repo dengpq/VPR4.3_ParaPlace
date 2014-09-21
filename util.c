@@ -694,7 +694,7 @@ void my_srandom(int seed)
     current_random = (unsigned int)seed;
 
     int a;
-    for (a = 0; a < NUM_OF_THREADS; a++) {
+    for (a = 0; a < NUM_OF_THREADS; ++a) {
         current_rand[a] = (unsigned int)seed;
     }
 }

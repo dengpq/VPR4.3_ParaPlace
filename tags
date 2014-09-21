@@ -1,0 +1,1567 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.9~svn20110310	//
+ABSOLUTE	vpr_types.h	/^    ABSOLUTE,$/;"	e	enum:e_Fc_type
+ALL_NETS	draw.c	/^enum e_draw_net_type {ALL_NETS, HIGHLIGHTED};$/;"	e	enum:e_draw_net_type	file:
+AUTO_SCHED	vpr_types.h	/^    AUTO_SCHED,$/;"	e	enum:sched_type
+BLACK	graphics.h	/^    BLACK,$/;"	e	enum:color_types
+BLOCK_COUNT	timing_place_lookup.c	44;"	d	file:
+BLUE	graphics.h	/^    BLUE,$/;"	e	enum:color_types
+BOTTOM	vpr_types.h	/^    BOTTOM = 1,$/;"	e	enum:e_side
+BOUNDING_BOX_PLACE	vpr_types.h	/^    BOUNDING_BOX_PLACE = 0, \/* HPWL-driven *\/$/;"	e	enum:e_place_algorithm
+BREADTH_FIRST	vpr_types.h	/^    BREADTH_FIRST,$/;"	e	enum:e_router_algorithm
+BUFSIZE	util.h	29;"	d
+BUF_AND_PTRANS_FLAG	check_rr_graph.c	11;"	d	file:
+BUF_FLAG	check_rr_graph.c	9;"	d	file:
+BUTTON_TEXT_LEN	graphics.c	92;"	d	file:
+B_CLB_TYPE	vpr_types.h	/^    B_CLB_TYPE = 0, \/* 1 *\/$/;"	e	enum:e_block_types
+CHANX_COST_INDEX_START	vpr_types.h	/^    CHANX_COST_INDEX_START$/;"	e	enum:e_cost_indices
+CHANX	vpr_types.h	/^    CHANX,$/;"	e	enum:t_rr_type
+CHANY	vpr_types.h	/^    CHANY$/;"	e	enum:t_rr_type
+CHECK_NETLIST_H	check_netlist.h	2;"	d
+CHECK_RAND	util.c	687;"	d	file:
+CHECK_ROUTE_H	check_route.h	2;"	d
+CHECK_RR_GRAPH_H	check_rr_graph.h	2;"	d
+CHECK	place.h	/^    CHECK$/;"	e	enum:cost_methods
+CHUNK_SIZE	util.c	172;"	d	file:
+CLB_IPIN	path_delay2.h	/^    CLB_IPIN,$/;"	e	enum:s_vertex_type_t
+CLB_OPIN	path_delay2.h	/^    CLB_OPIN,$/;"	e	enum:s_vertex_type_t
+CONSTANT_GEN_SOURCE	path_delay2.h	/^    CONSTANT_GEN_SOURCE$/;"	e	enum:s_vertex_type_t
+CYAN	graphics.h	/^    CYAN,$/;"	e	enum:color_types
+C_downstream	net_delay.c	/^    double C_downstream;$/;"	m	struct:s_rc_node	file:
+C_downstream	route_tree_timing.h	/^    double C_downstream;$/;"	m	struct:s_rt_node
+C_ipin_cblock	vpr_types.h	/^    double   C_ipin_cblock;$/;"	m	struct:s_timing_inf
+C_load	vpr_types.h	/^    double C_load;$/;"	m	struct:t_rr_indexed_data
+Cin	vpr_types.h	/^    double Cin;$/;"	m	struct:s_switch_inf
+Cmetal	vpr_types.h	/^    double   Cmetal;$/;"	m	struct:t_seg_details
+Cmetal	vpr_types.h	/^    double  Cmetal;$/;"	m	struct:s_segment_info_t
+C	vpr_types.h	/^    double C;$/;"	m	struct:t_rr_node
+Cout	vpr_types.h	/^    double Cout;$/;"	m	struct:s_switch_inf
+DARKGREEN	graphics.h	/^    DARKGREEN,$/;"	e	enum:color_types
+DARKGREY	graphics.h	/^    DARKGREY,$/;"	e	enum:color_types
+DASHED	graphics.h	/^    DASHED$/;"	e	enum:line_types
+DEBUG_TIMING_PLACE_LOOKUP	timing_place_lookup.c	51;"	d	file:
+DELAY_NORMALIZED	vpr_types.h	/^    DELAY_NORMALIZED,$/;"	e	enum:e_router_base_cost_type
+DELTA	vpr_types.h	/^    DELTA$/;"	e	enum:e_stat
+DEMAND_ONLY	vpr_types.h	/^    DEMAND_ONLY$/;"	e	enum:e_router_base_cost_type
+DETAILED_START	read_arch.c	128;"	d	file:
+DETAILED	vpr_types.h	/^    DETAILED$/;"	e	enum:e_route_type
+DRAW_ALL_BUT_BUFFERS_RR	draw.c	/^enum e_draw_rr_toggle {DRAW_NO_RR = 0, DRAW_ALL_RR, DRAW_ALL_BUT_BUFFERS_RR,$/;"	e	enum:e_draw_rr_toggle	file:
+DRAW_ALL_RR	draw.c	/^enum e_draw_rr_toggle {DRAW_NO_RR = 0, DRAW_ALL_RR, DRAW_ALL_BUT_BUFFERS_RR,$/;"	e	enum:e_draw_rr_toggle	file:
+DRAW_H	draw.h	2;"	d
+DRAW_NODES_AND_SBOX_RR	draw.c	/^                       DRAW_NODES_AND_SBOX_RR, DRAW_NODES_RR$/;"	e	enum:e_draw_rr_toggle	file:
+DRAW_NODES_RR	draw.c	/^                       DRAW_NODES_AND_SBOX_RR, DRAW_NODES_RR$/;"	e	enum:e_draw_rr_toggle	file:
+DRAW_NO_RR	draw.c	/^enum e_draw_rr_toggle {DRAW_NO_RR = 0, DRAW_ALL_RR, DRAW_ALL_BUT_BUFFERS_RR,$/;"	e	enum:e_draw_rr_toggle	file:
+DRIVER	vpr_types.h	/^    DRIVER = 0,$/;"	e	enum:e_pin_type
+DUMPFILE	timing_place_lookup.c	53;"	d	file:
+EMPTY_TYPE	vpr_types.h	/^    EMPTY_TYPE,$/;"	e	enum:e_block_types
+EMPTY	draw.c	12;"	d	file:
+EMPTY	vpr_types.h	21;"	d
+ERROR_TOL	place.c	27;"	d	file:
+ERROR_TOL	place_parallel.c	37;"	d	file:
+ERROR_TOL	route_timing.c	585;"	d	file:
+ERRTAG	util.h	26;"	d
+FALSE	util.h	/^typedef enum {FALSE = 0, TRUE} boolean;$/;"	e	enum:__anon11
+FF_SINK	path_delay2.h	/^    FF_SINK,$/;"	e	enum:s_vertex_type_t
+FF_SOURCE	path_delay2.h	/^    FF_SOURCE,$/;"	e	enum:s_vertex_type_t
+FRACTIONAL	vpr_types.h	/^    FRACTIONAL$/;"	e	enum:e_Fc_type
+FRAGMENT_THRESHOLD	util.c	173;"	d	file:
+FREE	vpr_types.h	/^    FREE,$/;"	e	enum:e_pad_loc_type
+FROM_AND_TO	place.c	25;"	d	file:
+FROM_AND_TO	place_parallel.c	35;"	d	file:
+FROM_X_TO_Y	draw.c	/^enum e_edge_dir {FROM_X_TO_Y, FROM_Y_TO_X}; \/* Chanx to chany or vice versa? *\/$/;"	e	enum:e_edge_dir	file:
+FROM_Y_TO_X	draw.c	/^enum e_edge_dir {FROM_X_TO_Y, FROM_Y_TO_X}; \/* Chanx to chany or vice versa? *\/$/;"	e	enum:e_edge_dir	file:
+FROM	place.c	23;"	d	file:
+FROM	place_parallel.c	33;"	d	file:
+Fc_input	vpr_types.h	/^    double Fc_input;$/;"	m	struct:s_det_routing_arch
+Fc_output	vpr_types.h	/^    double Fc_output;$/;"	m	struct:s_det_routing_arch
+Fc_pad	vpr_types.h	/^    double Fc_pad;$/;"	m	struct:s_det_routing_arch
+Fc_type_t	vpr_types.h	/^typedef enum e_Fc_type Fc_type_t;$/;"	t	typeref:enum:e_Fc_type
+Fc_type	vpr_types.h	/^    enum  e_Fc_type Fc_type;$/;"	m	struct:s_det_routing_arch	typeref:enum:s_det_routing_arch::e_Fc_type
+GAUSSIAN	vpr_types.h	/^    GAUSSIAN,$/;"	e	enum:e_stat
+GLOBALS_H	globals.h	2;"	d
+GLOBAL	vpr_types.h	/^    GLOBAL,$/;"	e	enum:e_route_type
+GRAPHICS_H	graphics.h	2;"	d
+GREEN	graphics.h	/^    GREEN,$/;"	e	enum:color_types
+G_CLB_TYPE	vpr_types.h	/^    G_CLB_TYPE,$/;"	e	enum:e_grid_types
+G_EMPTY_TYPE	vpr_types.h	/^    G_EMPTY_TYPE$/;"	e	enum:e_grid_types
+G_IO_TYPE	vpr_types.h	/^    G_IO_TYPE,$/;"	e	enum:e_grid_types
+HASHSIZE	hash.c	6;"	d	file:
+HASH_H	hash.h	2;"	d
+HEAPSORT_H	heapsort.h	2;"	d
+HIGHLIGHTED	draw.c	/^enum e_draw_net_type {ALL_NETS, HIGHLIGHTED};$/;"	e	enum:e_draw_net_type	file:
+HUGE_FLOAT	vpr_types.h	103;"	d
+IA	util.c	684;"	d	file:
+IC	util.c	685;"	d	file:
+IMPOSSIBLE	timing_place_lookup.h	7;"	d
+IM	util.c	686;"	d	file:
+INITIAL_BLOCK_STORAGE	read_netlist.c	184;"	d	file:
+INOUT	util.h	23;"	d
+INPAD_OPIN	path_delay2.h	/^    INPAD_OPIN,$/;"	e	enum:s_vertex_type_t
+INPAD_SOURCE	path_delay2.h	/^    INPAD_SOURCE,$/;"	e	enum:s_vertex_type_t
+INPAD_TYPE	vpr_types.h	/^    INPAD_TYPE$/;"	e	enum:e_block_types
+INTRINSIC_DELAY	vpr_types.h	/^    INTRINSIC_DELAY,$/;"	e	enum:e_router_base_cost_type
+IN	util.h	21;"	d
+IO_TYPE	vpr_types.h	/^    IO_TYPE,   \/* io_ratio *\/$/;"	e	enum:e_block_types
+IPIN_COST_INDEX	vpr_types.h	/^    IPIN_COST_INDEX,$/;"	e	enum:e_cost_indices
+IPIN	vpr_types.h	/^    IPIN,$/;"	e	enum:t_rr_type
+LEFT	vpr_types.h	/^    LEFT = 2,$/;"	e	enum:e_side
+LIGHTGREY	graphics.h	/^    LIGHTGREY,$/;"	e	enum:color_types
+LINEAR_CONG	vpr_types.h	/^    LINEAR_CONG,$/;"	e	enum:place_cong_types
+LONGLINE	segment_stats.c	10;"	d	file:
+MAGENTA	graphics.h	/^    MAGENTA$/;"	e	enum:color_types
+MAJOR	vpr_types.h	101;"	d
+MAXPIXEL	graphics.c	154;"	d	file:
+MAXPTS	graphics.h	28;"	d
+MAX_CHANNEL_WIDTH	vpr_types.h	107;"	d
+MAX_FONT_SIZE	graphics.c	89;"	d	file:
+MAX_MOVES_BEFORE_RECOMPUTE	place.c	28;"	d	file:
+MAX_MOVES_BEFORE_RECOMPUTE	place_parallel.c	38;"	d	file:
+MAX_SHORT	vpr_types.h	108;"	d
+MINOR	vpr_types.h	100;"	d
+MINPIXEL	graphics.c	155;"	d	file:
+MWIDTH	graphics.c	87;"	d	file:
+NCHUNK	route_common.c	881;"	d	file:
+NDEBUG	vpr_types.h	10;"	d
+NET_COUNT	timing_place_lookup.c	33;"	d	file:
+NET_DELAY_H	net_delay.h	2;"	d
+NET_TIMING_DRIVEN_PLACE	vpr_types.h	/^    NET_TIMING_DRIVEN_PLACE,$/;"	e	enum:e_place_algorithm
+NET_USED_SINK_BLOCK	timing_place_lookup.c	40;"	d	file:
+NET_USED_SOURCE_BLOCK	timing_place_lookup.c	39;"	d	file:
+NET_USED	timing_place_lookup.c	37;"	d	file:
+NEW_TIMING_DRIVEN_PLACE	vpr_types.h	/^    NEW_TIMING_DRIVEN_PLACE$/;"	e	enum:e_place_algorithm
+NONLINEAR_CONG	vpr_types.h	/^    NONLINEAR_CONG$/;"	e	enum:place_cong_types
+NORMAL	place.h	/^    NORMAL,$/;"	e	enum:cost_methods
+NO_FIXED_CHANNEL_WIDTH	vpr_types.h	445;"	d
+NO_GRAPHICS	vpr_types.h	9;"	d
+NO_PICTURE	vpr_types.h	/^    NO_PICTURE,$/;"	e	enum:pic_type
+NO_PREVIOUS	vpr_types.h	658;"	d
+NO_ROUTE_THROUGHS	route_tree_timing.c	236;"	d	file:
+NUMINP	read_arch.c	132;"	d	file:
+NUM_COLOR	graphics.h	7;"	d
+NUM_DETAILED	read_arch.c	125;"	d	file:
+NUM_GRID_TYPES	read_arch.c	11;"	d	file:
+NUM_OF_SUB_REGIONS	vpr_types.h	19;"	d
+NUM_OF_THREADS	vpr_types.h	17;"	d
+NUM_REQUIRED	read_arch.c	124;"	d	file:
+NUM_SUB_PIN_TYPES	path_delay_parallel.c	/^    NUM_SUB_PIN_TYPES$/;"	e	enum:e_subblock_pin_type	file:
+NUM_TIMING	read_arch.c	126;"	d	file:
+OFF	graphics.c	930;"	d	file:
+ON	graphics.c	931;"	d	file:
+OPEN	vpr_types.h	/^    OPEN = -1,$/;"	e	enum:e_pin_type
+OPIN_COST_INDEX	vpr_types.h	/^    OPIN_COST_INDEX,$/;"	e	enum:e_cost_indices
+OPIN	vpr_types.h	/^    OPIN,$/;"	e	enum:t_rr_type
+OUTPAD_IPIN	path_delay2.h	/^    OUTPAD_IPIN,$/;"	e	enum:s_vertex_type_t
+OUTPAD_SINK	path_delay2.h	/^    OUTPAD_SINK,$/;"	e	enum:s_vertex_type_t
+OUTPAD_TYPE	vpr_types.h	/^    OUTPAD_TYPE,$/;"	e	enum:e_block_types
+OUT	util.h	22;"	d
+PARITION_UPDATE	place_parallel.c	27;"	d	file:
+PATH_DELAY2_H	path_delay2.h	2;"	d
+PATH_DELAY_H	path_delay.h	2;"	d
+PATH_DELAY_PARALLEL_H	path_delay_parallel.h	2;"	d
+PATH_TIMING_DRIVEN_PLACE	vpr_types.h	/^    PATH_TIMING_DRIVEN_PLACE,$/;"	e	enum:e_place_algorithm
+PI	graphics.c	90;"	d	file:
+PLACEMENT	vpr_types.h	/^    PLACEMENT,$/;"	e	enum:pic_type
+PLACE_ALWAYS	vpr_types.h	/^    PLACE_ALWAYS$/;"	e	enum:pfreq
+PLACE_AND_ROUTE_H	place_and_route.h	2;"	d
+PLACE_AND_ROUTE	vpr_types.h	/^    PLACE_AND_ROUTE,$/;"	e	enum:e_operation
+PLACE_H	place.h	2;"	d
+PLACE_NEVER	vpr_types.h	/^    PLACE_NEVER,$/;"	e	enum:pfreq
+PLACE_ONCE	vpr_types.h	/^    PLACE_ONCE,$/;"	e	enum:pfreq
+PLACE_ONLY	vpr_types.h	/^    PLACE_ONLY,$/;"	e	enum:e_operation
+PLACE_PARALLEL_H	place_parallel.h	2;"	d
+POSTSCRIPT	graphics.h	5;"	d
+PRINT_NETLIST_H	print_netlist.h	2;"	d
+PTRANS_FLAG	check_rr_graph.c	10;"	d	file:
+PULSE	vpr_types.h	/^    PULSE,$/;"	e	enum:e_stat
+RANDOM	vpr_types.h	/^    RANDOM,$/;"	e	enum:e_pad_loc_type
+READ_ARCH_H	read_arch.h	2;"	d
+READ_NETLIST_H	read_netlist.h	2;"	d
+READ_PLACE_H	read_place.h	2;"	d
+RECEIVER	vpr_types.h	/^    RECEIVER = 1$/;"	e	enum:e_pin_type
+RED	graphics.h	/^    RED,$/;"	e	enum:color_types
+RIGHT	vpr_types.h	/^    RIGHT = 3$/;"	e	enum:e_side
+ROUND_UP	route_timing.c	476;"	d	file:
+ROUTE_BREATH_FIRST_H	route_breadth_first.h	2;"	d
+ROUTE_COMMNO_H	route_common.h	2;"	d
+ROUTE_EXPORT_H	route_export.h	2;"	d
+ROUTE_ONLY	vpr_types.h	/^    ROUTE_ONLY,$/;"	e	enum:e_operation
+ROUTE_TIMING_H	route_timing.h	2;"	d
+ROUTE_TREE_TIMING_H	route_tree_timing.h	2;"	d
+ROUTING	vpr_types.h	/^    ROUTING$/;"	e	enum:pic_type
+RR_GRAPH2_H	rr_graph2.h	2;"	d
+RR_GRAPH_AREA_H	rr_graph_area.h	2;"	d
+RR_GRAPH_H	rr_graph.h	2;"	d
+RR_GRAPH_INDEXED_DATA_H	rr_graph_indexed_data.h	2;"	d
+RR_GRAPH_SBOX_H	rr_graph_sbox.h	2;"	d
+RR_GRAPH_TIMING_PARAMS	rr_graph_timing_params.h	2;"	d
+RR_GRAPH_UTIL_INCLUDED	rr_graph_util.h	2;"	d
+R_minW_nmos	vpr_types.h	/^    double R_minW_nmos;$/;"	m	struct:s_det_routing_arch
+R_minW_pmos	vpr_types.h	/^    double R_minW_pmos;$/;"	m	struct:s_det_routing_arch
+R_upstream	route_common.h	/^    double R_upstream;$/;"	m	struct:s_heap
+R_upstream	route_tree_timing.h	/^    double R_upstream;$/;"	m	struct:s_rt_node
+Rmetal	vpr_types.h	/^    double   Rmetal;$/;"	m	struct:t_seg_details
+Rmetal	vpr_types.h	/^    double  Rmetal;$/;"	m	struct:s_segment_info_t
+R	vpr_types.h	/^    double R;$/;"	m	struct:s_switch_inf
+R	vpr_types.h	/^    double R;$/;"	m	struct:t_rr_node
+SBOX_ERROR	rr_graph_sbox.c	79;"	d	file:
+SCREEN	graphics.h	4;"	d
+SEGMENT_STATS_H	segment_stats.h	2;"	d
+SINK_BLOCK	timing_place_lookup.c	42;"	d	file:
+SINK_COST_INDEX	vpr_types.h	/^    SINK_COST_INDEX,$/;"	e	enum:e_cost_indices
+SINK	vpr_types.h	/^    SINK,$/;"	e	enum:t_rr_type
+SMALL_NET	place.c	20;"	d	file:
+SMALL_NET	place_parallel.c	30;"	d	file:
+SOLID	graphics.h	/^    SOLID,$/;"	e	enum:line_types
+SOURCE_BLOCK	timing_place_lookup.c	41;"	d	file:
+SOURCE_COST_INDEX	vpr_types.h	/^    SOURCE_COST_INDEX = 0,$/;"	e	enum:e_cost_indices
+SOURCE	vpr_types.h	/^    SOURCE,$/;"	e	enum:t_rr_type
+STATS_H	stats.h	2;"	d
+SUBBLK_IPIN	path_delay2.h	/^    SUBBLK_IPIN,$/;"	e	enum:s_vertex_type_t
+SUBBLK_OPIN	path_delay2.h	/^    SUBBLK_OPIN,$/;"	e	enum:s_vertex_type_t
+SUBSET	vpr_types.h	/^    SUBSET,$/;"	e	enum:e_switch_block_type
+SUB_CLOCK	path_delay_parallel.c	/^    SUB_CLOCK,$/;"	e	enum:e_subblock_pin_type	file:
+SUB_INPUT	path_delay_parallel.c	/^    SUB_INPUT = 0,$/;"	e	enum:e_subblock_pin_type	file:
+SUB_OUTPUT	path_delay_parallel.c	/^    SUB_OUTPUT,$/;"	e	enum:e_subblock_pin_type	file:
+TIME_DIFF	place_parallel.h	/^} TIME_DIFF;$/;"	t	typeref:struct:__anon6
+TIMING_ANALYSIS_ONLY	vpr_types.h	/^    TIMING_ANALYSIS_ONLY$/;"	e	enum:e_operation
+TIMING_DRIVEN	vpr_types.h	/^    TIMING_DRIVEN$/;"	e	enum:e_router_algorithm
+TIMING_PLACE_H	timing_place.h	2;"	d
+TIMING_PLACE_LOOKUP_H	timing_place_lookup.h	2;"	d
+TIMING_START	read_arch.c	129;"	d	file:
+TIMING_UPDATE	place_parallel.c	26;"	d	file:
+TOKENS	vpr_types.h	13;"	d
+TOP	vpr_types.h	/^    TOP = 0,$/;"	e	enum:e_side
+TO	place.c	24;"	d	file:
+TO	place_parallel.c	34;"	d	file:
+TRUE	util.h	/^typedef enum {FALSE = 0, TRUE} boolean;$/;"	e	enum:__anon11
+T_AREA_HEIGHT	graphics.c	88;"	d	file:
+T_CONSTANT_GENERATOR	path_delay.c	14;"	d	file:
+T_CONSTANT_GENERATOR	path_delay_parallel.c	76;"	d	file:
+T_CONSTANT_GENERATOR	place_parallel.c	24;"	d	file:
+T_clb_ipin_to_sblk_ipin	vpr_types.h	/^    double   T_clb_ipin_to_sblk_ipin;$/;"	m	struct:s_timing_inf
+T_comb	vpr_types.h	/^    double T_comb;$/;"	m	struct:__anon9
+T_ipad	vpr_types.h	/^    double   T_ipad;$/;"	m	struct:s_timing_inf
+T_ipin_cblock	vpr_types.h	/^    double   T_ipin_cblock;$/;"	m	struct:s_timing_inf
+T_linear	vpr_types.h	/^    double T_linear;$/;"	m	struct:t_rr_indexed_data
+T_opad	vpr_types.h	/^    double   T_opad;$/;"	m	struct:s_timing_inf
+T_quadratic	vpr_types.h	/^    double T_quadratic;$/;"	m	struct:t_rr_indexed_data
+T_sblk_opin_to_clb_opin	vpr_types.h	/^    double   T_sblk_opin_to_clb_opin;$/;"	m	struct:s_timing_inf
+T_sblk_opin_to_sblk_ipin	vpr_types.h	/^    double   T_sblk_opin_to_sblk_ipin;$/;"	m	struct:s_timing_inf
+T_seq_in	vpr_types.h	/^    double T_seq_in;$/;"	m	struct:__anon9
+T_seq_out	vpr_types.h	/^    double T_seq_out;$/;"	m	struct:__anon9
+T_subblock_t	vpr_types.h	/^} T_subblock_t;$/;"	t	typeref:struct:__anon9
+T_subblock	vpr_types.h	/^    T_subblock_t* T_subblock;$/;"	m	struct:s_timing_inf
+Tdelless_switch	vpr_types.h	/^    short Tdelless_switch;$/;"	m	struct:s_det_routing_arch
+Tdel	net_delay.c	/^    double Tdel;$/;"	m	struct:s_rc_node	file:
+Tdel	path_delay2.h	/^    double Tdel; \/* delay value in this edge(subnet) *\/$/;"	m	struct:s_edge_t
+Tdel	route_tree_timing.h	/^    double Tdel;$/;"	m	struct:s_rt_node
+Tdel	vpr_types.h	/^    double Tdel;$/;"	m	struct:s_switch_inf
+UNIFORM	vpr_types.h	/^    UNIFORM,$/;"	e	enum:e_stat
+UNIVERSAL	vpr_types.h	/^    UNIVERSAL$/;"	e	enum:e_switch_block_type
+USER_SCHED	vpr_types.h	/^    USER_SCHED$/;"	e	enum:sched_type
+USER	vpr_types.h	/^    USER$/;"	e	enum:e_pad_loc_type
+UTIL_H	util.h	2;"	d
+VPR_TYPES_H	vpr_types.h	3;"	d
+VPR_UTILS_H	vpr_utils.h	2;"	d
+WARNTAG	util.h	27;"	d
+WHITE	graphics.h	/^    WHITE,$/;"	e	enum:color_types
+WILTON	vpr_types.h	/^    WILTON,$/;"	e	enum:e_switch_block_type
+XPOST	graphics.c	75;"	d	file:
+XTOWORLD	graphics.c	81;"	d	file:
+YELLOW	graphics.h	/^    YELLOW,$/;"	e	enum:color_types
+YPOST	graphics.c	76;"	d	file:
+YTOWORLD	graphics.c	82;"	d	file:
+_XOPEN_SOURCE	place_parallel.c	23;"	d	file:
+acc_cost	route_common.h	/^    double acc_cost;$/;"	m	struct:__anon3
+acc_fac	vpr_types.h	/^    double acc_fac;$/;"	m	struct:s_router_opts
+add_clb	read_netlist.c	/^static char* add_clb(int doall, FILE* fp_net, char* buf)$/;"	f	file:
+add_global	read_netlist.c	/^static void add_global(int doall, FILE* fp_net, char* buf)$/;"	f	file:
+add_io	read_netlist.c	/^static void add_io(int doall,$/;"	f	file:
+add_net	read_netlist.c	/^static int add_net(char* ptr,$/;"	f	file:
+add_path_to_route_tree	route_tree_timing.c	/^static t_rt_node* add_path_to_route_tree(struct s_heap* hptr, t_rt_node$/;"	f	file:
+add_route_tree_to_heap	route_timing.c	/^static void add_route_tree_to_heap(t_rt_node* rt_node, int target_node,$/;"	f	file:
+add_rr_graph_C_from_switches	rr_graph_timing_params.c	/^void add_rr_graph_C_from_switches(double C_ipin_cblock)$/;"	f
+add_to_heap	route_common.c	/^static void add_to_heap(struct s_heap* hptr)$/;"	f	file:
+add_to_mod_list	route_common.c	/^void add_to_mod_list(double* fptr)$/;"	f
+add_to_rc_tree	net_delay.c	/^static void add_to_rc_tree(t_rc_node* parent_rc, t_rc_node* child_rc, short$/;"	f	file:
+add_to_sort_heap	heapsort.c	/^static void add_to_sort_heap(int* heap, double* sort_values, int index,$/;"	f	file:
+adjust_one_rr_occ_and_pcost	route_common.c	/^static void adjust_one_rr_occ_and_pcost(int ivex, int add_or_sub, double$/;"	f	file:
+adjustwin	graphics.c	/^static void adjustwin(void (*drawscreen)(void))$/;"	f	file:
+aligned_bar_t	place_parallel.h	/^} __attribute__((aligned(64))) aligned_bar_t;$/;"	t	typeref:struct:aligned_bar
+aligned_bar	place_parallel.h	/^typedef struct aligned_bar {$/;"	s
+aligned_mutex_t	place_parallel.h	/^} __attribute__((aligned(64))) aligned_mutex_t;$/;"	t	typeref:struct:aligned_mutex
+aligned_mutex	place_parallel.h	/^typedef struct aligned_mutex {$/;"	s
+aligned_neighbor_bar_t	place_parallel.h	/^} __attribute__((aligned(64))) aligned_neighbor_bar_t;$/;"	t	typeref:struct:aligned_neighbor_bar
+aligned_neighbor_bar	place_parallel.h	/^typedef struct aligned_neighbor_bar {$/;"	s
+alloc_all_nets_crit	timing_place.c	/^static double** alloc_all_nets_crit(linked_vptr_t** chunk_list_head_ptr)$/;"	f	file:
+alloc_all_nets_local_crit_weight	timing_place.c	/^static double** alloc_all_nets_local_crit_weight(linked_vptr_t** chunk_list_head_ptr)$/;"	f	file:
+alloc_and_assign_internal_structures	timing_place_lookup.c	/^static void alloc_and_assign_internal_structures(net_t** original_net,$/;"	f	file:
+alloc_and_compute_delay_lookup_matrixes	timing_place_lookup.c	/^void alloc_and_compute_delay_lookup_matrixes(router_opts_t      router_opts,$/;"	f
+alloc_and_load_clb_opins_used_locally	route_common.c	/^static vector_t** alloc_and_load_clb_opins_used_locally(subblock_data_t$/;"	f	file:
+alloc_and_load_clb_pin_to_tracks	rr_graph.c	/^static int*** alloc_and_load_clb_pin_to_tracks(pin_types_t pin_type,$/;"	f	file:
+alloc_and_load_edges_and_switches	rr_graph.c	/^void alloc_and_load_edges_and_switches(int ivex, int num_edges,$/;"	f
+alloc_and_load_fanout_counts	path_delay.c	/^static void alloc_and_load_fanout_counts(int*** num_uses_of_clb_ipin_ptr,$/;"	f	file:
+alloc_and_load_for_fast_cost_update	place.c	/^static void alloc_and_load_for_fast_cost_update(double place_cost_exp)$/;"	f	file:
+alloc_and_load_for_fast_cost_update	place_parallel.c	/^static void alloc_and_load_for_fast_cost_update(double place_cost_exp)$/;"	f	file:
+alloc_and_load_pads_to_tracks	rr_graph.c	/^static int** alloc_and_load_pads_to_tracks(int nodes_per_chan, int Fc_pad)$/;"	f	file:
+alloc_and_load_pin_mappings	path_delay.c	/^static int alloc_and_load_pin_mappings(int***  block_pin_to_tnode_ptr,$/;"	f	file:
+alloc_and_load_placement_structs	place.c	/^static void alloc_and_load_placement_structs(const placer_opts_t* placer_opts_ptr,$/;"	f	file:
+alloc_and_load_placement_structs	place_parallel.c	/^static void alloc_and_load_placement_structs(int place_cost_type,$/;"	f	file:
+alloc_and_load_rc_tree	net_delay.c	/^static t_rc_node* alloc_and_load_rc_tree(int inet, t_rc_node** rc_node_free_list_ptr,$/;"	f	file:
+alloc_and_load_rr_clb_source	rr_graph.c	/^static void alloc_and_load_rr_clb_source(int** rr_node_indices,$/;"	f	file:
+alloc_and_load_rr_graph	rr_graph.c	/^static void alloc_and_load_rr_graph(int**  rr_node_indices,$/;"	f	file:
+alloc_and_load_rr_indexed_data	rr_graph_indexed_data.c	/^void alloc_and_load_rr_indexed_data(segment_info_t* segment_inf,$/;"	f
+alloc_and_load_rr_node_indices	rr_graph2.c	/^int** alloc_and_load_rr_node_indices(int nodes_per_clb,$/;"	f
+alloc_and_load_rr_node_route_structs	route_common.c	/^void alloc_and_load_rr_node_route_structs(void)$/;"	f
+alloc_and_load_seg_details	rr_graph2.c	/^segment_details_t* alloc_and_load_seg_details(int nodes_per_chan,$/;"	f
+alloc_and_load_sharable_switch_trans	rr_graph_area.c	/^static double* alloc_and_load_sharable_switch_trans(int num_switch,$/;"	f	file:
+alloc_and_load_switch_block_conn	rr_graph_sbox.c	/^void alloc_and_load_switch_block_conn(int nodes_per_chan,$/;"	f
+alloc_and_load_timing_graph_edge_levels	path_delay2.c	/^int alloc_and_load_timing_graph_edge_levels(void)$/;"	f
+alloc_and_load_timing_graph	path_delay.c	/^void alloc_and_load_timing_graph(const placer_opts_t*  placer_opts_ptr,$/;"	f
+alloc_and_load_tnode_fanin_and_check_edges	path_delay2.c	/^static int* alloc_and_load_tnode_fanin_and_check_edges(int* num_sinks_ptr)$/;"	f	file:
+alloc_and_load_tnodes_and_net_mapping	path_delay.c	/^static void alloc_and_load_tnodes_and_net_mapping(int** num_uses_of_clb_ipin,$/;"	f	file:
+alloc_and_load_tracks_to_clb_ipin	rr_graph.c	/^static vector_t** alloc_and_load_tracks_to_clb_ipin(int nodes_per_chan,$/;"	f	file:
+alloc_and_load_tracks_to_pads	rr_graph.c	/^static vector_t* alloc_and_load_tracks_to_pads(int** pads_to_tracks,$/;"	f	file:
+alloc_and_load_unique_pin_list	place.c	/^static void alloc_and_load_unique_pin_list(void)$/;"	f	file:
+alloc_and_load_unique_pin_list	place_parallel.c	/^static void alloc_and_load_unique_pin_list(void)$/;"	f	file:
+alloc_and_load_unsharable_switch_trans	rr_graph_area.c	/^static double* alloc_and_load_unsharable_switch_trans(int num_switch,$/;"	f	file:
+alloc_block	timing_place_lookup.c	/^static void alloc_block(void)$/;"	f	file:
+alloc_delay_lookup_matrixes_and_criticalities	timing_place.c	/^void alloc_delay_lookup_matrixes_and_criticalities(const placer_opts_t* placer_opts_ptr,$/;"	f
+alloc_delta_arrays	timing_place_lookup.c	/^static void alloc_delta_arrays(void)  \/* FIXME *\/$/;"	f	file:
+alloc_draw_structs	draw.c	/^void alloc_draw_structs(void)$/;"	f
+alloc_hash_table	hash.c	/^hash_t** alloc_hash_table(void) {$/;"	f
+alloc_heap_data	route_common.c	/^static struct s_heap* alloc_heap_data(void) {$/;"	f	file:
+alloc_ivector_and_copy_int_list	util.c	/^void alloc_ivector_and_copy_int_list(t_linked_int** list_head_ptr,$/;"	f
+alloc_linked_f_pointer	route_common.c	/^static struct s_linked_f_pointer* alloc_linked_f_pointer(void) {$/;"	f	file:
+alloc_linked_rc_edge	net_delay.c	/^static t_linked_rc_edge* alloc_linked_rc_edge(t_linked_rc_edge$/;"	f	file:
+alloc_linked_rt_edge	route_tree_timing.c	/^static t_linked_rt_edge* alloc_linked_rt_edge(void)$/;"	f	file:
+alloc_matrix3	util.c	/^void*** alloc_matrix3(int min_row,$/;"	f
+alloc_matrix4	util.c	/^void**** alloc_matrix4(int min_row,$/;"	f
+alloc_matrix	util.c	/^void** alloc_matrix(int min_row,$/;"	f
+alloc_memory_for_swap_data	place_parallel.c	/^static void alloc_memory_for_swap_data(const int max_pins_per_clb,$/;"	f	file:
+alloc_net_delay	net_delay.c	/^double** alloc_net_delay(linked_vptr_t** chunk_list_head_ptr)$/;"	f
+alloc_net_rr_terminals	rr_graph.c	/^static void alloc_net_rr_terminals(void)$/;"	f	file:
+alloc_net_slack	path_delay.c	/^double** alloc_net_slack(void)$/;"	f
+alloc_net	timing_place_lookup.c	/^static void alloc_net(void)$/;"	f	file:
+alloc_place_regions	place.c	/^static void alloc_place_regions(int num_regions)$/;"	f	file:
+alloc_place_regions	place_parallel.c	/^static void alloc_place_regions(int num_regions)$/;"	f	file:
+alloc_rc_node	net_delay.c	/^static t_rc_node* alloc_rc_node(t_rc_node** rc_node_free_list_ptr)$/;"	f	file:
+alloc_route_structs	route_common.c	/^vector_t** alloc_route_structs(subblock_data_t subblock_data)$/;"	f
+alloc_route_tree_timing_structs	route_tree_timing.c	/^void alloc_route_tree_timing_structs(void)$/;"	f
+alloc_routing_structs	timing_place_lookup.c	/^static void alloc_routing_structs(router_opts_t router_opts,$/;"	f	file:
+alloc_rt_node	route_tree_timing.c	/^static t_rt_node* alloc_rt_node(void)$/;"	f	file:
+alloc_saved_routing	route_common.c	/^struct s_trace** alloc_saved_routing(vector_t** clb_opins_used_locally,$/;"	f
+alloc_timing_driven_route_structs	route_timing.c	/^void alloc_timing_driven_route_structs(double** pin_criticality_ptr,$/;"	f
+alloc_trace_data	route_common.c	/^static struct s_trace* alloc_trace_data(void) {$/;"	f	file:
+allocate_and_load_critical_path	path_delay.c	/^t_linked_int* allocate_and_load_critical_path(void)$/;"	f
+alpha_t	vpr_types.h	/^    double alpha_t; \/* factor about descrease the temperature. *\/$/;"	m	struct:s_annealing_sched
+angnorm	graphics.c	/^static double angnorm(double ang)$/;"	f	file:
+annealing_sched_t	vpr_types.h	/^} annealing_sched_t;$/;"	t	typeref:struct:s_annealing_sched
+annealing_sched	place_parallel.h	/^    annealing_sched_t annealing_sched;$/;"	m	struct:pthread_data
+arr_time	path_delay2.h	/^    double  arr_time; \/* arrival_time *\/$/;"	m	struct:s_vertex_t
+arrived	place_parallel.h	/^    int volatile arrived;$/;"	m	struct:aligned_bar
+arrived	place_parallel.h	/^    int volatile arrived[4];$/;"	m	struct:aligned_neighbor_bar
+assess_swap_parallel	place_parallel.c	/^static int assess_swap_parallel(double delta_c,$/;"	f	file:
+assess_swap	place.c	/^static int assess_swap(double delta_cost,$/;"	f	file:
+assess_swap	place_parallel.c	/^static int assess_swap(double delta_c,$/;"	f	file:
+assign_behind_crit_path_through_pin_to_primary_outputs	path_delay.c	/^static void assign_behind_crit_path_through_pin_to_primary_outputs(void)$/;"	f	file:
+assign_blocks_and_route_net	timing_place_lookup.c	/^static double assign_blocks_and_route_net(block_types_t source_type,$/;"	f	file:
+assign_front_crit_path_through_pin_to_primary_inputs	path_delay.c	/^static void assign_front_crit_path_through_pin_to_primary_inputs(void)$/;"	f	file:
+assign_locations	timing_place_lookup.c	/^static void assign_locations(block_types_t source_type,$/;"	f	file:
+astar_fac	vpr_types.h	/^    double astar_fac;$/;"	m	struct:s_router_opts
+av_bb_cost	place_parallel.h	/^    double* av_cost, *av_bb_cost, *av_timing_cost, *av_delay_cost, *sum_of_squares;$/;"	m	struct:pthread_data
+av_cost	place_parallel.h	/^    double* av_cost, *av_bb_cost, *av_timing_cost, *av_delay_cost, *sum_of_squares;$/;"	m	struct:pthread_data
+av_delay_cost	place_parallel.h	/^    double* av_cost, *av_bb_cost, *av_timing_cost, *av_delay_cost, *sum_of_squares;$/;"	m	struct:pthread_data
+av_timing_cost	place_parallel.h	/^    double* av_cost, *av_bb_cost, *av_timing_cost, *av_delay_cost, *sum_of_squares;$/;"	m	struct:pthread_data
+backward_path_cost	route_common.h	/^    double backward_path_cost;$/;"	m	struct:__anon3
+backward_path_cost	route_common.h	/^    double backward_path_cost;$/;"	m	struct:s_heap
+balance_two_consecutive_threads_edge	place_parallel.c	/^static void balance_two_consecutive_threads_edge(const int kthread_id)$/;"	f	file:
+balance_two_consecutive_threads_sinks	place_parallel.c	/^static void balance_two_consecutive_threads_sinks(const int kthread_id)$/;"	f	file:
+barrier_polling_reset	place_parallel.c	/^static void barrier_polling_reset(void)$/;"	f	file:
+barrier_polling	place_parallel.c	/^static void barrier_polling(int kthread_id)$/;"	f	file:
+base_cost	vpr_types.h	/^    double base_cost;$/;"	m	struct:t_rr_indexed_data
+bb_coords	place.c	/^static bbox_t* bb_coords = NULL;$/;"	v	file:
+bb_coords	place_parallel.c	/^static bbox_t* bb_coords = NULL;$/;"	v	file:
+bb_cost	place_parallel.h	/^    double* cost, *bb_cost, *success_rat, *std_dev;$/;"	m	struct:pthread_data
+bb_factor	vpr_types.h	/^    int bb_factor;$/;"	m	struct:s_router_opts
+bb_num_on_edges	place.c	/^static bbox_t* bb_num_on_edges = NULL;$/;"	v	file:
+bb_num_on_edges	place_parallel.c	/^static bbox_t* bb_num_on_edges = NULL;$/;"	v	file:
+bbox_t	vpr_types.h	/^} bbox_t;$/;"	t	typeref:struct:s_bb
+behind_crit_path_through_pin	path_delay2.h	/^double*  behind_crit_path_through_pin; \/* [ivex] *\/$/;"	v
+bend_cost	vpr_types.h	/^    double bend_cost;$/;"	m	struct:s_router_opts
+bin_grids	main.c	/^grid_tile_t** bin_grids;   \/* Architecture blocks list *\/$/;"	v
+binary_search_place_and_route	place_and_route.c	/^static int binary_search_place_and_route(placer_opts_t placer_opts,$/;"	f	file:
+block_color	draw.c	/^static enum color_types* net_color, *block_color;$/;"	v	typeref:enum:	file:
+block_dist	vpr_types.h	/^    int                block_dist;$/;"	m	struct:s_placer_opts
+block_pin_to_tnode	path_delay.h	/^int** block_pin_to_tnode; \/* [0..num_blocks-1][0..max_pins_per_clb-1] *\/$/;"	v
+block_t	vpr_types.h	/^} block_t;$/;"	t	typeref:struct:s_block
+block_type	vpr_types.h	/^    block_types_t  block_type; \/* CLB_TYPE,INPAD_TYPE,OUTPAD_TYPE,IO_TYPE,ILLEGAL *\/$/;"	m	struct:s_block
+block_types_t	vpr_types.h	/^} block_types_t;$/;"	t	typeref:enum:e_block_types
+blocks	main.c	/^block_t* blocks;$/;"	v
+boolean	util.h	/^typedef enum {FALSE = 0, TRUE} boolean;$/;"	t	typeref:enum:__anon11
+boolean	util.h	/^typedef int boolean;$/;"	t
+breadth_first_add_source_to_heap	route_breadth_first.c	/^static void breadth_first_add_source_to_heap(int inet)$/;"	f	file:
+breadth_first_expand_neighbours	route_breadth_first.c	/^static void breadth_first_expand_neighbours(int ivex, double pcost, int inet,$/;"	f	file:
+breadth_first_expand_trace_segment	route_breadth_first.c	/^static void breadth_first_expand_trace_segment(struct s_trace* start_ptr,$/;"	f	file:
+breadth_first_route_net	route_breadth_first.c	/^static boolean breadth_first_route_net(int inet, double bend_cost)$/;"	f	file:
+buffered	vpr_types.h	/^    boolean buffered; \/* buffer or tri-state transistor *\/$/;"	m	struct:s_switch_inf
+build_block_output_tnode	path_delay.c	/^static void build_block_output_tnode(int ivex,$/;"	f	file:
+build_clb_tnodes	path_delay.c	/^static void build_clb_tnodes(int   iblk,$/;"	f	file:
+build_default_menu	graphics.c	/^static void build_default_menu(void)$/;"	f	file:
+build_ipad_tnodes	path_delay.c	/^static void build_ipad_tnodes(int iblk,$/;"	f	file:
+build_opad_tnodes	path_delay.c	/^static void build_opad_tnodes(int* blk_pin_to_tnode,$/;"	f	file:
+build_rr_clb	rr_graph.c	/^static void build_rr_clb(int** rr_node_indices, int Fc_output, int** *$/;"	f	file:
+build_rr_graph	rr_graph.c	/^void build_rr_graph(router_types_t route_type,$/;"	f
+build_rr_pads	rr_graph.c	/^static void build_rr_pads(int** rr_node_indices, int Fc_pad, int$/;"	f	file:
+build_rr_xchan	rr_graph.c	/^static void build_rr_xchan(int** rr_node_indices, router_types_t$/;"	f	file:
+build_rr_ychan	rr_graph.c	/^static void build_rr_ychan(int** rr_node_indices, router_types_t$/;"	f	file:
+build_subblock_tnodes	path_delay.c	/^static void build_subblock_tnodes(int* num_uses_of_sblk_opin,$/;"	f	file:
+build_textarea	graphics.c	/^static void build_textarea(void)$/;"	f	file:
+button	graphics.c	/^static t_button* button;                 \/* [0..num_buttons-1] *\/$/;"	v	file:
+calc_all_tnodes_behind_crit_path_through_pin	path_delay.c	/^static void calc_all_tnodes_behind_crit_path_through_pin(const double crit_delay)$/;"	f	file:
+calc_all_tnodes_front_crit_path_through_pin	path_delay.c	/^static void calc_all_tnodes_front_crit_path_through_pin(const double crit_delay)$/;"	f	file:
+calc_all_vertexs_arr_req_time	path_delay.c	/^double calc_all_vertexs_arr_req_time(double target_cycle_time)$/;"	f
+calc_subnet_local_crit_weight	path_delay.c	/^static void calc_subnet_local_crit_weight(double** net_slack,$/;"	f	file:
+calc_tnodes_arr_time_parallel	path_delay_parallel.c	/^double calc_tnodes_arr_time_parallel(int start_node,$/;"	f
+calc_tnodes_req_time_parallel	path_delay_parallel.c	/^void calc_tnodes_req_time_parallel(double T_cycle,$/;"	f
+calculate_timing_without_update_crit	place_parallel.c	/^static void calculate_timing_without_update_crit(const int kthread_id,$/;"	f	file:
+capacity	vpr_types.h	/^    double capacity;$/;"	m	struct:s_place_region_t
+capacity	vpr_types.h	/^    short capacity;$/;"	m	struct:t_rr_node
+cb	vpr_types.h	/^    boolean* cb;$/;"	m	struct:t_seg_details
+ch_subblock_bytes_avail	read_netlist.c	/^static int ch_subblock_bytes_avail;$/;"	v	file:
+ch_subblock_head_ptr	read_netlist.c	/^static linked_vptr_t* ch_subblock_head_ptr;$/;"	v	file:
+ch_subblock_next_avail_mem	read_netlist.c	/^static char* ch_subblock_next_avail_mem;$/;"	v	file:
+chan_width_distr_t	vpr_types.h	/^} chan_width_distr_t;$/;"	t	typeref:struct:s_chan_width_distr
+chan_width_io	vpr_types.h	/^    double chan_width_io;$/;"	m	struct:s_chan_width_distr
+chan_width_x	main.c	/^int* chan_width_x, *chan_width_y; \/* [0..num_grid_rows] and [0..num_grid_columns] respectively  *\/$/;"	v
+chan_width_y	main.c	/^int* chan_width_x, *chan_width_y; \/* [0..num_grid_rows] and [0..num_grid_columns] respectively  *\/$/;"	v
+chan_x_dist	vpr_types.h	/^    channel_t chan_x_dist;$/;"	m	struct:s_chan_width_distr
+chan_y_dist	vpr_types.h	/^    channel_t chan_y_dist;$/;"	m	struct:s_chan_width_distr
+channel_t	vpr_types.h	/^} channel_t;$/;"	t	typeref:struct:t_chan
+chanx_chany_adjacent	check_route.c	/^static int chanx_chany_adjacent(int chanx_node, int chany_node)$/;"	f	file:
+chanx_place_cost_fac	place.c	/^static double** chanx_place_cost_fac = NULL;$/;"	v	file:
+chanx_place_cost_fac	place_parallel.c	/^static double** chanx_place_cost_fac;$/;"	v	file:
+chanx_rr_indices	rr_graph2.c	/^static int*** chanx_rr_indices; \/* [1..num_grid_columns][0..num_grid_rows][0..nodes_per_chan-1] *\/$/;"	v	file:
+chany_place_cost_fac	place.c	/^static double** chany_place_cost_fac = NULL;$/;"	v	file:
+chany_place_cost_fac	place_parallel.c	/^static double** chany_place_cost_fac;$/;"	v	file:
+chany_rr_indices	rr_graph2.c	/^static int*** chany_rr_indices; \/* [0..num_grid_columns][1..num_grid_rows][0..nodes_per_chan-1] *\/$/;"	v	file:
+check_adjacent	check_route.c	/^static boolean check_adjacent(int from_node, int to_node)$/;"	f	file:
+check_all_tracks_reach_pins	rr_graph.c	/^static void check_all_tracks_reach_pins(int** *tracks_connected_to_pin,$/;"	f	file:
+check_arch	read_arch.c	/^static void check_arch(char* arch_file,$/;"	f	file:
+check_block_pin_to_tnode	path_delay.c	/^void check_block_pin_to_tnode(int** block_pin_to_tnode)$/;"	f
+check_clb_conn	check_netlist.c	/^static int check_clb_conn(int iblk,$/;"	f	file:
+check_clb_to_subblock_connections	check_netlist.c	/^static int check_clb_to_subblock_connections(int iblk, subblock_t$/;"	f	file:
+check_connections_to_global_clb_pins	check_netlist.c	/^static int check_connections_to_global_clb_pins(int inet)$/;"	f	file:
+check_for_duplicate_block_names	check_netlist.c	/^static int check_for_duplicate_block_names(void)$/;"	f	file:
+check_for_multiple_sink_connections	check_netlist.c	/^static void check_for_multiple_sink_connections(void)$/;"	f	file:
+check_internal_subblock_connections	check_netlist.c	/^static int check_internal_subblock_connections(subblock_data_t* subblock_data_ptr,$/;"	f	file:
+check_keyword	read_arch.c	/^static void check_keyword(FILE* fp,$/;"	f	file:
+check_locally_used_clb_opins	check_route.c	/^static void check_locally_used_clb_opins(vector_t** clb_opins_used_locally,$/;"	f	file:
+check_netlist	check_netlist.c	/^void check_netlist(subblock_data_t* subblock_data_ptr, int* num_driver)$/;"	f
+check_node_and_range	check_route.c	/^static void check_node_and_range(int ivex, router_types_t route_type)$/;"	f	file:
+check_node	check_rr_graph.c	/^void check_node(int ivex, router_types_t route_type)$/;"	f
+check_pass_transistors	check_rr_graph.c	/^static void check_pass_transistors(int from_node)$/;"	f	file:
+check_place	place.c	/^static void check_place(const placer_opts_t*  placer_opts_ptr,$/;"	f	file:
+check_place	place_parallel.c	/^static double check_place(double bb_cost,$/;"	f	file:
+check_route	check_route.c	/^void check_route(router_types_t route_type, int num_switch,$/;"	f
+check_rr_graph	check_rr_graph.c	/^void check_rr_graph(router_types_t route_type, int num_switch)$/;"	f
+check_sink	check_route.c	/^static void check_sink(int ivex, int inet, boolean* pin_done)$/;"	f	file:
+check_source	check_route.c	/^static void check_source(int ivex, int inet)$/;"	f	file:
+check_subblock_pin	check_netlist.c	/^static int check_subblock_pin(int clb_pin, int min_val, int max_val,$/;"	f	file:
+check_subblocks	check_netlist.c	/^static int check_subblocks(int iblk,$/;"	f	file:
+check_switch	check_route.c	/^static void check_switch(struct s_trace* tptr, int num_switch)$/;"	f	file:
+check_timing_graph	path_delay2.c	/^void check_timing_graph(int num_const_gen,$/;"	f
+check_vertexs_levels	path_delay.c	/^void  check_vertexs_levels()$/;"	f
+child_list	net_delay.c	/^        t_linked_rc_edge* child_list;$/;"	m	union:s_rc_node::__anon8	file:
+child_list	route_tree_timing.h	/^        t_linked_rt_edge* child_list;$/;"	m	union:s_rt_node::__anon4
+child	net_delay.c	/^    struct s_rc_node* child;$/;"	m	struct:s_linked_rc_edge	typeref:struct:s_linked_rc_edge::s_rc_node	file:
+child	route_tree_timing.h	/^    struct s_rt_node* child;$/;"	m	struct:s_linked_rt_edge	typeref:struct:s_linked_rt_edge::s_rt_node
+chunk_bytes_avail	read_netlist.c	/^static int chunk_bytes_avail = 0;$/;"	v	file:
+chunk_bytes_avail	rr_graph.c	/^static int chunk_bytes_avail = 0;$/;"	v	file:
+chunk_head_ptr	vpr_types.h	/^    linked_vptr_t* chunk_head_ptr;$/;"	m	struct:__anon10
+chunk_next_avail_mem	read_netlist.c	/^static char* chunk_next_avail_mem = NULL;$/;"	v	file:
+chunk_next_avail_mem	rr_graph.c	/^static char* chunk_next_avail_mem = NULL;$/;"	v	file:
+class_inf	main.c	/^pin_class_t* class_inf;   \/* class_inf[0..num_pin_class-1].  Provides   *$/;"	v
+clb_ipin_to_tracks	rr_graph.c	/^    int*** clb_ipin_to_tracks;$/;"	m	struct:s_rr_graph_internal_vars	file:
+clb_opin_to_tracks	rr_graph.c	/^    int*** clb_opin_to_tracks;$/;"	m	struct:s_rr_graph_internal_vars	file:
+clb_opins_used_locally	timing_place_lookup.c	/^vector_t** clb_opins_used_locally;$/;"	v
+clb_pin_class	main.c	/^int* clb_pin_class;$/;"	v
+clb_width	draw.c	/^static double clb_width, pin_size;$/;"	v	file:
+clearscreen	graphics.c	/^void clearscreen(void) { }$/;"	f
+clearscreen	graphics.c	/^void clearscreen(void)$/;"	f
+clock	vpr_types.h	/^    int   clock;  \/* driver pin index *\/$/;"	m	struct:s_subblock_t
+close_graphics	graphics.c	/^void close_graphics(void) { }$/;"	f
+close_graphics	graphics.c	/^void close_graphics(void)$/;"	f
+close_postscript	graphics.c	/^void close_postscript(void) { }$/;"	f
+close_postscript	graphics.c	/^void close_postscript(void)$/;"	f
+color_types	graphics.h	/^enum color_types {$/;"	g
+colors	graphics.c	/^static int colors[NUM_COLOR];$/;"	v	file:
+comp_bb_cost	place_parallel.c	/^static double comp_bb_cost(int method,$/;"	f	file:
+comp_td_point_to_point_delay_parallel	place_parallel.c	/^static double comp_td_point_to_point_delay_parallel(int inet,$/;"	f	file:
+comp_width	place_and_route.c	/^static double comp_width(channel_t* chan, double x, double separation)$/;"	f	file:
+compute_all_nets_local_crit_weight	path_delay.c	/^void compute_all_nets_local_crit_weight(double** net_slack,$/;"	f
+compute_bb_cost_parallel	place_parallel.c	/^static double compute_bb_cost_parallel(const int kstart_net,$/;"	f	file:
+compute_bb_cost	place.c	/^double compute_bb_cost(int method,$/;"	f
+compute_delta_arrays	timing_place_lookup.c	/^static void compute_delta_arrays(router_opts_t router_opts,   \/* FIXME *\/$/;"	f	file:
+compute_delta_clb_to_clb	timing_place_lookup.c	/^static void compute_delta_clb_to_clb(router_opts_t router_opts,$/;"	f	file:
+compute_delta_clb_to_outpad	timing_place_lookup.c	/^static void compute_delta_clb_to_outpad(router_opts_t router_opts)$/;"	f	file:
+compute_delta_inpad_to_clb	timing_place_lookup.c	/^static void compute_delta_inpad_to_clb(router_opts_t router_opts,$/;"	f	file:
+compute_delta_inpad_to_outpad	timing_place_lookup.c	/^static void compute_delta_inpad_to_outpad(router_opts_t router_opts)$/;"	f	file:
+compute_delta_td_cost_parallel	place_parallel.c	/^static void compute_delta_td_cost_parallel(const int kfrom_block,$/;"	f	file:
+compute_delta_td_cost	place_parallel.c	/^static void compute_delta_td_cost(int from_block,$/;"	f	file:
+compute_delta_timing_driven_cost	place.c	/^static void compute_delta_timing_driven_cost(place_algorithm_t place_algorithm,$/;"	f	file:
+compute_discount_value	path_delay.c	/^static double compute_discount_value(const double ground_num,$/;"	f	file:
+compute_net_pin_index_values	place.c	/^static void compute_net_pin_index_values(void)  \/* FIXME *\/$/;"	f	file:
+compute_net_pin_index_values	place_parallel.c	/^static void compute_net_pin_index_values(void)$/;"	f	file:
+compute_net_slack_full	place_parallel.c	/^static void compute_net_slack_full(const int kthread_id,$/;"	f	file:
+compute_net_slacks_parallel	path_delay_parallel.c	/^unsigned long compute_net_slacks_parallel(double** net_slack,$/;"	f
+compute_net_slacks	path_delay.c	/^void compute_net_slacks(double** net_slack)$/;"	f
+compute_point_to_point_delay	place.c	/^static double compute_point_to_point_delay(int inet,$/;"	f	file:
+compute_point_to_point_delay	place_parallel.c	/^static double compute_point_to_point_delay(int inet,$/;"	f	file:
+compute_td_costs_parallel_with_update_crit	place_parallel.c	/^static unsigned long compute_td_costs_parallel_with_update_crit(double* timing_cost,$/;"	f	file:
+compute_td_costs_parallel_without_update_crit	place_parallel.c	/^static unsigned long compute_td_costs_parallel_without_update_crit(double* timing_cost,$/;"	f	file:
+compute_td_costs	place_parallel.c	/^static void compute_td_costs(double* timing_cost,$/;"	f	file:
+compute_timing_driven_cost_by_orig_algo	place.c	/^static void compute_timing_driven_cost_by_orig_algo(double* timing_cost,$/;"	f	file:
+compute_timing_driven_cost_in_outer_loop	place.c	/^static void compute_timing_driven_cost_in_outer_loop(const placer_opts_t* placer_opts_ptr,$/;"	f	file:
+compute_timing_driven_cost	place.c	/^static void compute_timing_driven_cost(const placer_opts_t*  placer_opts_ptr,$/;"	f	file:
+compute_timing_driven_costs_by_path_algo	place.c	/^static void compute_timing_driven_costs_by_path_algo(double* timing_cost,$/;"	f	file:
+cont	util.c	/^static int cont;  \/* line continued? *\/$/;"	v	file:
+cost_index	vpr_types.h	/^    short cost_index;$/;"	m	struct:t_rr_node
+cost_methods	place.h	/^enum cost_methods {$/;"	g
+cost	place_parallel.h	/^    double* cost, *bb_cost, *success_rat, *std_dev;$/;"	m	struct:pthread_data
+cost	route_common.h	/^    double cost;$/;"	m	struct:s_heap
+cost	vpr_types.h	/^    double cost;$/;"	m	struct:s_place_region_t
+count_connections	place.c	/^static int count_connections(void)$/;"	f	file:
+count_connections	place_parallel.c	/^static int count_connections()$/;"	f	file:
+count_routing_transistors	rr_graph_area.c	/^void count_routing_transistors(int num_switch, double R_minW_nmos,$/;"	f
+counter_edge	place_parallel.h	/^    int edge_partition_size, sink_partition_size, counter_edge, counter_sink;$/;"	m	struct:start_finish_nets
+counter_sink	place_parallel.h	/^    int edge_partition_size, sink_partition_size, counter_edge, counter_sink;$/;"	m	struct:start_finish_nets
+count	hash.h	/^    int   count;$/;"	m	struct:s_hash_t
+countpass	read_arch.c	/^static void countpass(FILE* fp_arch,$/;"	f	file:
+create_button	graphics.c	/^void create_button(char* prev_button_text , char* button_text,$/;"	f
+crit_exponent	place_parallel.h	/^    double* crit_exponent;$/;"	m	struct:pthread_data
+criticality_exp	vpr_types.h	/^    double criticality_exp;$/;"	m	struct:s_router_opts
+cross_count	place.c	/^static double cross_count[50] = { \/* [0..49] *\/$/;"	v	file:
+cross_count	place_parallel.c	/^static const double cross_count[50] = { \/* [0..49] *\/$/;"	v	file:
+current_random	util.c	/^static unsigned int current_random = 0;$/;"	v	file:
+current_rand	util.c	/^static unsigned int current_rand[NUM_OF_THREADS];$/;"	v	file:
+currentcolor	graphics.c	/^static int currentcolor = BLACK;$/;"	v	file:
+currentfontsize	graphics.c	/^static int currentfontsize = 10;$/;"	v	file:
+currentlinestyle	graphics.c	/^static int currentlinestyle = SOLID;$/;"	v	file:
+currentlinewidth	graphics.c	/^static int currentlinewidth = 0;$/;"	v	file:
+data_vptr	util.h	/^    void*  data_vptr;$/;"	m	struct:s_linked_vptr
+data	util.h	/^    int data;$/;"	m	struct:s_linked_int
+dc	vpr_types.h	/^    double      dc;$/;"	m	struct:t_chan
+default_message	draw.c	/^static char default_message[BUFSIZE];  \/* Default screen message on screen *\/$/;"	v	file:
+delay_cost	place_parallel.h	/^    double* timing_cost, *delay_cost;$/;"	m	struct:pthread_data
+delta_clb_to_clb	timing_place_lookup.c	/^double** delta_clb_to_clb;$/;"	v
+delta_clb_to_outpad	timing_place_lookup.c	/^double** delta_clb_to_outpad;$/;"	v
+delta_inpad_to_clb	timing_place_lookup.c	/^double** delta_inpad_to_clb;$/;"	v
+delta_inpad_to_outpad	timing_place_lookup.c	/^double** delta_inpad_to_outpad;$/;"	v
+deselect_all	draw.c	/^static void deselect_all(void)$/;"	f	file:
+destroy_button	graphics.c	/^void destroy_button(char* button_text) { }$/;"	f
+destroy_button	graphics.c	/^void destroy_button(char* button_text)$/;"	f
+detail_routing_arch_t	vpr_types.h	/^} detail_routing_arch_t;$/;"	t	typeref:struct:s_det_routing_arch
+disp_type	graphics.c	/^static int disp_type;    \/* Selects SCREEN or POSTSCRIPT *\/$/;"	v	file:
+display_height	graphics.c	/^static unsigned int display_width, display_height;  \/* screen size *\/$/;"	v	file:
+display_width	graphics.c	/^static unsigned int display_width, display_height;  \/* screen size *\/$/;"	v	file:
+display	graphics.c	/^static Display* display;$/;"	v	file:
+do_constant_net_delay_timing_analysis	path_delay.c	/^void do_constant_net_delay_timing_analysis(placer_opts_t   placer_opts,$/;"	f
+draw_chanx_to_chanx_edge	draw.c	/^static void draw_chanx_to_chanx_edge(int from_node, int from_track,$/;"	f	file:
+draw_chanx_to_chany_edge	draw.c	/^static void draw_chanx_to_chany_edge(int chanx_node,  int chanx_track,$/;"	f	file:
+draw_chany_to_chany_edge	draw.c	/^static void draw_chany_to_chany_edge(int from_node, int from_track,$/;"	f	file:
+draw_congestion	draw.c	/^static void draw_congestion(void)$/;"	f	file:
+draw_message	graphics.c	/^void draw_message(void) { }$/;"	f
+draw_message	graphics.c	/^void draw_message(void)$/;"	f
+draw_pin_to_chan_edge	draw.c	/^static void draw_pin_to_chan_edge(int pin_node, int chan_node, int itrack,$/;"	f	file:
+draw_route_type	draw.c	/^static router_types_t draw_route_type;$/;"	v	file:
+draw_rr_chanx	draw.c	/^static void draw_rr_chanx(int ivex, int itrack)$/;"	f	file:
+draw_rr_chany	draw.c	/^static void draw_rr_chany(int ivex, int itrack)$/;"	f	file:
+draw_rr_edges	draw.c	/^static void draw_rr_edges(int ivex)$/;"	f	file:
+draw_rr_pin	draw.c	/^static void draw_rr_pin(int ivex, enum color_types color)$/;"	f	file:
+draw_rr_switch	draw.c	/^static void draw_rr_switch(double from_x, double from_y, double to_x, double to_y,$/;"	f	file:
+draw_rr_toggle	draw.c	/^static enum e_draw_rr_toggle draw_rr_toggle = DRAW_NO_RR;$/;"	v	typeref:enum:e_draw_rr_toggle	file:
+draw_rr	draw.c	/^static void draw_rr(void)$/;"	f	file:
+draw_x	draw.c	/^static void draw_x(double x, double y, double size)$/;"	f	file:
+drawarc	graphics.c	/^void drawarc(double xc, double yc, double rad, double startang,$/;"	f
+drawarc	graphics.c	/^void drawarc(double xcen, double ycen, double rad, double startang,$/;"	f
+drawbut	graphics.c	/^static void drawbut(int block_num)$/;"	f	file:
+drawline	graphics.c	/^void drawline(double x1, double y1, double x2, double y2) { }$/;"	f
+drawline	graphics.c	/^void drawline(double x1, double y1, double x2, double y2)$/;"	f
+drawmenu	graphics.c	/^static void drawmenu(void)$/;"	f	file:
+drawnets	draw.c	/^static void drawnets(void)$/;"	f	file:
+drawplace	draw.c	/^static void drawplace(void)$/;"	f	file:
+drawrect	graphics.c	/^void drawrect(double x1, double y1, double x2, double y2) { }$/;"	f
+drawrect	graphics.c	/^void drawrect(double x1, double y1, double x2, double y2)$/;"	f
+drawroute	draw.c	/^static void drawroute(enum e_draw_net_type draw_net_type)$/;"	f	file:
+drawscreen	draw.c	/^static void drawscreen(void)$/;"	f	file:
+drawtext	graphics.c	/^void drawtext(double xc, double yc, char* text, double boundx) { }$/;"	f
+drawtext	graphics.c	/^void drawtext(double xc, double yc, char* text, double boundx)$/;"	f
+driver_node_index_of_net	path_delay2.c	/^int* driver_node_index_of_net;$/;"	v
+dump_clbs	read_place.c	/^void dump_clbs(void)$/;"	f
+dump_rr_graph	rr_graph.c	/^void dump_rr_graph(char* file_name)$/;"	f
+dump_seg_details	rr_graph2.c	/^void dump_seg_details(segment_details_t* seg_details, int nodes_per_chan, char$/;"	f
+duplicate_pins	place.c	/^static int* duplicate_pins;$/;"	v	file:
+duplicate_pins	place_parallel.c	/^static int* duplicate_pins;$/;"	v	file:
+e_Fc_type	vpr_types.h	/^enum e_Fc_type {$/;"	g
+e_block_types	vpr_types.h	/^typedef enum e_block_types {$/;"	g
+e_cost_indices	vpr_types.h	/^enum e_cost_indices {$/;"	g
+e_draw_net_type	draw.c	/^enum e_draw_net_type {ALL_NETS, HIGHLIGHTED};$/;"	g	file:
+e_draw_rr_toggle	draw.c	/^enum e_draw_rr_toggle {DRAW_NO_RR = 0, DRAW_ALL_RR, DRAW_ALL_BUT_BUFFERS_RR,$/;"	g	file:
+e_edge_dir	draw.c	/^enum e_edge_dir {FROM_X_TO_Y, FROM_Y_TO_X}; \/* Chanx to chany or vice versa? *\/$/;"	g	file:
+e_grid_types	vpr_types.h	/^typedef enum e_grid_types {$/;"	g
+e_operation	vpr_types.h	/^typedef enum e_operation {$/;"	g
+e_pad_loc_type	vpr_types.h	/^typedef enum e_pad_loc_type {$/;"	g
+e_pin_type	vpr_types.h	/^typedef enum e_pin_type {$/;"	g
+e_place_algorithm	vpr_types.h	/^typedef enum e_place_algorithm {$/;"	g
+e_route_type	vpr_types.h	/^typedef enum e_route_type {$/;"	g
+e_router_algorithm	vpr_types.h	/^typedef enum e_router_algorithm {$/;"	g
+e_router_base_cost_type	vpr_types.h	/^typedef enum e_router_base_cost_type {$/;"	g
+e_side	vpr_types.h	/^typedef enum e_side {$/;"	g
+e_stat	vpr_types.h	/^enum e_stat {$/;"	g
+e_subblock_pin_type	path_delay_parallel.c	/^enum e_subblock_pin_type {$/;"	g	file:
+e_switch_block_type	vpr_types.h	/^typedef enum e_switch_block_type {$/;"	g
+edge_partition_size	place_parallel.h	/^    int edge_partition_size, sink_partition_size, counter_edge, counter_sink;$/;"	m	struct:start_finish_nets
+edge_t	path_delay2.h	/^} edge_t; \/* FIXME *\/$/;"	t	typeref:struct:s_edge_t
+edge	rr_graph_util.h	/^    int edge;$/;"	m	struct:s_linked_edge
+edges_in_this_partition	place_parallel.h	/^    unsigned long edges_in_this_partition;$/;"	m	struct:start_finish_nets
+edges	vpr_types.h	/^    int* edges;$/;"	m	struct:t_rr_node
+empty_heap	route_common.c	/^void empty_heap(void)$/;"	f
+enable_timing_computations	vpr_types.h	/^    boolean            enable_timing_computations;$/;"	m	struct:s_placer_opts
+entry	place_parallel.h	/^    int entry;$/;"	m	struct:aligned_bar
+event_loop	graphics.c	/^void event_loop(void (*act_on_button)(double x, double y),$/;"	f
+exit_crit	place.c	/^static int exit_crit(double t,$/;"	f	file:
+exit_crit	place_parallel.c	/^static int exit_crit(double t,$/;"	f	file:
+exit_t	vpr_types.h	/^    double exit_t;  \/* exit_temperature *\/$/;"	m	struct:s_annealing_sched
+exit	place_parallel.h	/^    int* exit;$/;"	m	struct:pthread_data
+fcn	graphics.c	/^    void (*fcn)(void (*drawscreen)(void));$/;"	m	struct:__anon7	file:
+feasible_routing	route_common.c	/^boolean feasible_routing(void)$/;"	f
+fill_arch	read_arch.c	/^static void fill_arch(void)$/;"	f	file:
+fillarc	graphics.c	/^void fillarc(double xc, double yc, double rad, double startang,$/;"	f
+fillarc	graphics.c	/^void fillarc(double xcen, double ycen, double rad, double startang,$/;"	f
+fillpoly	graphics.c	/^void fillpoly(t_point* points, int npoints) { }$/;"	f
+fillpoly	graphics.c	/^void fillpoly(t_point* points, int npoints)$/;"	f
+fillrect	graphics.c	/^void fillrect(double x1, double y1, double x2, double y2) { }$/;"	f
+fillrect	graphics.c	/^void fillrect(double x1, double y1, double x2, double y2)$/;"	f
+find_affected_nets_parallel	place_parallel.c	/^static int find_affected_nets_parallel(int* nets_to_update,$/;"	f	file:
+find_affected_nets	place.c	/^static int find_affected_nets(int* nets_to_update,$/;"	f	file:
+find_affected_nets	place_parallel.c	/^static int find_affected_nets(int* nets_to_update,$/;"	f	file:
+find_fanin_parallel	place_parallel.c	/^static void find_fanin_parallel(const int kthread_id)$/;"	f	file:
+find_sink_vertex_index_by_net_and_pin_index	path_delay.c	/^int find_sink_vertex_index_by_net_and_pin_index(const int net_index,$/;"	f
+find_to_block_parallel	place_parallel.c	/^static boolean find_to_block_parallel(int x_from,$/;"	f	file:
+find_to	place.c	/^static void find_to(int x_from,$/;"	f	file:
+find_to	place_parallel.c	/^static void find_to(int x_from,$/;"	f	file:
+finish_edge	place_parallel.h	/^    int start_edge, finish_edge, start_sinks, finish_sinks;$/;"	m	struct:start_finish_nets
+finish_sinks	place_parallel.h	/^    int start_edge, finish_edge, start_sinks, finish_sinks;$/;"	m	struct:start_finish_nets
+first_iter_pres_fac	vpr_types.h	/^    double first_iter_pres_fac;$/;"	m	struct:s_router_opts
+fixed_channel_width	vpr_types.h	/^    int fixed_channel_width;$/;"	m	struct:s_router_opts
+fixed_pins	place_parallel.h	/^    boolean fixed_pins;$/;"	m	struct:pthread_data
+flushinput	graphics.c	/^void flushinput(void) { }$/;"	f
+flushinput	graphics.c	/^void flushinput(void)$/;"	f
+font_info	graphics.c	/^static XFontStruct* font_info[MAX_FONT_SIZE + 1]; \/* Data for each size *\/$/;"	v	file:
+font_is_loaded	graphics.c	/^static int font_is_loaded[MAX_FONT_SIZE + 1];  \/* 1: loaded, 0: not  *\/$/;"	v	file:
+force_setcolor	graphics.c	/^static void force_setcolor(int cindex)$/;"	f	file:
+force_setfontsize	graphics.c	/^static void force_setfontsize(int pointsize)$/;"	f	file:
+force_setlinestyle	graphics.c	/^static void force_setlinestyle(int linestyle)$/;"	f	file:
+force_setlinewidth	graphics.c	/^static void force_setlinewidth(int linewidth)$/;"	f	file:
+fptr	vpr_types.h	/^    double* fptr;$/;"	m	struct:s_linked_f_pointer
+frac_cb	vpr_types.h	/^    double frac_cb;$/;"	m	struct:s_segment_info_t
+frac_sb	vpr_types.h	/^    double frac_sb;$/;"	m	struct:s_segment_info_t
+free_and_reset_internal_structures	timing_place_lookup.c	/^static void free_and_reset_internal_structures(net_t* original_net,$/;"	f	file:
+free_chunk_memory	util.c	/^void free_chunk_memory(linked_vptr_t* chunk_ptr_head)$/;"	f
+free_crit	timing_place.c	/^static void free_crit(linked_vptr_t** chunk_list_head_ptr)$/;"	f	file:
+free_delta_arrays	timing_place_lookup.c	/^static void free_delta_arrays(void)$/;"	f	file:
+free_edge_list_hard	rr_graph_util.c	/^void free_edge_list_hard(t_linked_edge** edge_list_head_ptr)$/;"	f
+free_edge_list_head	rr_graph2.c	/^t_linked_edge* free_edge_list_head = NULL;$/;"	v
+free_fanout_counts	path_delay.c	/^static void free_fanout_counts(int** num_uses_of_clb_ipin,$/;"	f	file:
+free_fast_cost_update_structs	place.c	/^static void free_fast_cost_update_structs(void)$/;"	f	file:
+free_fast_cost_update_structs	place_parallel.c	/^static void free_fast_cost_update_structs(void)$/;"	f	file:
+free_hash_table	hash.c	/^void free_hash_table(hash_t** hash_table)$/;"	f
+free_heap_data	route_common.c	/^void free_heap_data(struct s_heap* hptr)$/;"	f
+free_int_list	util.c	/^void free_int_list(t_linked_int** int_list_head_ptr)$/;"	f
+free_ivec_matrix3	util.c	/^void free_ivec_matrix3(vector_t** *ivec_matrix3,$/;"	f
+free_ivec_matrix	util.c	/^void free_ivec_matrix(vector_t** ivec_matrix,$/;"	f
+free_ivec_vector	util.c	/^void free_ivec_vector(vector_t* ivec_vector,$/;"	f
+free_linked_edge_soft	rr_graph_util.c	/^void free_linked_edge_soft(t_linked_edge* edge_ptr, t_linked_edge$/;"	f
+free_linked_rc_edge	net_delay.c	/^static void free_linked_rc_edge(t_linked_rc_edge* rc_edge, t_linked_rc_edge$/;"	f	file:
+free_linked_rt_edge	route_tree_timing.c	/^static void free_linked_rt_edge(t_linked_rt_edge* rt_edge)$/;"	f	file:
+free_lookups_and_criticalities	timing_place.c	/^void free_lookups_and_criticalities(const placer_opts_t* placer_opts_ptr,$/;"	f
+free_matrix3	util.c	/^void free_matrix3(void* vptr,$/;"	f
+free_matrix4	util.c	/^void free_matrix4(void* vptr,$/;"	f
+free_matrix	util.c	/^void free_matrix(void* vptr,$/;"	f
+free_net_delay	net_delay.c	/^void free_net_delay(double** net_delay,$/;"	f
+free_parse	read_netlist.c	/^static void free_parse(void)$/;"	f	file:
+free_pin_mappings	path_delay.c	/^static void free_pin_mappings(int** block_pin_to_tnode,$/;"	f	file:
+free_place_lookup_structs	timing_place_lookup.c	/^void free_place_lookup_structs(void)$/;"	f
+free_place_regions	place.c	/^static void free_place_regions(int num_regions)$/;"	f	file:
+free_place_regions	place_parallel.c	/^static void free_place_regions(int num_regions)$/;"	f	file:
+free_placement_structs	place.c	/^static void free_placement_structs(const placer_opts_t* placer_opts_ptr,$/;"	f	file:
+free_placement_structs	place_parallel.c	/^static void free_placement_structs(int place_cost_type,$/;"	f	file:
+free_placer_costs	vpr_utils.c	/^void  free_placer_costs(placer_costs_t*  placer_costs)$/;"	f
+free_placer_paras	vpr_utils.c	/^void  free_placer_paras(placer_paras_t*  placer_paras)$/;"	f
+free_rc_edge_free_list	net_delay.c	/^static void free_rc_edge_free_list(t_linked_rc_edge* rc_edge_free_list)$/;"	f	file:
+free_rc_node_free_list	net_delay.c	/^static void free_rc_node_free_list(t_rc_node* rc_node_free_list)$/;"	f	file:
+free_rc_node	net_delay.c	/^static void free_rc_node(t_rc_node* rc_node, t_rc_node$/;"	f	file:
+free_rc_tree	net_delay.c	/^static void free_rc_tree(t_rc_node* rc_root, t_rc_node** rc_node_free_list_ptr,$/;"	f	file:
+free_route_structs	route_common.c	/^void free_route_structs(vector_t** clb_opins_used_locally)$/;"	f
+free_route_tree_timing_structs	route_tree_timing.c	/^void free_route_tree_timing_structs(void)$/;"	f
+free_route_tree	route_tree_timing.c	/^void free_route_tree(t_rt_node* rt_node)$/;"	f
+free_routing_structs	timing_place_lookup.c	/^static void free_routing_structs(router_opts_t router_opts,$/;"	f	file:
+free_rr_graph_internals	rr_graph.c	/^void free_rr_graph_internals(router_types_t route_type,$/;"	f
+free_rr_graph	rr_graph.c	/^void free_rr_graph(void)$/;"	f
+free_rr_node_indices	rr_graph2.c	/^void free_rr_node_indices(int** rr_node_indices)$/;"	f
+free_rr_node_route_structs	route_common.c	/^void free_rr_node_route_structs(void)$/;"	f
+free_rt_node	route_tree_timing.c	/^static void free_rt_node(t_rt_node* rt_node)$/;"	f	file:
+free_saved_routing	route_common.c	/^void free_saved_routing(struct s_trace** best_routing, vector_t$/;"	f
+free_seg_details	rr_graph2.c	/^void free_seg_details(segment_details_t* seg_details, int nodes_per_chan)$/;"	f
+free_subblock_data	path_delay.c	/^void free_subblock_data(subblock_data_t* subblock_data_ptr)$/;"	f
+free_switch_block_conn	rr_graph_sbox.c	/^void free_switch_block_conn(int nodes_per_chan)$/;"	f
+free_timing_driven_route_structs	route_timing.c	/^void free_timing_driven_route_structs(double* pin_criticality, int$/;"	f
+free_timing_graph	path_delay.c	/^void free_timing_graph(double** net_slack)$/;"	f
+free_trace_data	route_common.c	/^static void free_trace_data(struct s_trace* tptr)$/;"	f	file:
+free_trace_structs	route_common.c	/^void free_trace_structs(void)$/;"	f
+free_traceback	route_common.c	/^void free_traceback(int inet)$/;"	f
+free_unique_pin_list	place.c	/^static void free_unique_pin_list(void)$/;"	f	file:
+free_unique_pin_list	place_parallel.c	/^static void free_unique_pin_list(void)$/;"	f	file:
+frequency	vpr_types.h	/^    double frequency;$/;"	m	struct:s_segment_info_t
+front_crit_path_through_pin	path_delay2.h	/^double*  front_crit_path_through_pin;  \/* [0...num_of_vertexs-1] *\/$/;"	v
+g_grid_capacity	main.c	/^int* g_grid_capacity;$/;"	v
+g_num_grid_types	main.c	/^int  g_num_grid_types;$/;"	v
+g_pins_on_block	main.c	/^int* g_pins_on_block;$/;"	v
+g_record_randnum	place_parallel.c	/^int  g_record_randnum[NUM_OF_SUB_REGIONS];$/;"	v
+gc_menus	graphics.c	/^static GC gc, gcxor, gc_menus;$/;"	v	file:
+gc	graphics.c	/^static GC gc, gcxor, gc_menus;$/;"	v	file:
+gcxor	graphics.c	/^static GC gc, gcxor, gc_menus;$/;"	v	file:
+gechannel_t	read_arch.c	/^static void gechannel_t(char* ptr, channel_t* chan, int inp_num, FILE* fp_arch,$/;"	f	file:
+gechannel_tnel_occupancy_stats	stats.c	/^static void gechannel_tnel_occupancy_stats(void)$/;"	f	file:
+generic_compute_matrix	timing_place_lookup.c	/^static void generic_compute_matrix(double*** matrix_ptr,$/;"	f	file:
+gerr_node_t_index	rr_graph2.c	/^int gerr_node_t_index(int i, int j, rr_types_t rr_type, int ioff,$/;"	f
+gerr_node_t_indices	rr_graph.c	/^int** gerr_node_t_indices()$/;"	f
+gesegment_info_t	read_arch.c	/^static void gesegment_info_t(FILE* fp_arch, char* buf, segment_info_t* seg_ptr,$/;"	f	file:
+get_Fc_type	read_arch.c	/^static enum e_Fc_type get_Fc_type(char* ptr, FILE* fp_arch, char* buf)$/;"	f	file:
+get_T_subblock	read_arch.c	/^static void get_T_subblock(FILE* fp_arch, char* buf, T_subblock_t$/;"	f	file:
+get_average_opin_delay	rr_graph_indexed_data.c	/^static double get_average_opin_delay(int** rr_node_indices, int$/;"	f	file:
+get_bb_from_scratch_parallel	place_parallel.c	/^static void get_bb_from_scratch_parallel(int inet,$/;"	f	file:
+get_bb_from_scratch	place.c	/^static void get_bb_from_scratch(int inet, bbox_t* coords,$/;"	f	file:
+get_bb_from_scratch	place_parallel.c	/^get_bb_from_scratch(int inet,$/;"	f	file:
+get_block_center	draw.c	/^static void get_block_center(int block_num, double* x, double* y)$/;"	f	file:
+get_cblock_trans	rr_graph_area.c	/^static double get_cblock_trans(int* num_inputs_to_cblock, int$/;"	f	file:
+get_class	read_arch.c	/^static int get_class(FILE* fp_arch, char* buf)$/;"	f	file:
+get_clb_opin_connections	rr_graph2.c	/^int get_clb_opin_connections(int** *clb_opin_to_tracks, int ipin, int i, int$/;"	f
+get_closest_seg_start	rr_graph2.c	/^int get_closest_seg_start(segment_details_t* seg_details, int itrack, int seg_num,$/;"	f
+get_delay_normalization_fac	rr_graph_indexed_data.c	/^static double get_delay_normalization_fac(int nodes_per_chan, int**$/;"	f	file:
+get_double	read_arch.c	/^static double get_double(char* ptr, int inp_num, double low_lim,$/;"	f	file:
+get_expected_segs_to_target	route_timing.c	/^static int get_expected_segs_to_target(int ivex, int target_node, int *$/;"	f	file:
+get_first_pin	timing_place_lookup.c	/^static int  get_first_pin(pin_types_t pintype)$/;"	f	file:
+get_hash_entry	hash.c	/^hash_t* get_hash_entry(hash_t** hash_table, char* name) {$/;"	f
+get_heap_head	route_common.c	/^struct s_heap* get_heap_head(void) {$/;"	f
+get_input	main.c	/^static void get_input(char* netlist_file,$/;"	f	file:
+get_int	read_arch.c	/^static int get_int(char* ptr, int inp_num, FILE* fp_arch, char* buf,$/;"	f	file:
+get_last_token	read_arch.c	/^static char* get_last_token(FILE* fp, char* buf)$/;"	f	file:
+get_length_and_bends_stats	stats.c	/^static void get_length_and_bends_stats(void)$/;"	f	file:
+get_longest_segment_length	timing_place_lookup.c	/^static int get_longest_segment_length(detail_routing_arch_t det_routing_arch,$/;"	f	file:
+get_max_pins_per_net	route_timing.c	/^static int get_max_pins_per_net(void)$/;"	f	file:
+get_middle_token	read_arch.c	/^static char* get_middle_token(FILE* fp, char* buf)$/;"	f	file:
+get_net_cost	place.c	/^static double get_net_cost(int inet, bbox_t* bbptr)$/;"	f	file:
+get_net_cost	place_parallel.c	/^static double get_net_cost(int inet,$/;"	f	file:
+get_net_wirelength_estimate	place_parallel.c	/^static double get_net_wirelength_estimate(int inet,$/;"	f	file:
+get_next_hash	hash.c	/^hash_t* get_next_hash(hash_t** hash_table, struct$/;"	f
+get_nodes_per_chan	rr_graph.c	/^int get_nodes_per_chan()$/;"	f
+get_non_updateable_bb_parallel	place_parallel.c	/^static void get_non_updateable_bb_parallel(int inet,$/;"	f	file:
+get_non_updateable_bb	place.c	/^static void get_non_updateable_bb(int inet, bbox_t* bb_coord_new)$/;"	f	file:
+get_non_updateable_bb	place_parallel.c	/^static void get_non_updateable_bb(int inet,$/;"	f	file:
+get_num_bends_and_length	stats.c	/^static void get_num_bends_and_length(int inet, int* bends_ptr, int* len_ptr,$/;"	f	file:
+get_num_conn	check_netlist.c	/^static int get_num_conn(int block_num)$/;"	f	file:
+get_one_double	read_arch.c	/^static double get_one_double(char* ptr, int inp_num, double low_lim,$/;"	f	file:
+get_pad_opin_connections	rr_graph2.c	/^int get_pad_opin_connections(int** pads_to_tracks, int ipad, int i, int j,$/;"	f
+get_pin_number	read_netlist.c	/^static int get_pin_number(char* ptr)$/;"	f	file:
+get_pin	read_arch.c	/^static void get_pin(char* ptr, int pinnum, pin_types_t type,$/;"	f	file:
+get_rr_cong_cost	route_common.c	/^double get_rr_cong_cost(int ivex)$/;"	f
+get_rr_pin_draw_coords	draw.c	/^static void get_rr_pin_draw_coords(int ivex, int iside, double* xcen,$/;"	f	file:
+get_sbox_side	rr_graph_sbox.c	/^static side_types_t get_sbox_side(int get_i, int get_j, rr_types_t get_type,$/;"	f	file:
+get_seg_end	rr_graph2.c	/^int get_seg_end(segment_details_t* seg_details, int itrack, int seg_start, int$/;"	f
+get_segment_usage_stats	segment_stats.c	/^void get_segment_usage_stats(int num_segment, segment_info_t* segment_inf)$/;"	f
+get_serial_num	route_common.c	/^void get_serial_num(void)$/;"	f
+get_simple_switch_block_track	rr_graph_sbox.c	/^static int get_simple_switch_block_track(side_types_t from_side, side_types_t$/;"	f	file:
+get_std_dev	place.c	/^static double get_std_dev(int success_sum,$/;"	f	file:
+get_std_dev	place_parallel.c	/^static double get_std_dev(int n,$/;"	f	file:
+get_subblock	read_place.c	/^static int get_subblock(int i, int j, int block_num)$/;"	f	file:
+get_switch_block_type	read_arch.c	/^static switch_block_t get_switch_block_type(FILE* fp_arch,$/;"	f	file:
+get_switch_box_tracks	rr_graph_sbox.c	/^vector_t get_switch_box_tracks(int from_i, int from_j, int from_track,$/;"	f
+get_switch_inf	read_arch.c	/^static void get_switch_inf(FILE* fp_arch, char* buf, int num_switch,$/;"	f	file:
+get_switch_type	rr_graph2.c	/^static void get_switch_type(boolean is_from_sbox, boolean is_to_sbox,$/;"	f	file:
+get_timing_driven_expected_cost	route_timing.c	/^static double get_timing_driven_expected_cost(int ivex, int target_node,$/;"	f	file:
+get_tnode_block_and_output_net	path_delay.c	/^void get_tnode_block_and_output_net(int ivex,$/;"	f
+get_token	read_netlist.c	/^static char* get_token(char* buf,$/;"	f	file:
+get_top_of_heap_index	heapsort.c	/^static int get_top_of_heap_index(int* heap, double* sort_values, int$/;"	f	file:
+get_track_num	draw.c	/^static int get_track_num(int ivex, int** chanx_track, int** chany_track)$/;"	f	file:
+get_xtrack_to_clb_ipin_edges	rr_graph2.c	/^int get_xtrack_to_clb_ipin_edges(int tr_istart, int tr_iend, int tr_j,$/;"	f
+get_xtrack_to_pad_edges	rr_graph2.c	/^int get_xtrack_to_pad_edges(int tr_istart, int tr_iend, int tr_j, int pad_j,$/;"	f
+get_xtrack_to_xtrack	rr_graph2.c	/^int get_xtrack_to_xtrack(int from_i, int j, int from_track, int to_i,$/;"	f
+get_xtrack_to_ytracks	rr_graph2.c	/^int get_xtrack_to_ytracks(int from_istart, int from_iend, int from_j, int$/;"	f
+get_ytrack_to_clb_ipin_edges	rr_graph2.c	/^int get_ytrack_to_clb_ipin_edges(int tr_jstart, int tr_jend, int tr_i,$/;"	f
+get_ytrack_to_pad_edges	rr_graph2.c	/^int get_ytrack_to_pad_edges(int tr_jstart, int tr_jend, int tr_i, int pad_i,$/;"	f
+get_ytrack_to_xtracks	rr_graph2.c	/^int get_ytrack_to_xtracks(int from_jstart, int from_jend, int from_i, int$/;"	f
+get_ytrack_to_ytrack	rr_graph2.c	/^int get_ytrack_to_ytrack(int i, int from_j, int from_track, int to_j,$/;"	f
+global_data_access	place_parallel.h	/^aligned_mutex_t  global_data_access;$/;"	v
+gr_automode	draw.c	/^static int gr_automode;  \/* Need user input after: 0: each t,   *$/;"	v	file:
+grid_tile_t	vpr_types.h	/^} grid_tile_t;$/;"	t	typeref:struct:s_clb
+grid_type	vpr_types.h	/^    block_types_t  grid_type;$/;"	m	struct:s_clb
+grid_types_t	vpr_types.h	/^} grid_types_t;$/;"	t	typeref:enum:e_grid_types
+ground_num	main.c	/^double ground_num;$/;"	v
+h_ptr	hash.h	/^    hash_t* h_ptr;$/;"	m	struct:s_hash_iterator
+hash_table	read_netlist.c	/^static hash_t** hash_table;$/;"	v	file:
+hash_t	hash.h	/^} hash_t;$/;"	t	typeref:struct:s_hash_t
+hash_value	hash.c	/^static int hash_value(char* name)$/;"	f	file:
+heap_free_head	route_common.c	/^static struct s_heap* heap_free_head = NULL;$/;"	v	typeref:struct:s_heap	file:
+heap_size	route_common.c	/^static int heap_size;   \/* Number of slots in the heap array *\/$/;"	v	file:
+heap_tail	route_common.c	/^static int heap_tail;   \/* Index of first unused slot in the heap array *\/$/;"	v	file:
+heapsort	heapsort.c	/^void heapsort(int* sort_index, double* sort_values, int nelem)$/;"	f
+heap	route_common.c	/^static struct s_heap** heap;  \/* Indexed from [1..heap_size] *\/$/;"	v	typeref:struct:s_heap	file:
+height	graphics.c	/^    int height;$/;"	m	struct:__anon7	file:
+highlight_blocks	draw.c	/^static void highlight_blocks(double x, double y)$/;"	f	file:
+highlight_crit_path	draw.c	/^static void highlight_crit_path(void (*drawscreen_ptr)(void))$/;"	f	file:
+iblk	path_delay2.h	/^    int    iblk;$/;"	m	struct:__anon5
+i	hash.h	/^    int i;$/;"	m	struct:s_hash_iterator
+in_blocks	vpr_types.h	/^    int* in_blocks;$/;"	m	struct:s_clb
+in_edges	path_delay2.h	/^    edge_t* in_edges;$/;"	m	struct:s_vertex_t
+index	hash.h	/^    int   index;$/;"	m	struct:s_hash_t
+index	route_common.h	/^    int index;$/;"	m	struct:s_heap
+index	vpr_types.h	/^    int      index;$/;"	m	struct:t_seg_details
+index	vpr_types.h	/^    int index;$/;"	m	struct:s_trace
+init_arch	read_arch.c	/^void init_arch(double aspect_ratio, boolean user_sized)$/;"	f
+init_channel_t	place_and_route.c	/^void init_channel_t(int cfactor,$/;"	f
+init_draw_coords	draw.c	/^void init_draw_coords(double clb_width_val)$/;"	f
+init_graphics	graphics.c	/^void init_graphics(char* window_name) { }$/;"	f
+init_graphics	graphics.c	/^void init_graphics(char* window_name)$/;"	f
+init_grid_capacity	read_arch.c	/^static void init_grid_capacity(void)$/;"	f	file:
+init_occ	timing_place_lookup.c	/^static void init_occ(void)$/;"	f	file:
+init_parse	read_netlist.c	/^static void init_parse(int doall)$/;"	f	file:
+init_placer_costs	vpr_utils.c	/^placer_costs_t*  init_placer_costs(void)$/;"	f
+init_placer_paras	vpr_utils.c	/^placer_paras_t*  init_placer_paras(void)$/;"	f
+init_postscript	graphics.c	/^int init_postscript(char* fname)$/;"	f
+init_route_structs	route_common.c	/^void init_route_structs(int bb_factor)$/;"	f
+init_route_tree_to_source	route_tree_timing.c	/^t_rt_node* init_route_tree_to_source(int inet)$/;"	f
+init_t	vpr_types.h	/^    double init_t;  \/* initial_temperature *\/$/;"	m	struct:s_annealing_sched
+init_world	graphics.c	/^void init_world(double x1, double y1, double x2, double y2)$/;"	f
+init_world	graphics.c	/^void init_world(double xl, double yt, double xr, double yb) { }$/;"	f
+initial_common_paras	place_parallel.c	/^static void initial_common_paras(pthread_data_t*  input_args,$/;"	f	file:
+initial_localvert_grid	place_parallel.c	/^static void initial_localvert_grid(void)$/;"	f	file:
+initial_placement	place.c	/^static void initial_placement(pad_loc_t pad_loc_type,$/;"	f	file:
+initial_placement	place_parallel.c	/^static void initial_placement(pad_loc_t pad_loc_type,$/;"	f	file:
+initial_pres_fac	vpr_types.h	/^    double initial_pres_fac;$/;"	m	struct:s_router_opts
+initial_swap_data	place_parallel.c	/^static void initial_swap_data(thread_local_common_paras_t*  common_paras_ptr,$/;"	f	file:
+inner_iter_num	place_parallel.h	/^    int* inner_iter_num;$/;"	m	struct:pthread_data
+inner_loop_recompute_divider	vpr_types.h	/^    int                inner_loop_recompute_divider; \/* 0 *\/$/;"	m	struct:s_placer_opts
+inner_num	vpr_types.h	/^    double inner_num; \/* used for controlling the move times in SA inner loop*\/$/;"	m	struct:s_annealing_sched
+inputs	vpr_types.h	/^    int*  inputs; \/* [0..sub_block_lut_size-1] *\/$/;"	m	struct:s_subblock_t
+insert_in_edge_list	rr_graph_util.c	/^t_linked_edge* insert_in_edge_list(t_linked_edge* head, int edge, short iswitch,$/;"	f
+insert_in_hash_table	hash.c	/^hash_t* insert_in_hash_table(hash_t** hash_table, char* name,$/;"	f
+insert_in_int_list	util.c	/^t_linked_int* insert_in_int_list(t_linked_int* head,$/;"	f
+insert_in_vptr_list	util.c	/^linked_vptr_t* insert_in_vptr_list(linked_vptr_t* head,$/;"	f
+inv_capacity	vpr_types.h	/^    double inv_capacity;$/;"	m	struct:s_place_region_t
+inv_length	vpr_types.h	/^    double inv_length;$/;"	m	struct:t_rr_indexed_data
+invalidate_heap_entries	route_common.c	/^void invalidate_heap_entries(int sink_node, int ipin_node)$/;"	f
+inverse_prev_bb_cost	place_parallel.h	/^    double* inverse_prev_bb_cost;$/;"	m	struct:pthread_data
+inverse_prev_timing_cost	place_parallel.h	/^    double* inverse_prev_timing_cost;$/;"	m	struct:pthread_data
+io_ratio	main.c	/^int  io_ratio;$/;"	v
+ipin	path_delay2.h	/^    short  ipin;$/;"	m	struct:__anon5
+is_cbox	rr_graph2.c	/^boolean is_cbox(int seg_num, int chan_num, int itrack, segment_details_t$/;"	f
+is_global_clb_pin	main.c	/^boolean* is_global_clb_pin; \/* [0..max_pins_per_clb-1]. *\/$/;"	v
+is_global_clock	path_delay.c	/^static boolean is_global_clock(int iblk,$/;"	f	file:
+is_global	main.c	/^boolean* is_global; \/* FALSE if a net is normal, TRUE if it is. *\/$/;"	v
+is_opin	vpr_utils.c	/^boolean is_opin(int ipin)$/;"	f
+is_sbox	rr_graph2.c	/^boolean is_sbox(int seg_num, int chan_num, int itrack, segment_details_t$/;"	f
+ispoly	graphics.c	/^    int ispoly;$/;"	m	struct:__anon7	file:
+ispressed	graphics.c	/^    int ispressed;$/;"	m	struct:__anon7	file:
+isread	read_arch.c	/^static int isread[NUMINP];$/;"	v	file:
+istext	graphics.c	/^    int istext;$/;"	m	struct:__anon7	file:
+isubblk	path_delay2.h	/^    short  isubblk;$/;"	m	struct:__anon5
+iswitch	net_delay.c	/^    short iswitch;$/;"	m	struct:s_linked_rc_edge	file:
+iswitch	route_tree_timing.h	/^    short  iswitch;$/;"	m	struct:s_linked_rt_edge
+iswitch	rr_graph_util.h	/^    short iswitch;$/;"	m	struct:s_linked_edge
+iswitch	vpr_types.h	/^    short iswitch;$/;"	m	struct:s_trace
+ivex	net_delay.c	/^    int ivex;$/;"	m	struct:s_rc_node	file:
+ivex	route_tree_timing.h	/^    int ivex;$/;"	m	struct:s_rt_node
+kFLOAT_ZERO	place_parallel.c	/^const double kFLOAT_ZERO = 0.0000000001; \/* 1e-010 *\/$/;"	v
+length	vpr_types.h	/^    int      length;$/;"	m	struct:t_seg_details
+length	vpr_types.h	/^    int    length;$/;"	m	struct:s_segment_info_t
+limit_value	util.c	/^int limit_value(int cur,$/;"	f
+line_types	graphics.h	/^enum line_types {$/;"	g
+linenum	util.c	/^int linenum;  \/* Line in file being parsed. *\/$/;"	v
+linked_f_pointer_free_head	route_common.c	/^static struct s_linked_f_pointer* linked_f_pointer_free_head = NULL;$/;"	v	typeref:struct:s_linked_f_pointer	file:
+linked_vptr_t	util.h	/^} linked_vptr_t;$/;"	t	typeref:struct:s_linked_vptr
+list	util.h	/^    int* list;$/;"	m	struct:s_ivec
+load_channel_occupancies	stats.c	/^static void load_channel_occupancies(int** chanx_occ, int** chany_occ)$/;"	f	file:
+load_chanx_rr_indices	rr_graph2.c	/^static int load_chanx_rr_indices(segment_details_t* seg_details_x, int$/;"	f	file:
+load_chany_rr_indices	rr_graph2.c	/^static int load_chany_rr_indices(segment_details_t* seg_details_y, int$/;"	f	file:
+load_constant_net_delay	net_delay.c	/^void load_constant_net_delay(double** net_delay,$/;"	f
+load_criticalities	timing_place.c	/^void load_criticalities(double** net_slack,$/;"	f
+load_extra_switch_types	read_arch.c	/^static void load_extra_switch_types(detail_routing_arch_t *$/;"	f	file:
+load_font	graphics.c	/^static void load_font(int pointsize)$/;"	f	file:
+load_global_segment_and_switch	read_arch.c	/^static void load_global_segment_and_switch(detail_routing_arch_t* det_routing_arch,$/;"	f	file:
+load_net_delay_from_routing	net_delay.c	/^void load_net_delay_from_routing(double** net_delay)$/;"	f
+load_net_rr_terminals	rr_graph.c	/^void load_net_rr_terminals(int** rr_node_indices,$/;"	f
+load_new_path_R_upstream	route_tree_timing.c	/^static void load_new_path_R_upstream(t_rt_node* start_of_new_path_rt_node)$/;"	f	file:
+load_one_clb_fanout_count	vpr_utils.c	/^void load_one_clb_fanout_count(int subblock_lut_size,$/;"	f
+load_one_constant_net_delay	net_delay.c	/^static void load_one_constant_net_delay(double** net_delay, int inet, double$/;"	f	file:
+load_one_net_delay	net_delay.c	/^static void load_one_net_delay(double** net_delay, int inet, t_linked_rc_ptr$/;"	f	file:
+load_perturbed_switch_pattern	rr_graph.c	/^static void load_perturbed_switch_pattern(int** *tracks_connected_to_pin,$/;"	f	file:
+load_place_regions	place.c	/^static void load_place_regions(int num_regions)$/;"	f	file:
+load_place_regions	place_parallel.c	/^static void load_place_regions(int num_regions)$/;"	f	file:
+load_rc_tree_C	net_delay.c	/^static double load_rc_tree_C(t_rc_node* rc_node)$/;"	f	file:
+load_rc_tree_T	net_delay.c	/^static void load_rc_tree_T(t_rc_node* rc_node, double T_arrival)$/;"	f	file:
+load_route_bb	route_common.c	/^static void load_route_bb(int bb_factor)$/;"	f	file:
+load_rr_indexed_data_T_values	rr_graph_indexed_data.c	/^static void load_rr_indexed_data_T_values(int index_start, int$/;"	f	file:
+load_rr_indexed_data_base_costs	rr_graph_indexed_data.c	/^static void load_rr_indexed_data_base_costs(int nodes_per_chan, int**$/;"	f	file:
+load_rt_subtree_delay	route_tree_timing.c	/^static void load_rt_subtree_delay(t_rt_node* subtree_rt_root, double Tarrival)$/;"	f	file:
+load_subblock_array	read_netlist.c	/^static void load_subblock_array(int doall, FILE* fp_net,$/;"	f	file:
+load_timing_graph_net_delays_parallel	path_delay_parallel.c	/^unsigned long load_timing_graph_net_delays_parallel(double** net_delay,$/;"	f
+load_timing_graph_net_delays	path_delay.c	/^void load_timing_graph_net_delays(double** net_delay) \/* FIXME *\/$/;"	f
+load_uniform_switch_pattern	rr_graph.c	/^static void load_uniform_switch_pattern(int** *tracks_connected_to_pin,$/;"	f	file:
+local_av_bb_cost	place_parallel.h	/^    double         local_av_bb_cost;$/;"	m	struct:s_thread_local_common_paras
+local_av_cost	place_parallel.h	/^    double         local_av_cost;$/;"	m	struct:s_thread_local_common_paras
+local_av_delay_cost	place_parallel.h	/^    double         local_av_delay_cost;$/;"	m	struct:s_thread_local_common_paras
+local_av_timing_cost	place_parallel.h	/^    double         local_av_timing_cost;$/;"	m	struct:s_thread_local_common_paras
+local_bb_cost	place_parallel.h	/^    double         local_bb_cost;$/;"	m	struct:s_thread_local_common_paras
+local_block_t	place_parallel.h	/^} local_block_t;$/;"	t	typeref:struct:s_local_block
+local_crit_exponent	place_parallel.h	/^    double         local_crit_exponent;$/;"	m	struct:s_thread_local_common_paras
+local_delay_cost	place_parallel.h	/^    double         local_delay_cost;$/;"	m	struct:s_thread_local_common_paras
+local_final_rlim	place_parallel.h	/^    double         local_final_rlim;$/;"	m	struct:s_thread_local_common_paras
+local_first_rlim	place_parallel.h	/^    double         local_first_rlim;$/;"	m	struct:s_thread_local_common_paras
+local_fixed_pins	place_parallel.h	/^    boolean        local_fixed_pins;$/;"	m	struct:s_thread_local_common_paras
+local_inverse_delta_rlim	place_parallel.h	/^    double         local_inverse_delta_rlim;$/;"	m	struct:s_thread_local_common_paras
+local_inverse_prev_bb_cost	place_parallel.h	/^    double         local_inverse_prev_bb_cost;$/;"	m	struct:s_thread_local_common_paras
+local_inverse_prev_timing_cost	place_parallel.h	/^    double         local_inverse_prev_timing_cost;$/;"	m	struct:s_thread_local_common_paras
+local_max_delay	place_parallel.h	/^    double         local_max_delay;$/;"	m	struct:s_thread_local_common_paras
+local_net_delay	place_parallel.h	/^    double**       local_net_delay;$/;"	m	struct:s_thread_local_common_paras
+local_net_slack	place_parallel.h	/^    double**       local_net_slack;$/;"	m	struct:s_thread_local_common_paras
+local_num_conns	place_parallel.h	/^    int            local_num_conns;$/;"	m	struct:s_thread_local_common_paras
+local_old_temper	place_parallel.h	/^    double         local_old_temper;$/;"	m	struct:s_thread_local_common_paras
+local_place_delay_value	place_parallel.h	/^    double         local_place_delay_value;$/;"	m	struct:s_thread_local_common_paras
+local_placer_opts	place_parallel.h	/^    placer_opts_t  local_placer_opts;$/;"	m	struct:s_thread_local_common_paras
+local_range_limit	place_parallel.h	/^    double         local_range_limit;$/;"	m	struct:s_thread_local_common_paras
+local_region_x_boundary	place_parallel.h	/^    int            local_region_x_boundary[3];$/;"	m	struct:s_thread_local_common_paras
+local_region_y_boundary	place_parallel.h	/^    int            local_region_y_boundary[3];$/;"	m	struct:s_thread_local_common_paras
+local_std_dev	place_parallel.h	/^    double         local_std_dev;$/;"	m	struct:s_thread_local_common_paras
+local_success_ratio	place_parallel.h	/^    double         local_success_ratio;$/;"	m	struct:s_thread_local_common_paras
+local_success_sum	place_parallel.h	/^    int            local_success_sum;$/;"	m	struct:s_thread_local_common_paras
+local_sum_of_squares	place_parallel.h	/^    double         local_sum_of_squares;$/;"	m	struct:s_thread_local_common_paras
+local_temper	place_parallel.h	/^    double         local_temper;$/;"	m	struct:s_thread_local_common_paras
+local_thread_id	place_parallel.h	/^    int            local_thread_id;$/;"	m	struct:s_thread_local_common_paras
+local_timing_cost	place_parallel.h	/^    double         local_timing_cost;$/;"	m	struct:s_thread_local_common_paras
+local_total_cost	place_parallel.h	/^    double         local_total_cost;$/;"	m	struct:s_thread_local_common_paras
+local_total_iter	place_parallel.h	/^    int            local_total_iter;$/;"	m	struct:s_thread_local_common_paras
+local_x_end	place_parallel.h	/^    int            local_x_end;$/;"	m	struct:s_thread_local_common_paras
+local_x_start	place_parallel.h	/^    int            local_x_start;$/;"	m	struct:s_thread_local_common_paras
+local_y_end	place_parallel.h	/^    int            local_y_end;$/;"	m	struct:s_thread_local_common_paras
+local_y_start	place_parallel.h	/^    int            local_y_start;$/;"	m	struct:s_thread_local_common_paras
+localvert_grid	place_parallel.c	/^grid_tile_t** localvert_grid = NULL;$/;"	v
+locate_source_vertex_index_by_net_index	path_delay.c	/^int locate_source_vertex_index_by_net_index(const int net_index)$/;"	f
+longline	vpr_types.h	/^    boolean  longline;$/;"	m	struct:t_seg_details
+longline	vpr_types.h	/^    boolean longline;$/;"	m	struct:s_segment_info_t
+lookup_dump	timing_place_lookup.c	/^static FILE* lookup_dump; \/*if debugging mode is on, print out to   *\/$/;"	v	file:
+m_av_bb_cost	vpr_types.h	/^    double  m_av_bb_cost;$/;"	m	struct:s_placer_costs
+m_av_cost	vpr_types.h	/^    double  m_av_cost;$/;"	m	struct:s_placer_costs
+m_av_delay_cost	vpr_types.h	/^    double  m_av_delay_cost;$/;"	m	struct:s_placer_costs
+m_av_timing_cost	vpr_types.h	/^    double  m_av_timing_cost;$/;"	m	struct:s_placer_costs
+m_bb_coord_new	place_parallel.h	/^    bbox_t*         m_bb_coord_new;$/;"	m	struct:s_thread_local_data_for_swap
+m_bb_cost	vpr_types.h	/^    double  m_bb_cost;$/;"	m	struct:s_placer_costs
+m_bb_edge_new	place_parallel.h	/^    bbox_t*         m_bb_edge_new;$/;"	m	struct:s_thread_local_data_for_swap
+m_capacity	vpr_types.h	/^    int  m_capacity;$/;"	m	struct:s_clb
+m_crit_exponent	vpr_types.h	/^    double    m_crit_exponent;$/;"	m	struct:s_placer_paras
+m_delay_cost	vpr_types.h	/^    double  m_delay_cost;$/;"	m	struct:s_placer_costs
+m_final_rlim	vpr_types.h	/^    double    m_final_rlim;$/;"	m	struct:s_placer_paras
+m_fixed_pins	vpr_types.h	/^    boolean   m_fixed_pins;$/;"	m	struct:s_placer_paras
+m_inner_crit_iter_count	vpr_types.h	/^    int       m_inner_crit_iter_count; \/* inner_crit_iter_count >= inner_recompute_limit *\/$/;"	m	struct:s_placer_paras
+m_inner_recompute_limit	vpr_types.h	/^    int       m_inner_recompute_limit;$/;"	m	struct:s_placer_paras
+m_inverse_delta_rlim	vpr_types.h	/^    double    m_inverse_delta_rlim;$/;"	m	struct:s_placer_paras
+m_inverse_prev_bb_cost	vpr_types.h	/^    double  m_inverse_prev_bb_cost;$/;"	m	struct:s_placer_costs
+m_inverse_prev_timing_cost	vpr_types.h	/^    double  m_inverse_prev_timing_cost;$/;"	m	struct:s_placer_costs
+m_local_bb_coord	place_parallel.h	/^    bbox_t*         m_local_bb_coord;$/;"	m	struct:s_thread_local_data_for_swap
+m_local_bb_edge	place_parallel.h	/^    bbox_t*         m_local_bb_edge;$/;"	m	struct:s_thread_local_data_for_swap
+m_local_block	place_parallel.h	/^    local_block_t*  m_local_block;$/;"	m	struct:s_thread_local_data_for_swap
+m_local_grid	place_parallel.h	/^    grid_tile_t**   m_local_grid;$/;"	m	struct:s_thread_local_data_for_swap
+m_local_net_cost	place_parallel.h	/^    double*         m_local_net_cost;$/;"	m	struct:s_thread_local_data_for_swap
+m_local_temp_net_cost	place_parallel.h	/^    double*         m_local_temp_net_cost;$/;"	m	struct:s_thread_local_data_for_swap
+m_local_temp_point_to_point_delay_cost	place_parallel.h	/^    double**        m_local_temp_point_to_point_delay_cost;$/;"	m	struct:s_thread_local_data_for_swap
+m_local_temp_point_to_point_timing_cost	place_parallel.h	/^    double**        m_local_temp_point_to_point_timing_cost;$/;"	m	struct:s_thread_local_data_for_swap
+m_max_delay	vpr_types.h	/^    double    m_max_delay;$/;"	m	struct:s_placer_paras
+m_move_limit	vpr_types.h	/^    int       m_move_limit;$/;"	m	struct:s_placer_paras
+m_net_block_moved	place_parallel.h	/^    int*            m_net_block_moved;$/;"	m	struct:s_thread_local_data_for_swap
+m_nets_to_update	place_parallel.h	/^    int*            m_nets_to_update;$/;"	m	struct:s_thread_local_data_for_swap
+m_new_bb_cost	vpr_types.h	/^    double  m_new_bb_cost;$/;"	m	struct:s_placer_costs
+m_new_delay_cost	vpr_types.h	/^    double  m_new_delay_cost;$/;"	m	struct:s_placer_costs
+m_new_timing_cost	vpr_types.h	/^    double  m_new_timing_cost;$/;"	m	struct:s_placer_costs
+m_num_connections	vpr_types.h	/^    int       m_num_connections;$/;"	m	struct:s_placer_paras
+m_offset	vpr_types.h	/^    int  m_offset;$/;"	m	struct:s_clb
+m_outer_crit_iter_count	vpr_types.h	/^    int       m_outer_crit_iter_count; \/* recompute_crit_iter *\/$/;"	m	struct:s_placer_paras
+m_place_delay_value	vpr_types.h	/^    double    m_place_delay_value;$/;"	m	struct:s_placer_paras
+m_prob	place_parallel.h	/^    int*    m_prob;$/;"	m	struct:pthread_data
+m_prob	vpr_types.h	/^    int                m_prob; \/* 0 to 100 *\/$/;"	m	struct:s_placer_opts
+m_range_limit	vpr_types.h	/^    double    m_range_limit;$/;"	m	struct:s_placer_paras
+m_std_dev	vpr_types.h	/^    double    m_std_dev;$/;"	m	struct:s_placer_paras
+m_success_ratio	vpr_types.h	/^    double    m_success_ratio; \/* ratio = success_sum \/ total_iter *\/$/;"	m	struct:s_placer_paras
+m_success_sum	vpr_types.h	/^    int       m_success_sum;   \/* ++success_sum *\/$/;"	m	struct:s_placer_paras
+m_sum_of_squares	vpr_types.h	/^    double    m_sum_of_squares;$/;"	m	struct:s_placer_paras
+m_temper	vpr_types.h	/^    double    m_temper; \/* temperature update was depend on sucess_ratio *\/$/;"	m	struct:s_placer_paras
+m_timing_cost	vpr_types.h	/^    double  m_timing_cost;$/;"	m	struct:s_placer_costs
+m_total_cost	vpr_types.h	/^    double  m_total_cost;$/;"	m	struct:s_placer_costs
+m_total_iter	vpr_types.h	/^    int       m_total_iter;    \/* total_iter += move_limit *\/$/;"	m	struct:s_placer_paras
+m_usage	vpr_types.h	/^    int  m_usage;$/;"	m	struct:s_clb
+m_usage	vpr_types.h	/^    short m_usage;$/;"	m	struct:t_rr_node
+m_width_factor	vpr_types.h	/^    int       m_width_factor;$/;"	m	struct:s_placer_paras
+main	main.c	/^int main(int argc, char* argv[])$/;"	f
+map_button	graphics.c	/^static void map_button(int block_num)$/;"	f	file:
+mark_ends	route_common.c	/^void mark_ends(int inet)$/;"	f
+max_criticality	vpr_types.h	/^    double max_criticality;$/;"	m	struct:s_router_opts
+max_delay	place_parallel.h	/^    double* max_delay;$/;"	m	struct:pthread_data
+max_pins_per_clb	main.c	/^int  max_pins_per_clb;$/;"	v
+max_router_iterations	vpr_types.h	/^    int max_router_iterations;$/;"	m	struct:s_router_opts
+max_subblocks_per_block	vpr_types.h	/^    int  max_subblocks_per_block;$/;"	m	struct:__anon10
+max_subblocks_per_block	read_netlist.c	/^static int max_subblocks_per_block;$/;"	v	file:
+max	graphics.c	84;"	d	file:
+max	util.h	31;"	d
+menu_font_size	graphics.c	/^static const int menu_font_size = 14;   \/* Font for menus and dialog boxes. *\/$/;"	v	file:
+menutext	graphics.c	/^static void menutext(Window win, int xc, int yc, char* text)$/;"	f	file:
+menu	graphics.c	/^static Window toplevel, menu, textarea;  \/* various windows *\/$/;"	v	file:
+message	graphics.c	/^static char message[BUFSIZE] = "\\0"; \/* User message to display *\/$/;"	v	file:
+min	graphics.c	85;"	d	file:
+min	util.h	32;"	d
+move_lim	place_parallel.h	/^    int* success_sum, *move_lim, *tot_iter;$/;"	m	struct:pthread_data
+mutex	place_parallel.h	/^    pthread_mutex_t mutex;$/;"	m	struct:aligned_mutex
+my_atoi	util.c	/^int my_atoi(const char* str)$/;"	f
+my_calloc	util.c	/^void* my_calloc(size_t nelem,$/;"	f
+my_chunk_malloc	util.c	/^void* my_chunk_malloc(size_t size,$/;"	f
+my_difftime2	place_parallel.c	/^static double my_difftime2(struct timeval* start,$/;"	f	file:
+my_fgets	util.c	/^char* my_fgets(char* buf,$/;"	f
+my_fopen	util.c	/^FILE* my_fopen(const char* fname,$/;"	f
+my_frand_parallel	util.c	/^double my_frand_parallel(int random)$/;"	f
+my_frand	util.c	/^double my_frand(void)$/;"	f
+my_irand_parallel	util.c	/^int my_irand_parallel(int imax, int myid)$/;"	f
+my_irand	util.c	/^int my_irand(int imax)$/;"	f
+my_malloc	util.c	/^void* my_malloc(size_t size)$/;"	f
+my_realloc	util.c	/^void* my_realloc(void* ptr,$/;"	f
+my_srandom	util.c	/^void my_srandom(int seed)$/;"	f
+my_strdup	util.c	/^char* my_strdup(const char* str)$/;"	f
+my_strncpy	util.c	/^char* my_strncpy(char* dest,$/;"	f
+my_strtok	util.c	/^char* my_strtok(char* ptr,$/;"	f
+name	hash.h	/^    char* name;$/;"	m	struct:s_hash_t
+name	vpr_types.h	/^    char* name;$/;"	m	struct:s_block
+name	vpr_types.h	/^    char* name;$/;"	m	struct:s_net
+name	vpr_types.h	/^    char* name;$/;"	m	struct:s_subblock_t
+names	read_arch.c	/^static const char* names[NUMINP] = {"io_ratio",$/;"	v	file:
+nelem	util.h	/^    int  nelem;$/;"	m	struct:s_ivec
+net_color	draw.c	/^static enum color_types* net_color, *block_color;$/;"	v	typeref:enum:color_types	file:
+net_cost	place.c	/^static double* net_cost = NULL;      \/* double new_cost[0..num_nets-1] *\/$/;"	v	file:
+net_cost	place_parallel.c	/^static double* net_cost = NULL;$/;"	v	file:
+net_delay_chunk_list_head	timing_place.c	/^static linked_vptr_t*  net_delay_chunk_list_head;$/;"	v	file:
+net_delay	place_parallel.h	/^    double** net_delay;$/;"	m	struct:pthread_data
+net_delay	timing_place_lookup.c	/^static double** net_delay;$/;"	v	file:
+net_pin_index	place.c	/^static int** net_pin_index = NULL;$/;"	v	file:
+net_pin_index	place_parallel.c	/^static int** net_pin_index = NULL;$/;"	v	file:
+net_rr_terminals	main.c	/^int** net_rr_terminals; \/* [0..num_nets-1][0..num_pins-1]. *\/$/;"	v
+net_slack	place_parallel.h	/^    double** net_slack;$/;"	m	struct:pthread_data
+net_slack	timing_place_lookup.c	/^static double** net_slack;$/;"	v	file:
+net_t	vpr_types.h	/^} net_t;$/;"	t	typeref:struct:s_net
+nets	vpr_types.h	/^    int*  nets; \/* [0..max_pins_per_clb-1] *\/$/;"	m	struct:s_block
+net	main.c	/^net_t*   net;$/;"	v
+next	hash.h	/^    struct s_hash_t* next;$/;"	m	struct:s_hash_t	typeref:struct:s_hash_t::s_hash_t
+next	net_delay.c	/^                *next;$/;"	m	union:s_rc_node::__anon8	typeref:struct:s_rc_node::__anon8::s_rc_node	file:
+next	net_delay.c	/^            *next;$/;"	m	struct:s_linked_rc_ptr	typeref:struct:s_linked_rc_ptr::s_linked_rc_ptr	file:
+next	net_delay.c	/^            s_linked_rc_edge* next;$/;"	m	struct:s_linked_rc_edge	typeref:struct:s_linked_rc_edge::s_linked_rc_edge	file:
+next	route_common.h	/^        struct s_heap* next;$/;"	m	union:s_heap::__anon2	typeref:struct:s_heap::__anon2::s_heap
+next	route_tree_timing.h	/^        struct s_rt_node* next;$/;"	m	union:s_rt_node::__anon4	typeref:struct:s_rt_node::__anon4::s_rt_node
+next	route_tree_timing.h	/^    struct s_linked_rt_edge* next;$/;"	m	struct:s_linked_rt_edge	typeref:struct:s_linked_rt_edge::s_linked_rt_edge
+next	rr_graph_util.h	/^    struct s_linked_edge* next;$/;"	m	struct:s_linked_edge	typeref:struct:s_linked_edge::s_linked_edge
+next	util.h	/^    struct s_linked_int* next;$/;"	m	struct:s_linked_int	typeref:struct:s_linked_int::s_linked_int
+next	util.h	/^    struct s_linked_vptr* next;$/;"	m	struct:s_linked_vptr	typeref:struct:s_linked_vptr::s_linked_vptr
+next	vpr_types.h	/^    struct s_linked_f_pointer* next;$/;"	m	struct:s_linked_f_pointer	typeref:struct:s_linked_f_pointer::s_linked_f_pointer
+next	vpr_types.h	/^    struct s_trace* next;$/;"	m	struct:s_trace	typeref:struct:s_trace::s_trace
+nint	util.h	34;"	d
+node_block_pins	vpr_types.h	/^    int*  node_block_pins; \/* int*  blk_pin; *\/$/;"	m	struct:s_net
+node_blocks	vpr_types.h	/^    int*  node_blocks;     \/* int*  blocks; *\/$/;"	m	struct:s_net
+node_to_heap	route_common.c	/^void node_to_heap(int ivex, double cost, int prev_node, int prev_edge,$/;"	f
+nodes_per_chan	rr_graph.c	/^    int nodes_per_chan;$/;"	m	struct:s_rr_graph_internal_vars	file:
+nonlinear_cong_cost	place.c	/^static double nonlinear_cong_cost(int num_regions)$/;"	f	file:
+nonlinear_cong_cost	place_parallel.c	/^static double nonlinear_cong_cost(int num_regions)$/;"	f	file:
+num_blocks	main.c	/^int  num_blocks; \/* num_blocks = num_clbs + num_primary_inputs + num_primary_outputs *\/$/;"	v
+num_buttons	graphics.c	/^static int num_buttons;                  \/* Number of menu buttons *\/$/;"	v	file:
+num_clbs	main.c	/^int  num_clbs;$/;"	v
+num_connections	place_parallel.h	/^    int*    num_connections;$/;"	m	struct:pthread_data
+num_const_gen	vpr_types.h	/^    int  num_const_gen;$/;"	m	struct:__anon10
+num_driver	read_netlist.c	/^static int* num_driver, *temp_num_pins;$/;"	v	file:
+num_edges	vpr_types.h	/^    short num_edges;$/;"	m	struct:t_rr_node
+num_ff	vpr_types.h	/^    int  num_ff; \/* number of flip-flops in the input circuit netlist *\/$/;"	m	struct:__anon10
+num_globals	main.c	/^int  num_globals;$/;"	v
+num_grid_columns	main.c	/^int  num_grid_columns;  \/* num_of_block_columns *\/$/;"	v
+num_grid_rows	main.c	/^int  num_grid_rows;  \/* num_of_block_rows *\/$/;"	v
+num_heap_allocated	route_common.c	/^static int num_heap_allocated = 0;$/;"	v	file:
+num_linked_f_pointer_allocated	route_common.c	/^static int num_linked_f_pointer_allocated = 0;$/;"	v	file:
+num_net_pins	vpr_types.h	/^    int   num_net_pins;$/;"	m	struct:s_net
+num_nets	main.c	/^int  num_nets;$/;"	v
+num_of_vertexs	path_delay2.c	/^int num_of_vertexs; \/* Number of nodes (pins) in the timing graph *\/$/;"	v
+num_out_edges	path_delay2.h	/^    int     num_out_edges; \/* num_of_out_edges *\/$/;"	m	struct:s_vertex_t
+num_parents	path_delay2.h	/^    int     num_parents;$/;"	m	struct:s_vertex_t
+num_pin_class	main.c	/^int num_pin_class; \/* Number of different classes.  *\/$/;"	v
+num_pins	vpr_types.h	/^    int   num_pins;$/;"	m	struct:s_pin_class
+num_primary_inputs	main.c	/^int  num_primary_inputs; \/* maybe it was num_of_primary_inputs *\/$/;"	v
+num_primary_outputs	main.c	/^int  num_primary_outputs; \/* maybe it was num_of_primary_outputs *\/$/;"	v
+num_regions	vpr_types.h	/^    int                num_regions;$/;"	m	struct:s_placer_opts
+num_rr_indexed_data	main.c	/^int  num_rr_indexed_data;$/;"	v
+num_rr_nodes	main.c	/^int  num_rr_nodes;$/;"	v
+num_segment	vpr_types.h	/^    int num_segment;$/;"	m	struct:s_det_routing_arch
+num_subblocks_per_block	vpr_types.h	/^    int* num_subblocks_per_block; \/* int num_subblocks_per_block[0...num_blocks-1] *\/$/;"	m	struct:__anon10
+num_subblocks_per_block	read_netlist.c	/^static int* num_subblocks_per_block;$/;"	v	file:
+num_switch	vpr_types.h	/^    short num_switch;$/;"	m	struct:s_det_routing_arch
+num_tnode_levels	path_delay2.c	/^int       num_tnode_levels; \/* Number of levels in the timing graph. *\/$/;"	v
+num_trace_allocated	route_common.c	/^static int num_trace_allocated = 0;   \/* To watch for memory leaks. *\/$/;"	v	file:
+occupancy	vpr_types.h	/^    double occupancy;$/;"	m	struct:s_place_region_t
+operation_types_t	vpr_types.h	/^} operation_types_t;$/;"	t	typeref:enum:e_operation
+opin_switch	vpr_types.h	/^    short    opin_switch;$/;"	m	struct:t_seg_details
+opin_switch	vpr_types.h	/^    short  opin_switch;$/;"	m	struct:s_segment_info_t
+ortho_cost_index	vpr_types.h	/^    int ortho_cost_index;$/;"	m	struct:t_rr_indexed_data
+out_edges	path_delay2.h	/^    edge_t* out_edges;$/;"	m	struct:s_vertex_t
+output	vpr_types.h	/^    int   output; \/* driver pin index *\/$/;"	m	struct:s_subblock_t
+pad_loc_file	vpr_types.h	/^    char*              pad_loc_file;$/;"	m	struct:s_placer_opts
+pad_loc_t	vpr_types.h	/^} pad_loc_t;$/;"	t	typeref:enum:e_pad_loc_type
+pad_loc_type	vpr_types.h	/^    enum e_pad_loc_type pad_loc_type;$/;"	m	struct:s_placer_opts	typeref:enum:s_placer_opts::e_pad_loc_type
+pads_to_tracks	rr_graph.c	/^    int** pads_to_tracks;$/;"	m	struct:s_rr_graph_internal_vars	file:
+parent_node	route_tree_timing.h	/^    struct s_rt_node* parent_node;$/;"	m	struct:s_rt_node	typeref:struct:s_rt_node::s_rt_node
+parent_switch	route_tree_timing.h	/^    short parent_switch;$/;"	m	struct:s_rt_node
+parse_command	main.c	/^static void parse_command(int argc,$/;"	f	file:
+parse_name_and_pinlist	read_netlist.c	/^static void parse_name_and_pinlist(int doall, FILE* fp_net, char* buf)$/;"	f	file:
+parse_placement_file	read_place.c	/^void parse_placement_file(char* place_file, char* net_file, char* arch_file)$/;"	f
+parse_subblocks	read_netlist.c	/^static char* parse_subblocks(int doall, FILE* fp_net, char* buf,$/;"	f	file:
+partial_bb_results	place_parallel.h	/^double partial_bb_results[NUM_OF_THREADS];$/;"	v
+partial_delay_results	place_parallel.h	/^double partial_delay_results[NUM_OF_THREADS];$/;"	v
+partial_timing_results	place_parallel.h	/^double partial_timing_results[NUM_OF_THREADS];$/;"	v
+path_cost	route_common.h	/^    path_cost;$/;"	m	struct:__anon3
+pathfinder_update_cost	route_common.c	/^void pathfinder_update_cost(double pres_fac, double acc_fac)$/;"	f
+pathfinder_update_one_cost	route_common.c	/^void pathfinder_update_one_cost(struct s_trace* route_segment_start,$/;"	f
+peak	vpr_types.h	/^    double      peak;$/;"	m	struct:t_chan
+perform_timing_analyze_parallel	place_parallel.c	/^static void perform_timing_analyze_parallel(const int  kthread_id,$/;"	f	file:
+perform_timing_analyze	place.c	/^static void perform_timing_analyze(const placer_opts_t* placer_opts_ptr,$/;"	f	file:
+pfreq	vpr_types.h	/^typedef enum pfreq {$/;"	g
+pic_on_screen	draw.c	/^static enum pic_type pic_on_screen = NO_PICTURE;  \/* What do I draw? *\/$/;"	v	typeref:enum:pic_type	file:
+pic_type	vpr_types.h	/^enum pic_type {$/;"	g
+pin_and_chan_adjacent	check_route.c	/^static int pin_and_chan_adjacent(int pin_node, int chan_node)$/;"	f	file:
+pin_class_t	vpr_types.h	/^} pin_class_t;$/;"	t	typeref:struct:s_pin_class
+pin_criticality	timing_place_lookup.c	/^static double* pin_criticality;$/;"	v	file:
+pin_size	draw.c	/^static double clb_width, pin_size;$/;"	v	file:
+pin_types_t	vpr_types.h	/^} pin_types_t;$/;"	t	typeref:enum:e_pin_type
+pinlist	vpr_types.h	/^    int*  pinlist;$/;"	m	struct:s_pin_class
+pinloc	main.c	/^int** pinloc;$/;"	v
+place_algorithm_t	vpr_types.h	/^} place_algorithm_t;$/;"	t	typeref:enum:e_place_algorithm
+place_algorithm	vpr_types.h	/^    place_algorithm_t  place_algorithm;$/;"	m	struct:s_placer_opts
+place_and_route	place_and_route.c	/^void place_and_route(operation_types_t operation,$/;"	f
+place_chan_width	vpr_types.h	/^    int                place_chan_width;$/;"	m	struct:s_placer_opts
+place_cong_types_t	vpr_types.h	/^} place_cong_types_t;$/;"	t	typeref:enum:place_cong_types
+place_cong_types	vpr_types.h	/^typedef enum place_cong_types { \/* congestion_type *\/$/;"	g
+place_cost_exp	vpr_types.h	/^    double             place_cost_exp;$/;"	m	struct:s_placer_opts
+place_cost_type	vpr_types.h	/^    place_cong_types_t place_cost_type;$/;"	m	struct:s_placer_opts
+place_delay_value	place_parallel.h	/^    double* place_delay_value;$/;"	m	struct:pthread_data
+place_freq_t	vpr_types.h	/^} place_freq_t;$/;"	t	typeref:enum:pfreq
+place_freq	vpr_types.h	/^    enum pfreq         place_freq;$/;"	m	struct:s_placer_opts	typeref:enum:s_placer_opts::pfreq
+place_parallel	vpr_types.h	/^    boolean            place_parallel;$/;"	m	struct:s_placer_opts
+place_region_bounds_x	place.c	/^static double*  place_region_bounds_x;$/;"	v	file:
+place_region_bounds_x	place_parallel.c	/^static double* place_region_bounds_x = NULL;$/;"	v	file:
+place_region_bounds_y	place.c	/^static double*  place_region_bounds_y;$/;"	v	file:
+place_region_bounds_y	place_parallel.c	/^static double* place_region_bounds_y = NULL;$/;"	v	file:
+place_region_t	vpr_types.h	/^} place_region_t;$/;"	t	typeref:struct:s_place_region_t
+place_region_x	place.c	/^static place_region_t**  place_region_x = NULL;$/;"	v	file:
+place_region_x	place_parallel.c	/^static place_region_t**  place_region_x = NULL;$/;"	v	file:
+place_region_y	place.c	/^static place_region_t**  place_region_y = NULL;$/;"	v	file:
+place_region_y	place_parallel.c	/^static place_region_t**  place_region_y = NULL;$/;"	v	file:
+placed_sub_regions	place_parallel.h	/^    int  placed_sub_regions;$/;"	m	struct:pthread_data
+placer_costs_t	vpr_types.h	/^} placer_costs_t;$/;"	t	typeref:struct:s_placer_costs
+placer_opts_t	vpr_types.h	/^} placer_opts_t;$/;"	t	typeref:struct:s_placer_opts
+placer_opts	place_parallel.h	/^    placer_opts_t placer_opts;$/;"	m	struct:pthread_data
+placer_paras_t	vpr_types.h	/^} placer_paras_t;  \/* totally 19 items *\/$/;"	t	typeref:struct:s_placer_paras
+point_to_point_delay_cost	place.c	/^static double**  point_to_point_delay_cost = NULL;$/;"	v	file:
+point_to_point_delay_cost	place_parallel.c	/^static double**  point_to_point_delay_cost = NULL;$/;"	v	file:
+point_to_point_timing_cost	place.c	/^static double** point_to_point_timing_cost = NULL;$/;"	v	file:
+point_to_point_timing_cost	place_parallel.c	/^static double** point_to_point_timing_cost = NULL;$/;"	v	file:
+poly	graphics.c	/^    int poly[3][2];$/;"	m	struct:__anon7	file:
+postscript	graphics.c	/^static void postscript(void (*drawscreen)(void))$/;"	f	file:
+pos	place.h	/^}** pos;$/;"	v	typeref:struct:s_pos
+pres_cost	route_common.h	/^    double pres_cost;$/;"	m	struct:__anon3
+pres_fac_mult	vpr_types.h	/^    double pres_fac_mult;$/;"	m	struct:s_router_opts
+prev_edge	route_common.h	/^    int prev_edge;$/;"	m	struct:s_heap
+prev_edge	route_common.h	/^    short prev_edge;$/;"	m	struct:__anon3
+prev_node	route_common.h	/^        int prev_node;$/;"	m	union:s_heap::__anon2
+prev_node	route_common.h	/^    int prev_node;$/;"	m	struct:__anon3
+prinrr_indexed_data_t	rr_graph.c	/^void prinrr_indexed_data_t(FILE* fp, int index)$/;"	f
+prinrr_node_t	rr_graph.c	/^void prinrr_node_t(FILE* fp, int ivex)$/;"	f
+print_arch	read_arch.c	/^void print_arch(char* arch_file,$/;"	f
+print_array	timing_place_lookup.c	/^static void  print_array(double** array_to_print,$/;"	f	file:
+print_critical_path_node	path_delay2.c	/^double print_critical_path_node(FILE* fp,$/;"	f
+print_critical_path	path_delay.c	/^void print_critical_path(char* fname)$/;"	f
+print_int_matrix3	util.c	/^void print_int_matrix3(int** *vptr,$/;"	f
+print_lambda	stats.c	/^void print_lambda(void)$/;"	f
+print_net_delay	net_delay.c	/^void print_net_delay(double** net_delay, char* fname)$/;"	f
+print_net_slack	path_delay.c	/^void print_net_slack(char* fname, double** net_slack)$/;"	f
+print_netlist	print_netlist.c	/^void print_netlist(char* foutput, char* net_file, subblock_data_t subblock_data)$/;"	f
+print_pinnum	print_netlist.c	/^static void print_pinnum(FILE* fp, int pinnum)$/;"	f	file:
+print_place	read_place.c	/^void print_place(char* place_file, char* net_file, char* arch_file)$/;"	f
+print_route	route_common.c	/^void print_route(char* route_file)$/;"	f
+print_sink_delays	timing_place.c	/^void print_sink_delays(char* fname)$/;"	f
+print_timing_graph	path_delay.c	/^void print_timing_graph(char* fname)$/;"	f
+print_wirelen_prob_dist	stats.c	/^void print_wirelen_prob_dist(void)$/;"	f
+private_cmap	graphics.c	/^static Colormap private_cmap; \/* "None" unless a private cmap was allocated. *\/$/;"	v	file:
+proceed	graphics.c	/^static void proceed(void (*drawscreen)(void))$/;"	f	file:
+proceed	place_parallel.h	/^    int volatile proceed;$/;"	m	struct:aligned_bar
+ps_bot	graphics.c	/^static double ps_left, ps_right, ps_top, ps_bot; \/* Figure boundaries for *$/;"	v	file:
+ps_left	graphics.c	/^static double ps_left, ps_right, ps_top, ps_bot; \/* Figure boundaries for *$/;"	v	file:
+ps_right	graphics.c	/^static double ps_left, ps_right, ps_top, ps_bot; \/* Figure boundaries for *$/;"	v	file:
+ps_top	graphics.c	/^static double ps_left, ps_right, ps_top, ps_bot; \/* Figure boundaries for *$/;"	v	file:
+ps_xmult	graphics.c	/^static double ps_xmult, ps_ymult;     \/* Transformation for PostScript. *\/$/;"	v	file:
+ps_ymult	graphics.c	/^static double ps_xmult, ps_ymult;     \/* Transformation for PostScript. *\/$/;"	v	file:
+ps	graphics.c	/^static  FILE* ps;$/;"	v	file:
+ptc_num	vpr_types.h	/^    short ptc_num;$/;"	m	struct:t_rr_node
+pthread_data_t	place_parallel.h	/^} __attribute__((aligned(64))) pthread_data_t;$/;"	t	typeref:struct:pthread_data
+pthread_data	place_parallel.h	/^typedef struct pthread_data {$/;"	s
+quit	graphics.c	/^static void quit(void (*drawscreen)(void))$/;"	f	file:
+random_num_	place_parallel.h	/^    int random_num_;$/;"	m	struct:pthread_data
+range_limit	place_parallel.h	/^    double* range_limit;$/;"	m	struct:pthread_data
+rc_node	net_delay.c	/^    struct s_rc_node* rc_node;$/;"	m	struct:s_linked_rc_ptr	typeref:struct:s_linked_rc_ptr::s_rc_node	file:
+re_expand	route_tree_timing.h	/^    short re_expand;$/;"	m	struct:s_rt_node
+read_arch	read_arch.c	/^void read_arch(char* arch_file, router_types_t route_type,$/;"	f
+read_double_option	main.c	/^static double read_double_option(int argc, char* argv[], int iarg)$/;"	f	file:
+read_int_option	main.c	/^static int read_int_option(int argc, char* argv[], int iarg)$/;"	f	file:
+read_netlist	read_netlist.c	/^void read_netlist(char* net_file,$/;"	f
+read_place_header	read_place.c	/^static void read_place_header(FILE* fp, char* net_file, char* arch_file,$/;"	f	file:
+read_place	place.c	/^void read_place(char* place_file,$/;"	f
+read_user_pad_loc	read_place.c	/^void read_user_pad_loc(char* pad_loc_file)$/;"	f
+recompute_bb_cost	place.c	/^static double recompute_bb_cost(int place_cost_type,$/;"	f	file:
+recompute_crit_iter	vpr_types.h	/^    int                recompute_crit_iter; \/* 1 *\/$/;"	m	struct:s_placer_opts
+recompute_occupancy_from_scratch	check_route.c	/^static void recompute_occupancy_from_scratch(vector_t** clb_opins_used_locally)$/;"	f	file:
+recompute_td_cost_after_swap_certain_times	place.c	/^static void  recompute_td_cost_after_swap_certain_times(const placer_opts_t* placer_opts_ptr,$/;"	f	file:
+rect_off_screen	graphics.c	/^static int rect_off_screen(double x1, double y1, double x2, double y2)$/;"	f	file:
+redraw_screen	draw.c	/^static void redraw_screen(void)$/;"	f	file:
+req_time	path_delay2.h	/^    double  req_time; \/* required_time *\/$/;"	m	struct:s_vertex_t
+reserr_node_t_to_rc_node	net_delay.c	/^static void reserr_node_t_to_rc_node(t_linked_rc_ptr* rr_node_to_rc_node, int$/;"	f	file:
+reserve_locally_used_opins	route_common.c	/^void reserve_locally_used_opins(double pres_fac, boolean rip_up_local_opins,$/;"	f
+reset_all_tnodes_front_behind_crit_path	path_delay.c	/^static void reset_all_tnodes_front_behind_crit_path(void)$/;"	f	file:
+reset_flags	check_route.c	/^static void reset_flags(int inet, boolean* connected_to_route)$/;"	f	file:
+reset_path_costs	route_common.c	/^void reset_path_costs(void)$/;"	f
+restore_region_occ	place.c	/^static void restore_region_occ(double** old_region_occ_x,$/;"	f	file:
+restore_region_occ	place_parallel.c	/^restore_region_occ(double** old_region_occ_x,$/;"	f	file:
+restore_routing	route_common.c	/^void restore_routing(struct s_trace** best_routing, vector_t$/;"	f
+route_bb	route_common.c	/^bbox_t* route_bb = NULL; \/* [0..num_nets-1]. Limits area in which each  *\/$/;"	v
+route_type	vpr_types.h	/^    router_types_t route_type;$/;"	m	struct:s_router_opts
+router_algorithm_t	vpr_types.h	/^} router_algorithm_t;$/;"	t	typeref:enum:e_router_algorithm
+router_algorithm	vpr_types.h	/^    router_algorithm_t router_algorithm;$/;"	m	struct:s_router_opts
+router_base_cost_t	vpr_types.h	/^} router_base_cost_t;$/;"	t	typeref:enum:e_router_base_cost_type
+router_base_cost_type	vpr_types.h	/^    router_base_cost_t router_base_cost_type;$/;"	m	struct:s_router_opts
+router_opts_t	vpr_types.h	/^} router_opts_t;$/;"	t	typeref:struct:s_router_opts
+router_types_t	vpr_types.h	/^} router_types_t;$/;"	t	typeref:enum:e_route_type
+routing_stats	stats.c	/^void routing_stats(boolean full_stats, router_types_t route_type,$/;"	f
+rr_clb_source	main.c	/^int** rr_clb_source; \/* [0..num_blocks-1][0..num_pin_class-1]*\/$/;"	v
+rr_edge_done	rr_graph2.c	/^boolean* rr_edge_done;$/;"	v
+rr_graph_internal_vars	rr_graph.c	/^static struct s_rr_graph_internal_vars rr_graph_internal_vars;$/;"	v	typeref:struct:s_rr_graph_internal_vars	file:
+rr_indexed_data_t	vpr_types.h	/^} rr_indexed_data_t;$/;"	t	typeref:struct:t_rr_indexed_data
+rr_indexed_data	main.c	/^rr_indexed_data_t* rr_indexed_data; \/* [0..num_rr_indexed_data-1] *\/$/;"	v
+rr_mem_chunk_list_head	rr_graph.c	/^static linked_vptr_t* rr_mem_chunk_list_head = NULL;$/;"	v	file:
+rr_modified_head	route_common.c	/^static struct s_linked_f_pointer* rr_modified_head = NULL;$/;"	v	typeref:struct:s_linked_f_pointer	file:
+rr_node_indices	rr_graph.c	/^    int** rr_node_indices;$/;"	m	struct:s_rr_graph_internal_vars	file:
+rr_node_is_global_clb_ipin	check_rr_graph.c	/^static boolean rr_node_is_global_clb_ipin(int ivex)$/;"	f	file:
+rr_node_route_inf	route_common.c	/^rr_node_t_route_inf* rr_node_route_inf = NULL;       \/* [0..num_rr_nodes-1] *\/$/;"	v
+rr_node_t_route_inf	route_common.h	/^} rr_node_t_route_inf;$/;"	t	typeref:struct:__anon3
+rr_node_to_rt_node	route_tree_timing.c	/^static t_rt_node** rr_node_to_rt_node = NULL;   \/* [0..num_rr_nodes-1] *\/$/;"	v	file:
+rr_node_t	vpr_types.h	/^} rr_node_t;$/;"	t	typeref:struct:t_rr_node
+rr_node	main.c	/^rr_node_t* rr_node; \/* [0..num_rr_nodes-1]  *\/$/;"	v
+rr_types_t	vpr_types.h	/^} rr_types_t;$/;"	t	typeref:enum:t_rr_type
+rt_edge_free_list	route_tree_timing.c	/^static t_linked_rt_edge* rt_edge_free_list = NULL;$/;"	v	file:
+rt_node_free_list	route_tree_timing.c	/^static t_rt_node* rt_node_free_list = NULL;$/;"	v	file:
+rt_node_of_sink	timing_place_lookup.c	/^static t_rt_node** rt_node_of_sink;$/;"	v	file:
+run_low_temperature_place	place.c	/^static void  run_low_temperature_place(const placer_opts_t* placer_opts_ptr,$/;"	f	file:
+run_main_placement	place.c	/^static void run_main_placement(const placer_opts_t*  placer_opts_ptr,$/;"	f	file:
+s_annealing_sched	vpr_types.h	/^typedef struct s_annealing_sched {$/;"	s
+s_bb	vpr_types.h	/^typedef struct s_bb {$/;"	s
+s_block	vpr_types.h	/^typedef struct s_block {$/;"	s
+s_chan_width_distr	vpr_types.h	/^typedef struct s_chan_width_distr {$/;"	s
+s_clb	vpr_types.h	/^typedef struct s_clb {$/;"	s
+s_det_routing_arch	vpr_types.h	/^typedef struct s_det_routing_arch {$/;"	s
+s_edge_t	path_delay2.h	/^typedef struct s_edge_t {$/;"	s
+s_hash_iterator	hash.h	/^struct s_hash_iterator {$/;"	s
+s_hash_t	hash.h	/^typedef struct s_hash_t {$/;"	s
+s_heap	route_common.h	/^struct s_heap {$/;"	s
+s_ivec	util.h	/^typedef struct s_ivec {$/;"	s
+s_linked_edge	rr_graph_util.h	/^struct s_linked_edge {$/;"	s
+s_linked_f_pointer	vpr_types.h	/^struct s_linked_f_pointer {$/;"	s
+s_linked_int	util.h	/^typedef struct s_linked_int {$/;"	s
+s_linked_rc_edge	net_delay.c	/^struct s_linked_rc_edge {$/;"	s	file:
+s_linked_rc_ptr	net_delay.c	/^struct s_linked_rc_ptr {$/;"	s	file:
+s_linked_rt_edge	route_tree_timing.h	/^struct s_linked_rt_edge {$/;"	s
+s_linked_vptr	util.h	/^typedef struct s_linked_vptr {$/;"	s
+s_local_block	place_parallel.h	/^typedef struct s_local_block {$/;"	s
+s_net	vpr_types.h	/^typedef struct s_net {$/;"	s
+s_pin_class	vpr_types.h	/^typedef struct s_pin_class {$/;"	s
+s_place_region_t	vpr_types.h	/^typedef struct s_place_region_t {$/;"	s
+s_placer_costs	vpr_types.h	/^typedef  struct s_placer_costs {$/;"	s
+s_placer_opts	vpr_types.h	/^typedef struct s_placer_opts {$/;"	s
+s_placer_paras	vpr_types.h	/^typedef  struct s_placer_paras {$/;"	s
+s_pos	place.h	/^struct s_pos {$/;"	s
+s_randnum_generated_count	place_parallel.c	/^static int s_randnum_generated_count = 0; \/* == NUM_OF_SUB_REGIONS *\/$/;"	v	file:
+s_randnum_used_times	place_parallel.c	/^static int s_randnum_used_times = 0;  \/* == NUM_OF_THREADS *\/$/;"	v	file:
+s_rc_node	net_delay.c	/^struct s_rc_node {$/;"	s	file:
+s_router_opts	vpr_types.h	/^typedef struct s_router_opts {$/;"	s
+s_rr_graph_internal_vars	rr_graph.c	/^struct s_rr_graph_internal_vars {$/;"	s	file:
+s_rt_node	route_tree_timing.h	/^struct s_rt_node {$/;"	s
+s_segment_info_t	vpr_types.h	/^typedef struct s_segment_info_t {$/;"	s
+s_subblock_t	vpr_types.h	/^typedef struct s_subblock_t {$/;"	s
+s_switch_inf	vpr_types.h	/^typedef struct s_switch_inf {$/;"	s
+s_thread_local_common_paras	place_parallel.h	/^typedef struct s_thread_local_common_paras {$/;"	s
+s_thread_local_data_for_swap	place_parallel.h	/^typedef struct s_thread_local_data_for_swap {$/;"	s
+s_timing_inf	vpr_types.h	/^typedef struct s_timing_inf {$/;"	s
+s_trace	vpr_types.h	/^struct s_trace {$/;"	s
+s_vertex_t	path_delay2.h	/^typedef struct s_vertex_t {$/;"	s
+s_vertex_type_t	path_delay2.h	/^typedef enum s_vertex_type_t {$/;"	g
+save_region_occ	place.c	/^static void save_region_occ(double** old_region_occ_x,$/;"	f	file:
+save_region_occ	place_parallel.c	/^save_region_occ(double** old_region_occ_x,$/;"	f	file:
+save_routing	route_common.c	/^void save_routing(struct s_trace** best_routing, vector_t$/;"	f
+saved_base_cost	vpr_types.h	/^    double saved_base_cost;$/;"	m	struct:t_rr_indexed_data
+saved_xleft	graphics.c	/^static double saved_xleft, saved_xright, saved_ytop, saved_ybot;$/;"	v	file:
+saved_xright	graphics.c	/^static double saved_xleft, saved_xright, saved_ytop, saved_ybot;$/;"	v	file:
+saved_ybot	graphics.c	/^static double saved_xleft, saved_xright, saved_ytop, saved_ybot;$/;"	v	file:
+saved_ytop	graphics.c	/^static double saved_xleft, saved_xright, saved_ytop, saved_ybot;$/;"	v	file:
+sblk_pin_to_tnode	path_delay.h	/^int*** sblk_pin_to_tnode;$/;"	v
+sb	vpr_types.h	/^    boolean* sb;$/;"	m	struct:t_seg_details
+sched_type	vpr_types.h	/^typedef enum sched_type {$/;"	g
+sched_types_t	vpr_types.h	/^} sched_types_t;$/;"	t	typeref:enum:sched_type
+screen_num	graphics.c	/^static int screen_num;$/;"	v	file:
+secs	place_parallel.h	/^    int     secs;$/;"	m	struct:__anon6
+seg_details_x	rr_graph.c	/^    segment_details_t* seg_details_x;$/;"	m	struct:s_rr_graph_internal_vars	file:
+seg_details_y	rr_graph.c	/^    segment_details_t* seg_details_y;$/;"	m	struct:s_rr_graph_internal_vars	file:
+seg_index_of_cblock	rr_graph_util.c	/^int seg_index_of_cblock(rr_types_t from_rr_type, int to_node)$/;"	f
+seg_index_of_sblock	rr_graph_util.c	/^int seg_index_of_sblock(int from_node, int to_node)$/;"	f
+seg_index	vpr_types.h	/^    int seg_index;$/;"	m	struct:t_rr_indexed_data
+segment_details_t	vpr_types.h	/^} segment_details_t;$/;"	t	typeref:struct:t_seg_details
+segment_info_t	vpr_types.h	/^} segment_info_t;$/;"	t	typeref:struct:s_segment_info_t
+set_graphics_state	draw.c	/^void set_graphics_state(boolean show_graphics_val, int gr_automode_val,$/;"	f
+set_subblock_count	read_netlist.c	/^static void set_subblock_count(int block_num, int num_subblocks)$/;"	f	file:
+setcolor	graphics.c	/^void setcolor(int cindex) { }$/;"	f
+setcolor	graphics.c	/^void setcolor(int cindex)$/;"	f
+setfontsize	graphics.c	/^void setfontsize(int pointsize) { }$/;"	f
+setfontsize	graphics.c	/^void setfontsize(int pointsize)$/;"	f
+setlinestyle	graphics.c	/^void setlinestyle(int linestyle) { }$/;"	f
+setlinestyle	graphics.c	/^void setlinestyle(int linestyle)$/;"	f
+setlinewidth	graphics.c	/^void setlinewidth(int linewidth) { }$/;"	f
+setlinewidth	graphics.c	/^void setlinewidth(int linewidth)$/;"	f
+setpoly	graphics.c	/^static void setpoly(int block_num, int xc, int yc, int r, double theta)$/;"	f	file:
+setup_chan_width	timing_place_lookup.c	/^static void setup_chan_width(router_opts_t router_opts,$/;"	f	file:
+show_congestion	draw.c	/^static boolean show_congestion = FALSE;$/;"	v	file:
+show_graphics	draw.c	/^static boolean show_graphics;  \/* Graphics enabled or not? *\/$/;"	v	file:
+show_nets	draw.c	/^static boolean show_nets = FALSE;  \/* Show nets of placement or routing? *\/$/;"	v	file:
+side_types_t	vpr_types.h	/^} side_types_t;$/;"	t	typeref:enum:e_side
+sink_order	timing_place_lookup.c	/^static int* sink_order;$/;"	v	file:
+sink_partition_size	place_parallel.h	/^    int edge_partition_size, sink_partition_size, counter_edge, counter_sink;$/;"	m	struct:start_finish_nets
+sinks_in_this_partition	place_parallel.h	/^    unsigned long sinks_in_this_partition;$/;"	m	struct:start_finish_nets
+start_edge	place_parallel.h	/^    int start_edge, finish_edge, start_sinks, finish_sinks;$/;"	m	struct:start_finish_nets
+start_finish_nets	place_parallel.h	/^struct start_finish_nets {  \/* FIXME, important data structs for timing_driven placement *\/$/;"	s
+start_finish_nets	place_parallel.h	/^} start_finish_nets[NUM_OF_THREADS] __attribute__ ((aligned(64)));$/;"	v	typeref:struct:start_finish_nets
+start_hash_table_iterator	hash.c	/^struct s_hash_iterator start_hash_table_iterator(void) {$/;"	f
+start_sinks	place_parallel.h	/^    int start_edge, finish_edge, start_sinks, finish_sinks;$/;"	m	struct:start_finish_nets
+starting_temperature	place.c	/^static double starting_temperature(const annealing_sched_t annealing_sched,$/;"	f	file:
+starting_t	place_parallel.c	/^static double starting_t(double* cost_ptr,$/;"	f	file:
+start	vpr_types.h	/^    int      start;$/;"	m	struct:t_seg_details
+std_dev	place_parallel.h	/^    double* cost, *bb_cost, *success_rat, *std_dev;$/;"	m	struct:pthread_data
+subblock_data_t	vpr_types.h	/^} subblock_data_t;$/;"	t	typeref:struct:__anon10
+subblock_inf	vpr_types.h	/^    subblock_t** subblock_inf; \/* [num_blocks][num_subblock_per_block[iblk]] *\/$/;"	m	struct:__anon10
+subblock_inf	read_netlist.c	/^static subblock_t** subblock_inf;$/;"	v	file:
+subblock_lut_size	vpr_types.h	/^    int  subblock_lut_size; \/* input pins of subblock, that is, LUT-K. *\/$/;"	m	struct:__anon10
+subblock_lut_size	read_netlist.c	/^static int subblock_lut_size;$/;"	v	file:
+subblock_t	vpr_types.h	/^} subblock_t;$/;"	t	typeref:struct:s_subblock_t
+subnet_local_crit_weight	timing_place.c	/^double** subnet_local_crit_weight; \/* [inet][ipin] *\/$/;"	v
+success_rat	place_parallel.h	/^    double* cost, *bb_cost, *success_rat, *std_dev;$/;"	m	struct:pthread_data
+success_sum	place_parallel.h	/^    int* success_sum, *move_lim, *tot_iter;$/;"	m	struct:pthread_data
+sum_of_squares	place_parallel.h	/^    double* av_cost, *av_bb_cost, *av_timing_cost, *av_delay_cost, *sum_of_squares;$/;"	m	struct:pthread_data
+switch_block_conn	rr_graph_sbox.c	/^static vector_t*** switch_block_conn;$/;"	v	file:
+switch_block_t	vpr_types.h	/^} switch_block_t;$/;"	t	typeref:enum:e_switch_block_type
+switch_block_type	vpr_types.h	/^    switch_block_t switch_block_type;$/;"	m	struct:s_det_routing_arch
+switch_info_t	vpr_types.h	/^} switch_info_t;$/;"	t	typeref:struct:s_switch_inf
+switch_inf	main.c	/^switch_info_t* switch_inf; \/* [0..det_routing_arch.num_switch-1] *\/$/;"	v
+switches	vpr_types.h	/^    short* switches;$/;"	m	struct:t_rr_node
+t_button	graphics.c	/^} t_button;$/;"	t	typeref:struct:__anon7	file:
+t_chan	vpr_types.h	/^typedef struct t_chan {$/;"	s
+t_linked_edge	rr_graph_util.h	/^typedef struct s_linked_edge t_linked_edge;$/;"	t	typeref:struct:s_linked_edge
+t_linked_int	util.h	/^} t_linked_int;$/;"	t	typeref:struct:s_linked_int
+t_linked_rc_edge	net_delay.c	/^typedef struct s_linked_rc_edge t_linked_rc_edge;$/;"	t	typeref:struct:s_linked_rc_edge	file:
+t_linked_rc_ptr	net_delay.c	/^typedef struct s_linked_rc_ptr t_linked_rc_ptr;$/;"	t	typeref:struct:s_linked_rc_ptr	file:
+t_linked_rt_edge	route_tree_timing.h	/^typedef struct s_linked_rt_edge t_linked_rt_edge;$/;"	t	typeref:struct:s_linked_rt_edge
+t_point	graphics.h	/^} t_point; \/* Used in calls to fillpoly *\/$/;"	t	typeref:struct:__anon1
+t_rc_node	net_delay.c	/^typedef struct s_rc_node t_rc_node;$/;"	t	typeref:struct:s_rc_node	file:
+t_rr_indexed_data	vpr_types.h	/^typedef struct t_rr_indexed_data {$/;"	s
+t_rr_node	vpr_types.h	/^typedef struct t_rr_node {$/;"	s
+t_rr_type	vpr_types.h	/^typedef enum t_rr_type {$/;"	g
+t_rt_node	route_tree_timing.h	/^typedef struct s_rt_node t_rt_node;$/;"	t	typeref:struct:s_rt_node
+t_seg_details	vpr_types.h	/^typedef struct t_seg_details {$/;"	s
+target_flag	route_common.h	/^    target_flag;$/;"	m	struct:__anon3
+td_place_exp_first	vpr_types.h	/^    double             td_place_exp_first; \/* 1.0 *\/$/;"	m	struct:s_placer_opts
+td_place_exp_last	vpr_types.h	/^    double             td_place_exp_last;  \/* 8.0 *\/$/;"	m	struct:s_placer_opts
+tedge_ch_bytes_avail	path_delay.c	/^static int tedge_ch_bytes_avail = 0;$/;"	v	file:
+tedge_ch_list_head	path_delay.c	/^static linked_vptr_t* tedge_ch_list_head = NULL;$/;"	v	file:
+tedge_ch_next_avail	path_delay.c	/^static char* tedge_ch_next_avail = NULL;$/;"	v	file:
+temp_block_storage	read_netlist.c	/^static int temp_block_storage;$/;"	v	file:
+temp_net_cost	place.c	/^static double* temp_net_cost = NULL; \/* double temp_new_cost[0..num_nets-1] *\/$/;"	v	file:
+temp_net_cost	place_parallel.c	/^static double* temp_net_cost = NULL; \/* [0..num_nets-1] *\/$/;"	v	file:
+temp_num_pins	read_netlist.c	/^static int* num_driver, *temp_num_pins;$/;"	v	file:
+temp_point_to_point_delay_cost	place.c	/^static double**  temp_point_to_point_delay_cost = NULL;$/;"	v	file:
+temp_point_to_point_delay_cost	place_parallel.c	/^static double**  temp_point_to_point_delay_cost = NULL;$/;"	v	file:
+temp_point_to_point_timing_cost	place.c	/^static double** temp_point_to_point_timing_cost = NULL;$/;"	v	file:
+temp_point_to_point_timing_cost	place_parallel.c	/^static double** temp_point_to_point_timing_cost = NULL;$/;"	v	file:
+test_if_exposed	graphics.c	/^static Bool test_if_exposed(Display* disp, XEvent* event_ptr,$/;"	f	file:
+textarea	graphics.c	/^static Window toplevel, menu, textarea;  \/* various windows *\/$/;"	v	file:
+text	graphics.c	/^    char text[BUTTON_TEXT_LEN];$/;"	m	struct:__anon7	file:
+thread_barriers	place_parallel.h	/^aligned_bar_t    thread_barriers[NUM_OF_THREADS];$/;"	v
+thread_data_array	place_parallel.c	/^pthread_data_t thread_data_array[NUM_OF_THREADS];$/;"	v
+thread_id	place_parallel.h	/^    int thread_id;  \/* Most important! which thread *\/$/;"	m	struct:pthread_data
+thread_local_common_paras_t	place_parallel.h	/^} __attribute__((aligned(64))) thread_local_common_paras_t;$/;"	t	typeref:struct:s_thread_local_common_paras
+thread_local_data_for_swap_t	place_parallel.h	/^} __attribute__((aligned(64))) thread_local_data_for_swap_t;$/;"	t	typeref:struct:s_thread_local_data_for_swap
+timing_analysis_enabled	vpr_types.h	/^    boolean  timing_analysis_enabled;$/;"	m	struct:s_timing_inf
+timing_cost	place_parallel.h	/^    double* timing_cost, *delay_cost;$/;"	m	struct:pthread_data
+timing_driven_check_net_delays	route_timing.c	/^static void timing_driven_check_net_delays(double** net_delay)$/;"	f	file:
+timing_driven_expand_neighbours	route_timing.c	/^static void timing_driven_expand_neighbours(struct s_heap* current, int inet,$/;"	f	file:
+timing_driven_route_net	route_timing.c	/^boolean timing_driven_route_net(int inet, double pres_fac,$/;"	f
+timing_info_t	vpr_types.h	/^} timing_info_t;$/;"	t	typeref:struct:s_timing_inf
+timing_place_crit_chunk_list_head	timing_place.c	/^static linked_vptr_t*  timing_place_crit_chunk_list_head;$/;"	v	file:
+timing_place_crit	timing_place.c	/^double** timing_place_crit;$/;"	v
+timing_tradeoff	vpr_types.h	/^    double             timing_tradeoff;$/;"	m	struct:s_placer_opts
+t	place_parallel.h	/^    double* t;$/;"	m	struct:pthread_data
+tnode_descript	path_delay2.c	/^vertex_descript* tnode_descript; \/* [0...num_of_vertexs-1] *\/$/;"	v
+tnodes_at_level	path_delay2.c	/^vector_t* tnodes_at_level;$/;"	v
+to_node	path_delay2.h	/^    int    to_node;$/;"	m	struct:s_edge_t
+toggle_congestion	draw.c	/^static void toggle_congestion(void (*drawscreen_ptr)(void))$/;"	f	file:
+toggle_nets	draw.c	/^static void toggle_nets(void (*drawscreen_ptr)(void))$/;"	f	file:
+toggle_rr	draw.c	/^static void toggle_rr(void (*drawscreen_ptr)(void))$/;"	f	file:
+top_height	graphics.c	/^static unsigned int top_width, top_height;      \/* window size *\/$/;"	v	file:
+top_width	graphics.c	/^static unsigned int top_width, top_height;      \/* window size *\/$/;"	v	file:
+toplevel	graphics.c	/^static Window toplevel, menu, textarea;  \/* various windows *\/$/;"	v	file:
+tot_iter	place_parallel.h	/^    int* success_sum, *move_lim, *tot_iter;$/;"	m	struct:pthread_data
+trace_free_head	route_common.c	/^static struct s_trace* trace_free_head = NULL;$/;"	v	typeref:struct:s_trace	file:
+trace_head	main.c	/^struct s_trace**  trace_head;$/;"	v	typeref:struct:s_trace
+trace_tail	main.c	/^struct s_trace**  trace_tail;$/;"	v	typeref:struct:s_trace
+track_side	rr_graph.c	/^static int track_side(int clb_side)$/;"	f	file:
+tracks_to_clb_ipin	rr_graph.c	/^    vector_t** tracks_to_clb_ipin;$/;"	m	struct:s_rr_graph_internal_vars	file:
+tracks_to_pads	rr_graph.c	/^    vector_t* tracks_to_pads;$/;"	m	struct:s_rr_graph_internal_vars	file:
+trans_per_R	rr_graph_area.c	/^static double trans_per_R(double Rtrans, double R_minW_trans)$/;"	f	file:
+trans_per_buf	rr_graph_area.c	/^static double trans_per_buf(double Rbuf, double R_minW_nmos, double R_minW_pmos)$/;"	f	file:
+trans_per_mux	rr_graph_area.c	/^static double trans_per_mux(int num_inputs, double trans_sram_bit)$/;"	f	file:
+translate_down	graphics.c	/^static void translate_down(void (*drawscreen)(void))$/;"	f	file:
+translate_left	graphics.c	/^static void translate_left(void (*drawscreen)(void))$/;"	f	file:
+translate_right	graphics.c	/^static void translate_right(void (*drawscreen)(void))$/;"	f	file:
+translate_up	graphics.c	/^static void translate_up(void (*drawscreen)(void))$/;"	f	file:
+try_breadth_first_route	route_breadth_first.c	/^boolean try_breadth_first_route(router_opts_t router_opts,$/;"	f
+try_place_a_subregion	place_parallel.c	/^static void  try_place_a_subregion(const int  kthread_id,$/;"	f	file:
+try_place_parallel	place_parallel.c	/^static void* try_place_parallel(pthread_data_t* input_args)$/;"	f	file:
+try_place_use_multi_threads	place_parallel.c	/^void try_place_use_multi_threads(const placer_opts_t* placer_opts_ptr,$/;"	f
+try_place	place.c	/^void try_place(const char*         netlist_file,$/;"	f
+try_route	route_common.c	/^boolean try_route(int width_fac, router_opts_t router_opts,$/;"	f
+try_swap_parallel	place_parallel.c	/^static int  try_swap_parallel(const double kt,$/;"	f	file:
+try_swap	place.c	/^static int try_swap(const placer_paras_t*  placer_paras_ptr,$/;"	f	file:
+try_swap	place_parallel.c	/^static int try_swap(double t,$/;"	f	file:
+try_timing_driven_route	route_timing.c	/^boolean try_timing_driven_route(router_opts_t router_opts,$/;"	f
+turn_on_off	graphics.c	/^static void turn_on_off(int pressed)$/;"	f	file:
+type	path_delay2.h	/^    vertex_type_t type;$/;"	m	struct:__anon5
+type	vpr_types.h	/^    enum  e_pin_type type;$/;"	m	struct:s_pin_class	typeref:enum:s_pin_class::e_pin_type
+type	vpr_types.h	/^    enum e_stat type;$/;"	m	struct:t_chan	typeref:enum:t_chan::e_stat
+type	vpr_types.h	/^    rr_types_t type;$/;"	m	struct:t_rr_node
+type	vpr_types.h	/^    sched_types_t type;$/;"	m	struct:s_annealing_sched
+u	net_delay.c	/^    } u;$/;"	m	struct:s_rc_node	typeref:union:s_rc_node::__anon8	file:
+u	route_common.h	/^    } u;$/;"	m	struct:s_heap	typeref:union:s_heap::__anon2
+u	route_tree_timing.h	/^    } u;$/;"	m	struct:s_rt_node	typeref:union:s_rt_node::__anon4
+unique_pin_list	place.c	/^static int** unique_pin_list;$/;"	v	file:
+unique_pin_list	place_parallel.c	/^static int** unique_pin_list;$/;"	v	file:
+unmap_button	graphics.c	/^static void unmap_button(int block_num)$/;"	f	file:
+update_and_print_common_paras	place_parallel.c	/^static void update_and_print_common_paras(const int kthread_id,$/;"	f	file:
+update_bb_parallel	place_parallel.c	/^static void update_bb_parallel(int inet,$/;"	f	file:
+update_bb	place.c	/^static void update_bb(int inet,$/;"	f	file:
+update_bb	place_parallel.c	/^static void update_bb(int inet,$/;"	f	file:
+update_crit_exponent	place.c	/^static double update_crit_exponent(const placer_opts_t*  placer_opts_ptr,$/;"	f	file:
+update_from_global_to_local_grid_only	place_parallel.c	/^static void update_from_global_to_local_grid_only(grid_tile_t** local_grid,$/;"	f	file:
+update_from_global_to_local_grid	place_parallel.c	/^static void update_from_global_to_local_grid(const int kiter,$/;"	f	file:
+update_from_global_to_local_hori	place_parallel.c	/^static void update_from_global_to_local_hori(local_block_t* local_block,$/;"	f	file:
+update_from_global_to_local_vert	place_parallel.c	/^static void update_from_global_to_local_vert(local_block_t* local_block,$/;"	f	file:
+update_from_local_to_global	place_parallel.c	/^static void update_from_local_to_global(local_block_t* local_block,$/;"	f	file:
+update_local_data_from_global	place_parallel.c	/^static void update_local_data_from_global(const int* region_x_boundary,$/;"	f	file:
+update_message	graphics.c	/^void update_message(char* msg) { }$/;"	f
+update_message	graphics.c	/^void update_message(char* msg)$/;"	f
+update_net_delays_from_route_tree	route_tree_timing.c	/^void update_net_delays_from_route_tree(double* net_delay,$/;"	f
+update_place_cost_after_max_move_times	place.c	/^static void update_place_cost_after_max_move_times(const placer_opts_t* placer_opts_ptr,$/;"	f	file:
+update_place_costs_by_success_sum	place.c	/^static void update_place_costs_by_success_sum(const placer_paras_t* placer_paras_ptr,$/;"	f	file:
+update_ps_transform	graphics.c	/^static void update_ps_transform(void)$/;"	f	file:
+update_range_limit	place.c	/^static void update_range_limit(double* rlim,$/;"	f	file:
+update_region_occ	place.c	/^static void update_region_occ(int inet, bbox_t* coords,$/;"	f	file:
+update_region_occ	place_parallel.c	/^static void update_region_occ(int inet,$/;"	f	file:
+update_rlim	place_parallel.c	/^static void update_rlim(double* range_limit,$/;"	f	file:
+update_route_tree	route_tree_timing.c	/^t_rt_node* update_route_tree(struct s_heap* hptr)$/;"	f
+update_rr_base_costs	route_timing.c	/^static void update_rr_base_costs(int inet, double largest_criticality)$/;"	f	file:
+update_screen	draw.c	/^void update_screen(int priority, char* msg, enum pic_type$/;"	f
+update_t_parallel	place_parallel.c	/^static void update_t_parallel(double* t,$/;"	f	file:
+update_td_cost	place_parallel.c	/^static void update_td_cost(int from_block,$/;"	f	file:
+update_temperature	place.c	/^static void update_temperature(double* t,$/;"	f	file:
+update_timing_driven_cost	place.c	/^static void update_timing_driven_cost(int from_block,$/;"	f	file:
+update_traceback	route_common.c	/^struct s_trace* update_traceback(struct s_heap* hptr, int inet) {$/;"	f
+update_transform	graphics.c	/^static void update_transform(void)$/;"	f	file:
+update_unbuffered_ancestors_C_downstream	route_tree_timing.c	/^static t_rt_node* update_unbuffered_ancestors_C_downstream(t_rt_node$/;"	f	file:
+update_win	graphics.c	/^static void update_win(int x[2], int y[2], void (*drawscreen)(void))$/;"	f	file:
+usecs	place_parallel.h	/^    int     usecs;$/;"	m	struct:__anon6
+vector_t	util.h	/^} vector_t;$/;"	t	typeref:struct:s_ivec
+vertex_descript	path_delay2.h	/^} vertex_descript;$/;"	t	typeref:struct:__anon5
+vertex_t	path_delay2.h	/^} vertex_t;$/;"	t	typeref:struct:s_vertex_t
+vertex_type_t	path_delay2.h	/^} vertex_type_t;$/;"	t	typeref:enum:s_vertex_type_t
+vertexes	path_delay2.c	/^vertex_t* vertexes;  \/* all vertexes in Timing-Analyze-Graph, [0...num_of_vertexs-1] *\/$/;"	v
+which_button	graphics.c	/^static int which_button(Window win)$/;"	f	file:
+which_io_block	rr_graph.c	/^static int which_io_block(int iblk)$/;"	f	file:
+width	graphics.c	/^    int width;$/;"	m	struct:__anon7	file:
+width	vpr_types.h	/^    double      width;$/;"	m	struct:t_chan
+win	graphics.c	/^    Window win;$/;"	m	struct:__anon7	file:
+wire_switch	vpr_types.h	/^    short    wire_switch;$/;"	m	struct:t_seg_details
+wire_switch	vpr_types.h	/^    short  wire_switch;$/;"	m	struct:s_segment_info_t
+wire_to_ipin_switch	vpr_types.h	/^    short wire_to_ipin_switch;$/;"	m	struct:s_det_routing_arch
+x_clb_left	draw.c	/^static double* x_clb_left, *y_clb_bottom;$/;"	v	file:
+x_end	place_parallel.h	/^    int y_start, y_end, x_start, x_end;$/;"	m	struct:pthread_data
+x_partition	place_parallel.c	/^int x_partition[64] = {$/;"	v
+x_start	place_parallel.h	/^    int y_start, y_end, x_start, x_end;$/;"	m	struct:pthread_data
+xcoord	graphics.c	/^static int xcoord(double worldx)$/;"	f	file:
+xhigh	vpr_types.h	/^    short xhigh;$/;"	m	struct:t_rr_node
+xleft	graphics.c	/^    int xleft;$/;"	m	struct:__anon7	file:
+xleft	graphics.c	/^static double xleft, xright, ytop, ybot;         \/* world coordinates *\/$/;"	v	file:
+xlow	vpr_types.h	/^    short xlow;$/;"	m	struct:t_rr_node
+xmax	vpr_types.h	/^    int xmax;$/;"	m	struct:s_bb
+x	graphics.h	/^    double x;$/;"	m	struct:__anon1
+xmin	vpr_types.h	/^    int xmin;$/;"	m	struct:s_bb
+x	place.h	/^    int x;$/;"	m	struct:s_pos
+x	place_parallel.h	/^    short x;$/;"	m	struct:s_local_block
+xmult	graphics.c	/^static double xmult, ymult;                  \/* Transformation factors *\/$/;"	v	file:
+x	vpr_types.h	/^    int   x;$/;"	m	struct:s_block
+xpeak	vpr_types.h	/^    double      xpeak;$/;"	m	struct:t_chan
+xright	graphics.c	/^static double xleft, xright, ytop, ybot;         \/* world coordinates *\/$/;"	v	file:
+y_clb_bottom	draw.c	/^static double* x_clb_left, *y_clb_bottom;$/;"	v	file:
+y_end	place_parallel.h	/^    int y_start, y_end, x_start, x_end;$/;"	m	struct:pthread_data
+y_partition	place_parallel.c	/^int y_partition[64] = {$/;"	v
+y_start	place_parallel.h	/^    int y_start, y_end, x_start, x_end;$/;"	m	struct:pthread_data
+ybot	graphics.c	/^static double xleft, xright, ytop, ybot;         \/* world coordinates *\/$/;"	v	file:
+ycoord	graphics.c	/^static int ycoord(double worldy)$/;"	f	file:
+yhigh	vpr_types.h	/^    short yhigh;$/;"	m	struct:t_rr_node
+ylow	vpr_types.h	/^    short ylow;$/;"	m	struct:t_rr_node
+ymax	vpr_types.h	/^    int ymax;$/;"	m	struct:s_bb
+y	graphics.h	/^    double y;$/;"	m	struct:__anon1
+ymin	vpr_types.h	/^    int ymin;$/;"	m	struct:s_bb
+y	place.h	/^    int y;$/;"	m	struct:s_pos
+y	place_parallel.h	/^    short y;$/;"	m	struct:s_local_block
+ymult	graphics.c	/^static double xmult, ymult;                  \/* Transformation factors *\/$/;"	v	file:
+y	vpr_types.h	/^    int   y;$/;"	m	struct:s_block
+ytop	graphics.c	/^    int ytop;$/;"	m	struct:__anon7	file:
+ytop	graphics.c	/^static double xleft, xright, ytop, ybot;         \/* world coordinates *\/$/;"	v	file:
+z	place.h	/^    int z;$/;"	m	struct:s_pos
+z	place_parallel.h	/^    short z;$/;"	m	struct:s_local_block
+z	vpr_types.h	/^    int   z;  \/* z: 0 for clb, 0, 1, 2.., io_ratio-1 for IO *\/$/;"	m	struct:s_block
+zoom_fit	graphics.c	/^static void zoom_fit(void (*drawscreen)(void))$/;"	f	file:
+zoom_in	graphics.c	/^static void zoom_in(void (*drawscreen)(void))$/;"	f	file:
+zoom_out	graphics.c	/^static void zoom_out(void (*drawscreen)(void))$/;"	f	file:

@@ -14,7 +14,9 @@
 /*#define VERBOSE 1*/      /* Prints all sorts of intermediate data */
 
 /* I will use 4, 6, 8 to test the speed of VPR4.3_parallel */
-#define NUM_OF_THREADS  4
+#define NUM_OF_THREADS 4
+
+#define NUM_OF_SUB_REGIONS 4
 
 #define EMPTY  -1
 
@@ -369,6 +371,8 @@ typedef struct s_placer_opts {
     double             td_place_exp_last;  /* 8.0 */
     /* New added for support para_place */
     boolean            place_parallel;
+    /* new added for PROB */
+    int                m_prob; /* 0 to 100 */
 } placer_opts_t;
 
 typedef  struct s_placer_costs {

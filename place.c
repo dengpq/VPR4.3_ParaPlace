@@ -2,6 +2,7 @@
 #include <math.h>
 #include <assert.h>
 #include <string.h>
+#include <time.h>
 
 #include "util.h"
 #include "globals.h"
@@ -556,6 +557,7 @@ void try_place(const char*         netlist_file,
     update_screen(MAJOR, msg, PLACEMENT, FALSE);
 
     /*************  MAIN SIMULATED ANNEANLING PlACEMENT STAGE  ****************/
+    clock_t start_time = clock();
     run_main_placement(placer_opts_ptr,
                        annealing_sched,
                        placer_paras_ptr,
@@ -564,6 +566,8 @@ void try_place(const char*         netlist_file,
                        net_slack,
                        net_delay,
                        placer_costs_ptr);
+    clock_t end_time = clock();
+    double main_placement_runtime = (double)(end_time - start_time) / CLOCKS_PER_SEC;
     /*****************  END OF MAIN PLACEMENT STAGE   ******************/
 
 
@@ -581,23 +585,16 @@ void try_place(const char*         netlist_file,
 #ifndef SPEC
     printf("After low-temperature SA-Based Placement, print the result......\n");
     printf("%11.5g  %10.6g %11.6g  %11.6g  %11.6g %11.6g %11.4g %9.4g %8.3g  %7.4g  %7.4g  %10d  \n\n",
-           placer_paras_ptr->m_temper,
-           placer_costs_ptr->m_av_cost,
-           placer_costs_ptr->m_av_bb_cost,
-           placer_costs_ptr->m_av_timing_cost,
-           placer_costs_ptr->m_av_delay_cost,
-           placer_paras_ptr->m_place_delay_value,
-           placer_paras_ptr->m_max_delay,
-           placer_paras_ptr->m_success_ratio,
-           placer_paras_ptr->m_std_dev,
-           placer_paras_ptr->m_range_limit,
-           placer_paras_ptr->m_crit_exponent,
-           placer_paras_ptr->m_total_iter);
+           placer_paras_ptr->m_temper, placer_costs_ptr->m_av_cost,
+           placer_costs_ptr->m_av_bb_cost, placer_costs_ptr->m_av_timing_cost,
+           placer_costs_ptr->m_av_delay_cost, placer_paras_ptr->m_place_delay_value,
+           placer_paras_ptr->m_max_delay, placer_paras_ptr->m_success_ratio,
+           placer_paras_ptr->m_std_dev, placer_paras_ptr->m_range_limit,
+           placer_paras_ptr->m_crit_exponent, placer_paras_ptr->m_total_iter);
 
     printf("For low-temperature SA-Based Placment, success_sum = %d,\
             total_iter = %10d, success_ratio = %9.4g\n",
-            placer_paras_ptr->m_success_sum,
-            placer_paras_ptr->m_total_iter,
+            placer_paras_ptr->m_success_sum, placer_paras_ptr->m_total_iter,
             placer_paras_ptr->m_success_ratio);
 #endif
 
@@ -676,6 +673,7 @@ void try_place(const char*         netlist_file,
                   FALSE);
 
     printf("Total moves attempted: %d.\n", placer_paras_ptr->m_total_iter);
+    printf("Main Placement cost %f seconds.\n", main_placement_runtime);
     if (kplace_algo == NET_TIMING_DRIVEN_PLACE
           || kplace_algo == PATH_TIMING_DRIVEN_PLACE
           /* new added for supporting PATH timing-driven placement */
@@ -901,9 +899,9 @@ static void run_main_placement(const placer_opts_t*  placer_opts_ptr,
              * compute_bb_cost() as frequency as try_swap(), it will result *
              * in VPR costing 4 or 5 times long than origin algorithm. So*
              * Do not use the following codes!!!                         */
-            if (fabs(placer_costs_ptr->m_bb_cost - compute_bb_cost(CHECK,
-                                                                   placer_opts_ptr->place_cost_type,
-                                                                   placer_opts_ptr->num_regions))
+            if (fabs(placer_costs_ptr->m_bb_cost
+                  - compute_bb_cost(CHECK, placer_opts_ptr->place_cost_type,
+                                    placer_opts_ptr->num_regions))
                     > placer_costs_ptr->m_bb_cost * ERROR_TOL) {
                 exit(1);
             }

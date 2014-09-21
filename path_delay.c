@@ -262,13 +262,14 @@ void alloc_and_load_timing_graph(const placer_opts_t*  placer_opts_ptr,
                        subblock_data.num_ff,
                        num_sinks);
 
-    check_vertexs_levels(); /* New added */
+    /* check_vertexs_levels(); New added */
 
     free_fanout_counts(num_uses_of_clb_ipin,
                        num_uses_of_sblk_opin);
-    /* free_pin_mappings(block_pin_to_tnode,
-                         sblk_pin_to_tnode,
-                         subblock_data.num_subblocks_per_block); */
+
+    free_pin_mappings(block_pin_to_tnode,
+                      sblk_pin_to_tnode,
+                      subblock_data.num_subblocks_per_block);
 } /* end of double** alloc_and_load_timing_graph() */
 
 /* First, front_crit_path_through_pin[all_vertexs] = 0.0, *
@@ -277,8 +278,7 @@ static void reset_all_tnodes_front_behind_crit_path(void)
 {
     int v = -1;
     for (v = 0; v < num_of_vertexs; ++v) {
-        front_crit_path_through_pin[v] = 0.0;
-        behind_crit_path_through_pin[v] = 0.0;
+        front_crit_path_through_pin[v] = behind_crit_path_through_pin[v] = 0.0;
     }
 }
 
@@ -395,10 +395,10 @@ static void calc_subnet_local_crit_weight(double** net_slack,
                 discount_value = compute_discount_value(ground_num,
                                                         net_slack[inet][ipin],
                                                         crit_delay);
-                sink_vertex_idx =
-                      find_sink_vertex_index_by_net_and_pin_index(inet,
-                                                                  ipin,
-                                                                  block_pin_to_tnode);
+                sink_vertex_idx = find_sink_vertex_index_by_net_and_pin_index(
+                                      inet,
+                                      ipin,
+                                      block_pin_to_tnode);
                 subnet_local_crit_weight[inet][ipin] =
                                 front_crit_path_through_pin[source_vertex_idx]
                                   * behind_crit_path_through_pin[sink_vertex_idx]
@@ -629,19 +629,15 @@ static void free_pin_mappings(int** block_pin_to_tnode,
                               int* num_subblocks_per_block)
 {
     /* Frees the arrays that map from pins to vertexes coordinates. */
-    free_matrix(block_pin_to_tnode,
-                0,
-                num_blocks - 1,
-                0,
+    free_matrix(block_pin_to_tnode, 0,
+                num_blocks - 1, 0,
                 sizeof(int));
 
     int iblk = -1;
     for (iblk = 0; iblk < num_blocks; ++iblk) {
         if (blocks[iblk].block_type == B_CLB_TYPE) {
-            free_matrix(sblk_pin_to_tnode[iblk],
-                        0,
-                        num_subblocks_per_block[iblk] - 1,
-                        0,
+            free_matrix(sblk_pin_to_tnode[iblk], 0,
+                        num_subblocks_per_block[iblk] - 1, 0,
                         sizeof(int));
         }
     }
